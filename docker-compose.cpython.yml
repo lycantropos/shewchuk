@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  shewchuk-cpython:
+    build:
+      context: .
+      args:
+        - IMAGE_NAME=${CPYTHON_IMAGE_NAME}
+        - IMAGE_VERSION=${CPYTHON_IMAGE_VERSION}
+    image: lycantropos/shewchuk-cpython:0.0.0
+    volumes:
+      - ./pytest.ini:/opt/shewchuk/pytest.ini
+      - ./README.md:/opt/shewchuk/README.md
+      - ./requirements-tests.txt:/opt/shewchuk/requirements-tests.txt
+      - ./requirements.txt:/opt/shewchuk/requirements.txt
+      - ./setup.py:/opt/shewchuk/setup.py
+      - ./shewchuk:/opt/shewchuk/shewchuk
+      - ./src:/opt/shewchuk/src
+      - ./tests:/opt/shewchuk/tests
+    entrypoint: pytest
