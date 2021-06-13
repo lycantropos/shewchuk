@@ -11,14 +11,14 @@ static void Quadruple_dealloc(QuadrupleObject *self) {
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
-static void two_add(double first, double second, double* head, double* tail) {
-    double result_head = first + second;
-    double second_virtual = result_head - first;
-    double first_virtual = result_head - second_virtual;
-    double first_tail = first - first_virtual;
-    double second_tail = second - second_virtual;
-    *head = result_head;
-    *tail = first_tail + second_tail;
+static void two_add(double first, double second, double *head, double *tail) {
+  double result_head = first + second;
+  double second_virtual = result_head - first;
+  double first_virtual = result_head - second_virtual;
+  double first_tail = first - first_virtual;
+  double second_tail = second - second_virtual;
+  *head = result_head;
+  *tail = first_tail + second_tail;
 }
 
 static PyObject *Quadruple_new(PyTypeObject *cls, PyObject *args,
@@ -28,8 +28,7 @@ static PyObject *Quadruple_new(PyTypeObject *cls, PyObject *args,
   if (!PyArg_ParseTuple(args, "|dd", &head, &tail)) return NULL;
   QuadrupleObject *self = (QuadrupleObject *)(cls->tp_alloc(cls, 0));
   if (self) {
-    if (tail)
-      two_add(head, tail, &head, &tail);
+    if (tail) two_add(head, tail, &head, &tail);
     self->head = head;
     self->tail = tail;
   }
@@ -37,14 +36,13 @@ static PyObject *Quadruple_new(PyTypeObject *cls, PyObject *args,
 }
 
 static PyObject *Quadruple_repr(QuadrupleObject *self) {
-  PyObject* head = PyFloat_FromDouble(self->head);
-  PyObject* result;
+  PyObject *head = PyFloat_FromDouble(self->head);
+  PyObject *result;
   if (self->tail) {
-    PyObject* tail = PyFloat_FromDouble(self->tail);
+    PyObject *tail = PyFloat_FromDouble(self->tail);
     result = PyUnicode_FromFormat("Quadruple(%R, %R)", head, tail);
     Py_XDECREF(tail);
-  }
-  else
+  } else
     result = PyUnicode_FromFormat("Quadruple(%R)", head);
   Py_XDECREF(head);
   return result;
