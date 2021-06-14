@@ -279,6 +279,11 @@ static ExpansionObject *Expansion_negative(ExpansionObject *self) {
   return construct_Expansion(Py_TYPE(self), result_components, self->size);
 }
 
+static ExpansionObject *Expansion_positive(ExpansionObject *self) {
+  Py_INCREF(self);
+  return self;
+}
+
 static PyObject *Expansion_repr(ExpansionObject *self) {
   PyObject *result;
   if (self->size > 1) {
@@ -347,6 +352,7 @@ static PyObject *Quadruple_repr(QuadrupleObject *self) {
 static PyNumberMethods Expansion_as_number = {
     .nb_add = Expansion_add,
     .nb_negative = (unaryfunc)Expansion_negative,
+    .nb_positive = (unaryfunc)Expansion_positive,
 };
 
 static PyTypeObject ExpansionType = {
