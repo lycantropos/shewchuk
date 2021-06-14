@@ -2,6 +2,15 @@
 #include <Python.h>
 #include <structmember.h>
 
+static void fast_two_add(double left, double right, double *result_head,
+                         double *result_tail) {
+  double head = left + right;
+  double right_virtual = head - left;
+  double tail = right - right_virtual;
+  *result_head = head;
+  *result_tail = tail;
+}
+
 static void two_add(double left, double right, double *result_head,
                     double *result_tail) {
   double head = left + right;
@@ -10,15 +19,6 @@ static void two_add(double left, double right, double *result_head,
   double left_tail = left - left_virtual;
   double right_tail = right - right_virtual;
   double tail = left_tail + right_tail;
-  *result_head = head;
-  *result_tail = tail;
-}
-
-static void fast_two_add(double left, double right, double *result_head,
-                         double *result_tail) {
-  double head = left + right;
-  double right_virtual = head - left;
-  double tail = right - right_virtual;
   *result_head = head;
   *result_tail = tail;
 }
@@ -92,9 +92,8 @@ size_t add_double_eliminating_zeros(size_t left_size, double *left,
   size_t result_size = 0;
   double accumulator = right;
   for (size_t index = 0; index < left_size; index++) {
-    double head, tail;
-    two_add(accumulator, left[index], &head, &tail);
-    accumulator = head;
+    double tail;
+    two_add(accumulator, left[index], &accumulator, &tail);
     if (!!tail) result[result_size++] = tail;
   }
   if (!!accumulator || !result_size) result[result_size++] = accumulator;
@@ -114,9 +113,8 @@ size_t subtract_from_double_eliminating_zeros(double minuend,
   size_t result_size = 0;
   double accumulator = minuend;
   for (size_t index = 0; index < subtrahend_size; index++) {
-    double head, tail;
-    two_add(accumulator, -subtrahend[index], &head, &tail);
-    accumulator = head;
+    double tail;
+    two_add(accumulator, -subtrahend[index], &accumulator, &tail);
     if (!!tail) result[result_size++] = tail;
   }
   if (!!accumulator || !result_size) result[result_size++] = accumulator;
