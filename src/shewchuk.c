@@ -84,6 +84,63 @@ size_t compress_components(size_t size, double *components) {
   return top + 1;
 }
 
+size_t add_components_eliminating_zeros(size_t left_size, double *left,
+                                        size_t right_size, double *right,
+                                        double *result) {
+  size_t left_index = 0, right_index = 0;
+  double left_component = left[left_index];
+  double right_component = right[right_index];
+  double cursor;
+  if ((right_component > left_component) ==
+      (right_component > -left_component)) {
+    cursor = left_component;
+    left_component = left[++left_index];
+  } else {
+    cursor = right_component;
+    right_component = right[++right_index];
+  }
+  size_t result_size = 0;
+  double head, tail;
+  if ((left_index < left_size) && (right_index < right_size)) {
+    if ((right_component > left_component) ==
+        (right_component > -left_component)) {
+      fast_two_add(left_component, cursor, &head, &tail);
+      left_component = left[++left_index];
+    } else {
+      fast_two_add(right_component, cursor, &head, &tail);
+      right_component = right[++right_index];
+    }
+    cursor = head;
+    if (!!tail) result[result_size++] = tail;
+    while ((left_index < left_size) && (right_index < right_size)) {
+      if ((right_component > left_component) ==
+          (right_component > -left_component)) {
+        two_add(cursor, left_component, &head, &tail);
+        left_component = left[++left_index];
+      } else {
+        two_add(cursor, right_component, &head, &tail);
+        right_component = right[++right_index];
+      }
+      cursor = head;
+      if (!!tail) result[result_size++] = tail;
+    }
+  }
+  while (left_index < left_size) {
+    two_add(cursor, left_component, &head, &tail);
+    left_component = left[++left_index];
+    cursor = head;
+    if (!!tail) result[result_size++] = tail;
+  }
+  while (right_index < right_size) {
+    two_add(cursor, right_component, &head, &tail);
+    right_component = right[++right_index];
+    cursor = head;
+    if (!!tail) result[result_size++] = tail;
+  }
+  if (!!cursor || !result_size) result[result_size++] = cursor;
+  return result_size;
+}
+
 typedef struct {
   PyObject_HEAD size_t size;
   double *components;
@@ -94,11 +151,6 @@ typedef struct {
   double tail;
 } QuadrupleObject;
 
-static void Expansion_dealloc(ExpansionObject *self) {
-  PyMem_RawFree(self->components);
-  Py_TYPE(self)->tp_free((PyObject *)self);
-}
-
 static ExpansionObject *construct_Expansion(PyTypeObject *cls,
                                             double *components, size_t size) {
   ExpansionObject *result = (ExpansionObject *)(cls->tp_alloc(cls, 0));
@@ -107,6 +159,35 @@ static ExpansionObject *construct_Expansion(PyTypeObject *cls,
     result->size = size;
   }
   return result;
+}
+
+static PyTypeObject ExpansionType;
+
+static ExpansionObject *Expansions_add(ExpansionObject *self,
+                                       ExpansionObject *other) {
+  double *result_components =
+      PyMem_RawCalloc(self->size + other->size, sizeof(double));
+  if (!result_components) return PyErr_NoMemory();
+  size_t result_size = add_components_eliminating_zeros(
+      self->size, self->components, other->size, other->components,
+      result_components);
+  result_components =
+      PyMem_RawRealloc(result_components, result_size * sizeof(double));
+  if (!result_components) return PyErr_NoMemory();
+  return construct_Expansion(Py_TYPE(self), result_components, result_size);
+}
+
+static PyObject *Expansion_add(PyObject *self, PyObject *other) {
+  if (PyObject_TypeCheck(self, &ExpansionType)) {
+    if (PyObject_TypeCheck(other, &ExpansionType))
+      return (PyObject *)Expansions_add((ExpansionObject *)self,
+                                        (ExpansionObject *)other);
+  }
+}
+
+static void Expansion_dealloc(ExpansionObject *self) {
+  PyMem_RawFree(self->components);
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
@@ -208,8 +289,13 @@ static PyObject *Quadruple_repr(QuadrupleObject *self) {
   return result;
 }
 
+static PyNumberMethods Expansion_as_number = {
+    .nb_add = Expansion_add,
+};
+
 static PyTypeObject ExpansionType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_basicsize = sizeof(ExpansionObject),
+    PyVarObject_HEAD_INIT(NULL, 0).tp_as_number = &Expansion_as_number,
+    .tp_basicsize = sizeof(ExpansionObject),
     .tp_dealloc = (destructor)Expansion_dealloc,
     .tp_doc = PyDoc_STR("Represents floating point number expansion."),
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
