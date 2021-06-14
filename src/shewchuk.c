@@ -272,6 +272,13 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
   return (PyObject *)construct_Expansion(cls, components, size);
 }
 
+static ExpansionObject *Expansion_negative(ExpansionObject *self) {
+  double *result_components = PyMem_RawCalloc(self->size, sizeof(double));
+  for (size_t index = 0; index < self->size; ++index)
+    result_components[index] = -self->components[index];
+  return construct_Expansion(Py_TYPE(self), result_components, self->size);
+}
+
 static PyObject *Expansion_repr(ExpansionObject *self) {
   PyObject *result;
   if (self->size > 1) {
@@ -339,6 +346,7 @@ static PyObject *Quadruple_repr(QuadrupleObject *self) {
 
 static PyNumberMethods Expansion_as_number = {
     .nb_add = Expansion_add,
+    .nb_negative = (unaryfunc)Expansion_negative,
 };
 
 static PyTypeObject ExpansionType = {
