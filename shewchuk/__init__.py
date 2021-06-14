@@ -31,6 +31,9 @@ except ImportError:
                     if isinstance(other, Expansion)
                     else self.__radd__(other))
 
+        def __bool__(self) -> bool:
+            return any(self._components)
+
         def __neg__(self) -> 'Expansion':
             return Expansion(*[-component for component in self._components])
 

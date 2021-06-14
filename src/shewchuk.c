@@ -233,6 +233,13 @@ static PyObject *Expansion_add(PyObject *self, PyObject *other) {
   Py_RETURN_NOTIMPLEMENTED;
 }
 
+static int Expansion_bool(ExpansionObject* self) {
+  for (size_t index = 0; index < self->size; ++index)
+    if (self->components[index])
+      return 1;
+  return 0;
+}
+
 static void Expansion_dealloc(ExpansionObject *self) {
   PyMem_RawFree(self->components);
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -357,6 +364,7 @@ static PyObject *Quadruple_repr(QuadrupleObject *self) {
 static PyNumberMethods Expansion_as_number = {
     .nb_absolute = (unaryfunc)Expansion_absolute,
     .nb_add = Expansion_add,
+    .nb_bool = (inquiry)Expansion_bool,
     .nb_negative = (unaryfunc)Expansion_negative,
     .nb_positive = (unaryfunc)Expansion_positive,
 };
