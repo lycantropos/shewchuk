@@ -34,6 +34,9 @@ except ImportError:
         def __bool__(self) -> bool:
             return any(self._components)
 
+        def __float__(self) -> float:
+            return sum(self._components)
+
         def __neg__(self) -> 'Expansion':
             return Expansion(*[-component for component in self._components])
 
