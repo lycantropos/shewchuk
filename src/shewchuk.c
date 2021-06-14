@@ -23,8 +23,8 @@ static void fast_two_add(double left, double right, double *result_head,
   *result_tail = tail;
 }
 
-static void two_sub(double left, double right, double *result_head,
-                    double *result_tail) {
+static void two_subtract(double left, double right, double *result_head,
+                         double *result_tail) {
   two_add(left, -right, result_head, result_tail);
 }
 
@@ -36,10 +36,11 @@ static void two_one_add(double left_head, double left_tail, double right,
   two_add(left_head, mid_head, result_head, result_first_tail);
 }
 
-static void two_one_sub(double left_head, double left_tail, double right,
-                        double *head, double *first_tail, double *second_tail) {
+static void two_one_subtract(double left_head, double left_tail, double right,
+                             double *head, double *first_tail,
+                             double *second_tail) {
   double mid_head;
-  two_sub(left_tail, right, &mid_head, second_tail);
+  two_subtract(left_tail, right, &mid_head, second_tail);
   two_add(left_head, mid_head, head, first_tail);
 }
 
@@ -52,13 +53,15 @@ static void two_two_add(double left_head, double left_tail, double right_head,
   two_one_add(mid_head, mid_tail, right_head, head, first_tail, second_tail);
 }
 
-static void two_two_sub(double left_head, double left_tail, double right_head,
-                        double right_tail, double *head, double *first_tail,
-                        double *second_tail, double *third_tail) {
+static void two_two_subtract(double left_head, double left_tail,
+                             double right_head, double right_tail, double *head,
+                             double *first_tail, double *second_tail,
+                             double *third_tail) {
   double mid_head, mid_tail;
-  two_one_sub(left_head, left_tail, right_tail, &mid_head, &mid_tail,
-              third_tail);
-  two_one_sub(mid_head, mid_tail, right_head, head, first_tail, second_tail);
+  two_one_subtract(left_head, left_tail, right_tail, &mid_head, &mid_tail,
+                   third_tail);
+  two_one_subtract(mid_head, mid_tail, right_head, head, first_tail,
+                   second_tail);
 }
 
 size_t compress_components(size_t size, double *components) {
@@ -84,13 +87,35 @@ size_t compress_components(size_t size, double *components) {
   return top + 1;
 }
 
-size_t add_component_eliminating_zeros(size_t left_size, double *left,
-                                       double right, double *result) {
+size_t add_double_eliminating_zeros(size_t left_size, double *left,
+                                    double right, double *result) {
   size_t result_size = 0;
   double accumulator = right;
   for (size_t index = 0; index < left_size; index++) {
     double head, tail;
     two_add(accumulator, left[index], &head, &tail);
+    accumulator = head;
+    if (!!tail) result[result_size++] = tail;
+  }
+  if (!!accumulator || !result_size) result[result_size++] = accumulator;
+  return result_size;
+}
+
+size_t subtract_double_eliminating_zeros(size_t minuend_size, double *minuend,
+                                         double subtrahend, double *result) {
+  return add_double_eliminating_zeros(minuend_size, minuend, -subtrahend,
+                                      result);
+}
+
+size_t subtract_from_double_eliminating_zeros(double minuend,
+                                              size_t subtrahend_size,
+                                              double *subtrahend,
+                                              double *result) {
+  size_t result_size = 0;
+  double accumulator = minuend;
+  for (size_t index = 0; index < subtrahend_size; index++) {
+    double head, tail;
+    two_add(accumulator, -subtrahend[index], &head, &tail);
     accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
@@ -155,6 +180,66 @@ size_t add_components_eliminating_zeros(size_t left_size, double *left,
   return result_size;
 }
 
+size_t subtract_components_eliminating_zeros(size_t minuend_size,
+                                             double *minuend,
+                                             size_t subtrahend_size,
+                                             double *subtrahend,
+                                             double *result) {
+  size_t minuend_index = 0, subtrahend_index = 0;
+  double minuend_component = minuend[minuend_index];
+  double subtrahend_component = -subtrahend[subtrahend_index];
+  double accumulator;
+  if ((subtrahend_component > minuend_component) ==
+      (subtrahend_component > -minuend_component)) {
+    accumulator = minuend_component;
+    minuend_component = minuend[++minuend_index];
+  } else {
+    accumulator = subtrahend_component;
+    subtrahend_component = -subtrahend[++subtrahend_index];
+  }
+  size_t result_size = 0;
+  double head, tail;
+  if ((minuend_index < minuend_size) && (subtrahend_index < subtrahend_size)) {
+    if ((subtrahend_component > minuend_component) ==
+        (subtrahend_component > -minuend_component)) {
+      fast_two_add(minuend_component, accumulator, &head, &tail);
+      minuend_component = minuend[++minuend_index];
+    } else {
+      fast_two_add(subtrahend_component, accumulator, &head, &tail);
+      subtrahend_component = -subtrahend[++subtrahend_index];
+    }
+    accumulator = head;
+    if (!!tail) result[result_size++] = tail;
+    while ((minuend_index < minuend_size) &&
+           (subtrahend_index < subtrahend_size)) {
+      if ((subtrahend_component > minuend_component) ==
+          (subtrahend_component > -minuend_component)) {
+        two_add(accumulator, minuend_component, &head, &tail);
+        minuend_component = minuend[++minuend_index];
+      } else {
+        two_add(accumulator, subtrahend_component, &head, &tail);
+        subtrahend_component = -subtrahend[++subtrahend_index];
+      }
+      accumulator = head;
+      if (!!tail) result[result_size++] = tail;
+    }
+  }
+  while (minuend_index < minuend_size) {
+    two_add(accumulator, minuend_component, &head, &tail);
+    minuend_component = minuend[++minuend_index];
+    accumulator = head;
+    if (!!tail) result[result_size++] = tail;
+  }
+  while (subtrahend_index < subtrahend_size) {
+    two_add(accumulator, subtrahend_component, &head, &tail);
+    subtrahend_component = -subtrahend[++subtrahend_index];
+    accumulator = head;
+    if (!!tail) result[result_size++] = tail;
+  }
+  if (!!accumulator || !result_size) result[result_size++] = accumulator;
+  return result_size;
+}
+
 typedef struct {
   PyObject_HEAD size_t size;
   double *components;
@@ -195,7 +280,7 @@ static ExpansionObject *Expansion_double_add(ExpansionObject *self,
                                              double other) {
   double *result_components = PyMem_RawCalloc(self->size + 1, sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = add_component_eliminating_zeros(
+  size_t result_size = add_double_eliminating_zeros(
       self->size, self->components, other, result_components);
   result_components =
       PyMem_RawRealloc(result_components, result_size * sizeof(double));
@@ -336,6 +421,74 @@ static PyObject *Expansion_repr(ExpansionObject *self) {
   return result;
 }
 
+static ExpansionObject *Expansions_subtract(ExpansionObject *self,
+                                            ExpansionObject *other) {
+  double *result_components =
+      PyMem_RawCalloc(self->size + other->size, sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  size_t result_size = subtract_components_eliminating_zeros(
+      self->size, self->components, other->size, other->components,
+      result_components);
+  result_components =
+      PyMem_RawRealloc(result_components, result_size * sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(Py_TYPE(self), result_components, result_size);
+}
+
+static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
+                                                  double other) {
+  double *result_components = PyMem_RawCalloc(self->size + 1, sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  size_t result_size = subtract_double_eliminating_zeros(
+      self->size, self->components, other, result_components);
+  result_components =
+      PyMem_RawRealloc(result_components, result_size * sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(Py_TYPE(self), result_components, result_size);
+}
+
+static ExpansionObject *double_Expansion_subtract(double self,
+                                                  ExpansionObject *other) {
+  double *result_components = PyMem_RawCalloc(other->size + 1, sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  size_t result_size = subtract_from_double_eliminating_zeros(
+      self, other->size, other->components, result_components);
+  result_components =
+      PyMem_RawRealloc(result_components, result_size * sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(Py_TYPE(other), result_components, result_size);
+}
+
+static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
+  if (PyObject_TypeCheck(self, &ExpansionType)) {
+    if (PyObject_TypeCheck(other, &ExpansionType))
+      return (PyObject *)Expansions_subtract((ExpansionObject *)self,
+                                             (ExpansionObject *)other);
+    else if (PyFloat_Check(other))
+      return (PyObject *)Expansion_double_subtract((ExpansionObject *)self,
+                                                   PyFloat_AS_DOUBLE(other));
+    else if (!!Py_TYPE(other)->tp_as_number &&
+             !!Py_TYPE(other)->tp_as_number->nb_float) {
+      double other_value = PyFloat_AsDouble(other);
+      return other_value == -1.0 && PyErr_Occurred()
+                 ? NULL
+                 : (PyObject *)Expansion_double_subtract(
+                       (ExpansionObject *)self, other_value);
+    }
+  } else if (PyFloat_Check(self))
+    return (PyObject *)double_Expansion_subtract(PyFloat_AS_DOUBLE(self),
+                                                 (ExpansionObject *)other);
+  else if (!!Py_TYPE(self)->tp_as_number &&
+           !!Py_TYPE(self)->tp_as_number->nb_float) {
+    double value = PyFloat_AsDouble(self);
+    return value == -1.0 && PyErr_Occurred()
+               ? NULL
+               : (PyObject *)double_Expansion_subtract(
+                     value, (ExpansionObject *)other);
+  }
+  Py_RETURN_NOTIMPLEMENTED;
+}
+
 static void Quadruple_dealloc(QuadrupleObject *self) {
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
@@ -374,6 +527,7 @@ static PyNumberMethods Expansion_as_number = {
     .nb_float = (unaryfunc)Expansion_float,
     .nb_negative = (unaryfunc)Expansion_negative,
     .nb_positive = (unaryfunc)Expansion_positive,
+    .nb_subtract = Expansion_subtract,
 };
 
 static PyTypeObject ExpansionType = {

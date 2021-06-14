@@ -44,7 +44,7 @@ except ImportError:
             return self
 
         def __radd__(self, other: _Real) -> 'Expansion':
-            return (Expansion(*_add_component_eliminating_zeros(
+            return (Expansion(*_add_double_eliminating_zeros(
                     self._components, float(other)))
                     if isinstance(other, _Real)
                     else NotImplemented)
@@ -52,6 +52,22 @@ except ImportError:
         def __repr__(self) -> str:
             return (type(self).__qualname__
                     + '({})'.format(', '.join(map(str, self._components))))
+
+        def __rsub__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
+            return (Expansion(*_subtract_from_double_eliminating_zeros(
+                    float(other), self._components))
+                    if isinstance(other, _Real)
+                    else NotImplemented)
+
+        def __sub__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
+            return (Expansion(*_subtract_components_eliminating_zeros(
+                    self._components, other._components))
+                    if isinstance(other, Expansion)
+                    else
+                    (Expansion(*_subtract_double_eliminating_zeros(
+                            self._components, float(other)))
+                     if isinstance(other, _Real)
+                     else NotImplemented))
 
 
     class Quadruple:
@@ -67,19 +83,6 @@ except ImportError:
                     + (('({}, {})'
                         if self._tail
                         else '({})').format(self._head, self._tail)))
-
-
-    def _add_component_eliminating_zeros(left: _Sequence[float],
-                                         right: float) -> _Sequence[float]:
-        result = []
-        accumulator = right
-        for left_component in left:
-            accumulator, tail = _two_add(accumulator, left_component)
-            if tail:
-                result.append(tail)
-        if accumulator or not result:
-            result.append(accumulator)
-        return result
 
 
     def _add_components_eliminating_zeros(left: _Sequence[float],
@@ -135,6 +138,19 @@ except ImportError:
         return result
 
 
+    def _add_double_eliminating_zeros(left: _Sequence[float],
+                                      right: float) -> _Sequence[float]:
+        result = []
+        accumulator = right
+        for left_component in left:
+            accumulator, tail = _two_add(accumulator, left_component)
+            if tail:
+                result.append(tail)
+        if accumulator or not result:
+            result.append(accumulator)
+        return result
+
+
     def _compress_components(components: _Sequence[float]) -> _Sequence[float]:
         bottom = len(components) - 1
         cursor = components[bottom]
@@ -163,6 +179,86 @@ except ImportError:
         right_virtual = head - left
         tail = right - right_virtual
         return head, tail
+
+
+    def _subtract_components_eliminating_zeros(minuend: _Sequence[float],
+                                               subtrahend: _Sequence[float]
+                                               ) -> _Sequence[float]:
+        minuend_length, subtrahend_length = len(minuend), len(subtrahend)
+        minuend_component, subtrahend_component = minuend[0], -subtrahend[0]
+        minuend_index = subtrahend_index = 0
+        if ((subtrahend_component > minuend_component)
+                is (subtrahend_component > -minuend_component)):
+            accumulator = minuend_component
+            minuend_index += 1
+        else:
+            accumulator = subtrahend_component
+            subtrahend_index += 1
+        result = []
+        if ((minuend_index < minuend_length)
+                and (subtrahend_index < subtrahend_length)):
+            minuend_component, subtrahend_component = (minuend[minuend_index],
+                                                       -subtrahend[
+                                                           subtrahend_index])
+            if ((subtrahend_component > minuend_component)
+                    is (subtrahend_component > -minuend_component)):
+                accumulator, tail = _fast_two_add(minuend_component,
+                                                  accumulator)
+                minuend_index += 1
+            else:
+                accumulator, tail = _fast_two_add(subtrahend_component,
+                                                  accumulator)
+                subtrahend_index += 1
+            if tail:
+                result.append(tail)
+            while ((minuend_index < minuend_length)
+                   and (subtrahend_index < subtrahend_length)):
+                minuend_component, subtrahend_component = (
+                    minuend[minuend_index], -subtrahend[subtrahend_index])
+                if ((subtrahend_component > minuend_component)
+                        is (subtrahend_component > -minuend_component)):
+                    accumulator, tail = _two_add(accumulator,
+                                                 minuend_component)
+                    minuend_index += 1
+                else:
+                    accumulator, tail = _two_add(accumulator,
+                                                 subtrahend_component)
+                    subtrahend_index += 1
+                if tail:
+                    result.append(tail)
+        for minuend_index in range(minuend_index, minuend_length):
+            minuend_component = minuend[minuend_index]
+            accumulator, tail = _two_add(accumulator, minuend_component)
+            if tail:
+                result.append(tail)
+        for subtrahend_index in range(subtrahend_index, subtrahend_length):
+            subtrahend_component = -subtrahend[subtrahend_index]
+            accumulator, tail = _two_add(accumulator, subtrahend_component)
+            if tail:
+                result.append(tail)
+        if accumulator or not result:
+            result.append(accumulator)
+        return result
+
+
+    def _subtract_double_eliminating_zeros(minuend: _Sequence[float],
+                                           subtrahend: float
+                                           ) -> _Sequence[float]:
+        return _add_double_eliminating_zeros(minuend, -subtrahend)
+
+
+    def _subtract_from_double_eliminating_zeros(minuend: float,
+                                                subtrahend: _Sequence[float]
+                                                ) -> _Sequence[float]:
+        result = []
+        accumulator = minuend
+        for subtrahend_component in subtrahend:
+            accumulator, tail = _two_add(accumulator, -subtrahend_component)
+            if tail:
+                result.append(tail)
+        if accumulator or not result:
+            result.append(accumulator)
+        return result
 
 
     def _two_add(left: float, right: float) -> _Tuple[float, float]:
