@@ -20,6 +20,9 @@ except ImportError:
             self._components = components or (0.,)
             return self
 
+        def __abs__(self) -> 'Expansion':
+            return +self if self._components[-1] > 0. else -self
+
         def __neg__(self) -> 'Expansion':
             return Expansion(*[-component for component in self._components])
 
