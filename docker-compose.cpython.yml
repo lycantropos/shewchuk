@@ -12,7 +12,6 @@ services:
       - ./pytest.ini:/opt/shewchuk/pytest.ini
       - ./README.md:/opt/shewchuk/README.md
       - ./requirements-tests.txt:/opt/shewchuk/requirements-tests.txt
-      - ./requirements.txt:/opt/shewchuk/requirements.txt
       - ./setup.py:/opt/shewchuk/setup.py
       - ./shewchuk:/opt/shewchuk/shewchuk
       - ./src:/opt/shewchuk/src
