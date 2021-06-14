@@ -63,38 +63,38 @@ static void two_two_sub(double left_head, double left_tail, double right_head,
 
 size_t compress_components(size_t size, double *components) {
   size_t bottom = size - 1;
-  double cursor = components[bottom];
+  double accumulator = components[bottom];
   for (Py_ssize_t index = (Py_ssize_t)(bottom)-1; index >= 0; --index) {
     double head, tail;
-    two_add(cursor, components[index], &head, &tail);
+    two_add(accumulator, components[index], &head, &tail);
     if (!!tail) {
       components[bottom--] = head;
-      cursor = tail;
+      accumulator = tail;
     } else
-      cursor = head;
+      accumulator = head;
   }
   size_t top = 0;
   for (size_t index = bottom + 1; index < size; ++index) {
     double head, tail;
-    two_add(components[index], cursor, &head, &tail);
+    two_add(components[index], accumulator, &head, &tail);
     if (!!tail) components[top++] = tail;
-    cursor = head;
+    accumulator = head;
   }
-  components[top] = cursor;
+  components[top] = accumulator;
   return top + 1;
 }
 
 size_t add_component_eliminating_zeros(size_t left_size, double *left,
                                        double right, double *result) {
   size_t result_size = 0;
-  double cursor = right;
+  double accumulator = right;
   for (size_t index = 0; index < left_size; index++) {
     double head, tail;
-    two_add(cursor, left[index], &head, &tail);
-    cursor = head;
+    two_add(accumulator, left[index], &head, &tail);
+    accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
-  if (!!cursor || !result_size) result[result_size++] = cursor;
+  if (!!accumulator || !result_size) result[result_size++] = accumulator;
   return result_size;
 }
 
@@ -104,13 +104,13 @@ size_t add_components_eliminating_zeros(size_t left_size, double *left,
   size_t left_index = 0, right_index = 0;
   double left_component = left[left_index];
   double right_component = right[right_index];
-  double cursor;
+  double accumulator;
   if ((right_component > left_component) ==
       (right_component > -left_component)) {
-    cursor = left_component;
+    accumulator = left_component;
     left_component = left[++left_index];
   } else {
-    cursor = right_component;
+    accumulator = right_component;
     right_component = right[++right_index];
   }
   size_t result_size = 0;
@@ -118,40 +118,40 @@ size_t add_components_eliminating_zeros(size_t left_size, double *left,
   if ((left_index < left_size) && (right_index < right_size)) {
     if ((right_component > left_component) ==
         (right_component > -left_component)) {
-      fast_two_add(left_component, cursor, &head, &tail);
+      fast_two_add(left_component, accumulator, &head, &tail);
       left_component = left[++left_index];
     } else {
-      fast_two_add(right_component, cursor, &head, &tail);
+      fast_two_add(right_component, accumulator, &head, &tail);
       right_component = right[++right_index];
     }
-    cursor = head;
+    accumulator = head;
     if (!!tail) result[result_size++] = tail;
     while ((left_index < left_size) && (right_index < right_size)) {
       if ((right_component > left_component) ==
           (right_component > -left_component)) {
-        two_add(cursor, left_component, &head, &tail);
+        two_add(accumulator, left_component, &head, &tail);
         left_component = left[++left_index];
       } else {
-        two_add(cursor, right_component, &head, &tail);
+        two_add(accumulator, right_component, &head, &tail);
         right_component = right[++right_index];
       }
-      cursor = head;
+      accumulator = head;
       if (!!tail) result[result_size++] = tail;
     }
   }
   while (left_index < left_size) {
-    two_add(cursor, left_component, &head, &tail);
+    two_add(accumulator, left_component, &head, &tail);
     left_component = left[++left_index];
-    cursor = head;
+    accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
   while (right_index < right_size) {
-    two_add(cursor, right_component, &head, &tail);
+    two_add(accumulator, right_component, &head, &tail);
     right_component = right[++right_index];
-    cursor = head;
+    accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
-  if (!!cursor || !result_size) result[result_size++] = cursor;
+  if (!!accumulator || !result_size) result[result_size++] = accumulator;
   return result_size;
 }
 
