@@ -20,6 +20,9 @@ except ImportError:
             self._components = components or (0.,)
             return self
 
+        def __neg__(self) -> 'Expansion':
+            return Expansion(*[-component for component in self._components])
+
         def __repr__(self) -> str:
             return (type(self).__qualname__
                     + '({})'.format(', '.join(map(str, self._components))))
