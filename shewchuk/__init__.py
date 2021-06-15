@@ -36,7 +36,7 @@ except ImportError:
                     else self.__radd__(other))
 
         def __bool__(self) -> bool:
-            return any(self._components)
+            return bool(self._components[-1])
 
         def __eq__(self, other: _Union[_Real, 'Expansion']) -> bool:
             return (self._components == other._components

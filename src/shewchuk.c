@@ -356,9 +356,7 @@ static PyObject *Expansion_add(PyObject *self, PyObject *other) {
 }
 
 static int Expansion_bool(ExpansionObject *self) {
-  for (size_t index = 0; index < self->size; ++index)
-    if (self->components[index]) return 1;
-  return 0;
+  return !!self->components[self->size - 1];
 }
 
 static void Expansion_dealloc(ExpansionObject *self) {
