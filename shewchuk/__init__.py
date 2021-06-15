@@ -143,14 +143,16 @@ except ImportError:
 
     def _are_components_lesser_than(left: _Sequence[float],
                                     right: _Sequence[float]) -> bool:
-        for offset in range(min(len(left), len(right))):
-            if left[-offset] < right[-offset]:
+        left_size, right_size = len(left), len(right)
+        for offset in range(min(left_size, right_size)):
+            if left[left_size - 1 - offset] < right[right_size - 1 - offset]:
                 return True
-            elif left[-offset] > right[-offset]:
+            elif left[left_size - 1 - offset] > right[right_size - 1 - offset]:
                 return False
-        return len(left) != len(right) and (right[-len(left)] > 0.
-                                            if len(left) < len(right)
-                                            else left[-len(right)] < 0.)
+        return (left_size != right_size
+                and (right[right_size - left_size - 1] > 0.
+                     if left_size < right_size
+                     else left[left_size - right_size - 1] < 0.))
 
 
     def _add_components_eliminating_zeros(left: _Sequence[float],
