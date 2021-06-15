@@ -54,4 +54,5 @@ def test_reference_counter(expansion: Expansion) -> None:
     result = abs(expansion)
 
     expansion_refcount_after = sys.getrefcount(expansion)
-    assert expansion_refcount_after == expansion_refcount_before
+    assert expansion_refcount_after == (expansion_refcount_before
+                                        + (result == expansion))
