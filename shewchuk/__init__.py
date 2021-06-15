@@ -34,6 +34,14 @@ except ImportError:
         def __bool__(self) -> bool:
             return any(self._components)
 
+        def __eq__(self, other: _Union[_Real, 'Expansion']) -> bool:
+            return (self._components == other._components
+                    if isinstance(other, Expansion)
+                    else (len(self._components) == 1
+                          and self._components[0] == other
+                          if isinstance(other, _Real)
+                          else NotImplemented))
+
         def __float__(self) -> float:
             return sum(self._components)
 

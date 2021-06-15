@@ -487,6 +487,94 @@ static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
   Py_RETURN_NOTIMPLEMENTED;
 }
 
+static int are_components_equal(size_t left_size, double *left,
+                                size_t right_size, double *right) {
+  if (left_size != right_size) return 0;
+  for (size_t offset = 1; offset <= left_size; ++offset)
+    if (left[left_size - offset] != right[left_size - offset]) return 0;
+  return 1;
+}
+
+static int are_components_lesser_than(size_t left_size, double *left,
+                                      size_t right_size, double *right) {
+  size_t min_size = left_size < right_size ? left_size : right_size;
+  for (size_t offset = 1; offset <= min_size; ++offset)
+    if (left[left_size - offset] < right[right_size - offset])
+      return 1;
+    else if (left[left_size - offset] > right[right_size - offset])
+      return 0;
+  return left_size != right_size &&
+         (left_size < right_size ? right[right_size - left_size] > 0.0
+                                 : left[left_size - right_size] < 0.0);
+}
+
+static PyObject *Expansions_richcompare(ExpansionObject *self,
+                                        ExpansionObject *other, int op) {
+  switch (op) {
+    case Py_EQ:
+      return PyBool_FromLong(are_components_equal(
+          self->size, self->components, other->size, other->components));
+    case Py_GE:
+      return PyBool_FromLong(!are_components_lesser_than(
+          self->size, self->components, other->size, other->components));
+    case Py_GT:
+      return PyBool_FromLong(are_components_lesser_than(
+          other->size, other->components, self->size, self->components));
+    case Py_LE:
+      return PyBool_FromLong(!are_components_lesser_than(
+          other->size, other->components, self->size, self->components));
+    case Py_LT:
+      return PyBool_FromLong(are_components_lesser_than(
+          self->size, self->components, other->size, other->components));
+    case Py_NE:
+      return PyBool_FromLong(!are_components_equal(
+          self->size, self->components, other->size, other->components));
+    default:
+      Py_RETURN_NOTIMPLEMENTED;
+  }
+}
+
+static PyObject *Expansion_double_richcompare(ExpansionObject *self,
+                                              double other, int op) {
+  switch (op) {
+    case Py_EQ:
+      return PyBool_FromLong(self->size == 1 && self->components[0] == other);
+    case Py_GE:
+      return PyBool_FromLong(
+          self->components[self->size - 1] > other ||
+          (self->components[self->size - 1] == other &&
+           (self->size == 1 || self->components[self->size - 2] > 0.0)));
+    case Py_GT:
+      return PyBool_FromLong(
+          self->components[self->size - 1] > other ||
+          (self->components[self->size - 1] == other &&
+           (self->size > 1 && self->components[self->size - 2] > 0.0)));
+    case Py_LE:
+      return PyBool_FromLong(
+          self->components[self->size - 1] < other ||
+          (self->components[self->size - 1] == other &&
+           (self->size == 1 || self->components[self->size - 2] < 0.0)));
+    case Py_LT:
+      return PyBool_FromLong(
+          self->components[self->size - 1] < other ||
+          (self->components[self->size - 1] == other &&
+           (self->size > 1 && self->components[self->size - 2] < 0.0)));
+    case Py_NE:
+      return PyBool_FromLong(self->size > 1 || self->components[0] != other);
+    default:
+      Py_RETURN_NOTIMPLEMENTED;
+  }
+}
+
+static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
+                                       int op) {
+  if (PyObject_TypeCheck(other, &ExpansionType))
+    return Expansions_richcompare(self, (ExpansionObject *)other, op);
+  else if (PyFloat_Check(other))
+    return Expansion_double_richcompare(self, PyFloat_AS_DOUBLE(other), op);
+  Py_RETURN_NOTIMPLEMENTED;
+}
+
 static void Quadruple_dealloc(QuadrupleObject *self) {
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
@@ -538,6 +626,7 @@ static PyTypeObject ExpansionType = {
     .tp_name = "shewchuk.Expansion",
     .tp_new = Expansion_new,
     .tp_repr = (reprfunc)Expansion_repr,
+    .tp_richcompare = (richcmpfunc)Expansion_richcompare,
 };
 
 static PyTypeObject QuadrupleType = {
