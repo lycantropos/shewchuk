@@ -22,7 +22,8 @@ def test_commutativity(first: Expansion, second: Expansion) -> None:
 
 
 @given(strategies.expansions, strategies.zero_reals_or_expansions)
-def test_neutral_element(first: Expansion, second: Expansion) -> None:
+def test_neutral_element(first: Expansion,
+                         second: Union[Real, Expansion]) -> None:
     assert first + second == first == second + first
 
 
