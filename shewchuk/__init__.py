@@ -6,6 +6,7 @@ try:
     from _shewchuk import (Expansion,
                            Quadruple)
 except ImportError:
+    from itertools import repeat as _repeat
     from numbers import Real as _Real
     from typing import (Sequence as _Sequence,
                         Tuple as _Tuple,
@@ -17,9 +18,12 @@ except ImportError:
 
         def __new__(cls, *components: float) -> 'Expansion':
             self = super().__new__(cls)
+            components = [float(component) for component in components]
             if len(components) > 1:
-                components = tuple(_compress_components(components))
-            self._components = components or (0.,)
+                components = _compress_components(components)
+            elif not components:
+                components = [0.]
+            self._components = components
             return self
 
         def __abs__(self) -> 'Expansion':
@@ -96,8 +100,8 @@ except ImportError:
             return self
 
         def __radd__(self, other: _Real) -> 'Expansion':
-            return (Expansion(*_add_double_eliminating_zeros(
-                    self._components, float(other)))
+            return (Expansion(*_add_float_eliminating_zeros(self._components,
+                                                            float(other)))
                     if isinstance(other, _Real)
                     else NotImplemented)
 
@@ -202,8 +206,8 @@ except ImportError:
         return result
 
 
-    def _add_double_eliminating_zeros(left: _Sequence[float],
-                                      right: float) -> _Sequence[float]:
+    def _add_float_eliminating_zeros(left: _Sequence[float],
+                                     right: float) -> _Sequence[float]:
         result = []
         accumulator = right
         for left_component in left:
@@ -216,6 +220,16 @@ except ImportError:
 
 
     def _compress_components(components: _Sequence[float]) -> _Sequence[float]:
+        for _ in _repeat(None, len(components)):
+            next_components = _compress_components_single(components)
+            if next_components == components:
+                break
+            components = next_components
+        return components
+
+
+    def _compress_components_single(components: _Sequence[float]
+                                    ) -> _Sequence[float]:
         bottom = len(components) - 1
         cursor = components[bottom]
         result = [None] * len(components)
@@ -310,7 +324,7 @@ except ImportError:
     def _subtract_double_eliminating_zeros(minuend: _Sequence[float],
                                            subtrahend: float
                                            ) -> _Sequence[float]:
-        return _add_double_eliminating_zeros(minuend, -subtrahend)
+        return _add_float_eliminating_zeros(minuend, -subtrahend)
 
 
     def _subtract_from_double_eliminating_zeros(minuend: float,

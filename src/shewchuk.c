@@ -3,6 +3,27 @@
 #include <stdlib.h>
 #include <structmember.h>
 
+static int are_components_equal(size_t left_size, double *left,
+                                size_t right_size, double *right) {
+  if (left_size != right_size) return 0;
+  for (size_t offset = 1; offset <= left_size; ++offset)
+    if (left[left_size - offset] != right[left_size - offset]) return 0;
+  return 1;
+}
+
+static int are_components_lesser_than(size_t left_size, double *left,
+                                      size_t right_size, double *right) {
+  size_t min_size = left_size < right_size ? left_size : right_size;
+  for (size_t offset = 1; offset <= min_size; ++offset)
+    if (left[left_size - offset] < right[right_size - offset])
+      return 1;
+    else if (left[left_size - offset] > right[right_size - offset])
+      return 0;
+  return left_size != right_size &&
+         (left_size < right_size ? right[right_size - left_size] > 0.0
+                                 : left[left_size - right_size] < 0.0);
+}
+
 static void fast_two_add(double left, double right, double *result_head,
                          double *result_tail) {
   double head = left + right;
@@ -65,7 +86,7 @@ static void two_two_subtract(double left_head, double left_tail,
                    second_tail);
 }
 
-size_t compress_components(size_t size, double *components) {
+size_t compress_components_single(size_t size, double *components) {
   size_t bottom = size - 1;
   double accumulator = components[bottom];
   for (Py_ssize_t index = (Py_ssize_t)(bottom)-1; index >= 0; --index) {
@@ -87,6 +108,21 @@ size_t compress_components(size_t size, double *components) {
   if (!!accumulator || !top)
     components[top++] = accumulator;
   return top;
+}
+
+size_t compress_components(size_t size, double *components) {
+  const size_t original_size = size;
+  double* next_components = calloc(size, sizeof(double));
+  memcpy(next_components, components, size * sizeof(double));
+  for (size_t step = 0; step < original_size; ++step) {
+    const size_t next_size = compress_components_single(size, next_components);
+    if (are_components_equal(next_size, next_components, size, components))
+      break;
+    size = next_size;
+    memcpy(components, next_components, size * sizeof(double));
+  }
+  free(next_components);
+  return size;
 }
 
 size_t add_double_eliminating_zeros(size_t left_size, double *left,
@@ -487,27 +523,6 @@ static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
                      value, (ExpansionObject *)other);
   }
   Py_RETURN_NOTIMPLEMENTED;
-}
-
-static int are_components_equal(size_t left_size, double *left,
-                                size_t right_size, double *right) {
-  if (left_size != right_size) return 0;
-  for (size_t offset = 1; offset <= left_size; ++offset)
-    if (left[left_size - offset] != right[left_size - offset]) return 0;
-  return 1;
-}
-
-static int are_components_lesser_than(size_t left_size, double *left,
-                                      size_t right_size, double *right) {
-  size_t min_size = left_size < right_size ? left_size : right_size;
-  for (size_t offset = 1; offset <= min_size; ++offset)
-    if (left[left_size - offset] < right[right_size - offset])
-      return 1;
-    else if (left[left_size - offset] > right[right_size - offset])
-      return 0;
-  return left_size != right_size &&
-         (left_size < right_size ? right[right_size - left_size] > 0.0
-                                 : left[left_size - right_size] < 0.0);
 }
 
 static PyObject *Expansions_richcompare(ExpansionObject *self,
