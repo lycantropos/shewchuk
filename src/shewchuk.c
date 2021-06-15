@@ -20,8 +20,8 @@ static int are_components_lesser_than(size_t left_size, double *left,
     else if (left[left_size - offset] > right[right_size - offset])
       return 0;
   return left_size != right_size &&
-         (left_size < right_size ? right[right_size - left_size] > 0.0
-                                 : left[left_size - right_size] < 0.0);
+         (left_size < right_size ? right[right_size - left_size - 1] > 0.0
+                                 : left[left_size - right_size - 1] < 0.0);
 }
 
 static void fast_two_add(double left, double right, double *result_head,
