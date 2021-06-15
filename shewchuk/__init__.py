@@ -234,7 +234,7 @@ except ImportError:
                 result[top] = tail
                 top += 1
             cursor = head
-        if cursor:
+        if cursor or not top:
             result[top] = cursor
             top += 1
         return result[:top]

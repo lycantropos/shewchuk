@@ -84,7 +84,7 @@ size_t compress_components(size_t size, double *components) {
     if (!!tail) components[top++] = tail;
     accumulator = head;
   }
-  if (!!accumulator)
+  if (!!accumulator || !top)
     components[top++] = accumulator;
   return top;
 }
