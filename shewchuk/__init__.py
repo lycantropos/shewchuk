@@ -164,8 +164,8 @@ except ImportError:
             right_index += 1
         result = []
         if (left_index < left_length) and (right_index < right_length):
-            left_component, right_component = left[left_index], right[
-                right_index]
+            left_component, right_component = (left[left_index],
+                                               right[right_index])
             if ((right_component > left_component)
                     is (right_component > -left_component)):
                 accumulator, tail = _fast_two_add(left_component, accumulator)
