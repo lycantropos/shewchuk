@@ -38,6 +38,11 @@ def test_equivalents(first: Expansion, second: Union[Real, Expansion]) -> None:
     assert equivalence(result, second > first or first == second)
 
 
+@given(strategies.expansions, strategies.finite_floats)
+def test_float_operand(first: Expansion, second: float) -> None:
+    assert implication(first <= second, float(first) <= second)
+
+
 @skip_reference_counter_test
 @given(strategies.expansions, strategies.expansions)
 def test_reference_counter(first: Expansion, second: Expansion) -> None:
