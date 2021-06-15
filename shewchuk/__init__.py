@@ -45,6 +45,50 @@ except ImportError:
         def __float__(self) -> float:
             return sum(self._components)
 
+        def __ge__(self, other: _Union[_Real, 'Expansion']) -> bool:
+            return (not _are_components_lesser_than(self._components,
+                                                    other._components)
+                    if isinstance(other, Expansion)
+                    else (self._components[-1] > other
+                          or self._components[-1] == other
+                          and (len(self._components) == 1
+                               or self._components[-2] > 0.)
+                          if isinstance(other, _Real)
+                          else NotImplemented))
+
+        def __gt__(self, other: _Union[_Real, 'Expansion']) -> bool:
+            return (_are_components_lesser_than(other._components,
+                                                self._components)
+                    if isinstance(other, Expansion)
+                    else (self._components[-1] > other
+                          or (self._components[-1] == other
+                              and len(self._components) > 1
+                              and self._components[-2] > 0.)
+                          if isinstance(other, _Real)
+                          else NotImplemented))
+
+        def __le__(self, other: _Union[_Real, 'Expansion']) -> bool:
+            return (not _are_components_lesser_than(other._components,
+                                                    self._components)
+                    if isinstance(other, Expansion)
+                    else (self._components[-1] < other
+                          or self._components[-1] == other
+                          and (len(self._components) == 1
+                               or self._components[-2] < 0.)
+                          if isinstance(other, _Real)
+                          else NotImplemented))
+
+        def __lt__(self, other: _Union[_Real, 'Expansion']) -> bool:
+            return (_are_components_lesser_than(self._components,
+                                                other._components)
+                    if isinstance(other, Expansion)
+                    else (self._components[-1] < other
+                          or (self._components[-1] == other
+                              and len(self._components) > 1
+                              and self._components[-2] < 0.)
+                          if isinstance(other, _Real)
+                          else NotImplemented))
+
         def __neg__(self) -> 'Expansion':
             return Expansion(*[-component for component in self._components])
 
@@ -91,6 +135,18 @@ except ImportError:
                     + (('({}, {})'
                         if self._tail
                         else '({})').format(self._head, self._tail)))
+
+
+    def _are_components_lesser_than(left: _Sequence[float],
+                                    right: _Sequence[float]) -> bool:
+        for offset in range(min(len(left), len(right))):
+            if left[-offset] < right[-offset]:
+                return True
+            elif left[-offset] > right[-offset]:
+                return False
+        return len(left) != len(right) and (right[-len(left)] > 0.
+                                            if len(left) < len(right)
+                                            else left[-len(right)] < 0.)
 
 
     def _add_components_eliminating_zeros(left: _Sequence[float],
