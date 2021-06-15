@@ -1,4 +1,5 @@
 import math
+from fractions import Fraction
 from typing import Sequence
 
 from hypothesis import strategies
@@ -19,3 +20,7 @@ finite_floats_sequences = (strategies.lists(finite_floats)
 expansions = strategies.builds(pack(Expansion), finite_floats_sequences)
 reals = strategies.integers() | strategies.fractions() | finite_floats
 reals_or_expansions = reals | expansions
+zero_reals = (strategies.builds(int) | strategies.builds(Fraction)
+              | strategies.builds(float))
+zero_expansions = strategies.builds(Expansion)
+zero_reals_or_expansions = zero_reals | zero_expansions
