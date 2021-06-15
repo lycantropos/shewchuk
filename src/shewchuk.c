@@ -84,8 +84,9 @@ size_t compress_components(size_t size, double *components) {
     if (!!tail) components[top++] = tail;
     accumulator = head;
   }
-  components[top] = accumulator;
-  return top + 1;
+  if (!!accumulator)
+    components[top++] = accumulator;
+  return top;
 }
 
 size_t add_double_eliminating_zeros(size_t left_size, double *left,

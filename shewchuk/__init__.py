@@ -234,8 +234,10 @@ except ImportError:
                 result[top] = tail
                 top += 1
             cursor = head
-        result[top] = cursor
-        return result[:top + 1]
+        if cursor:
+            result[top] = cursor
+            top += 1
+        return result[:top]
 
 
     def _fast_two_add(left: float, right: float) -> _Tuple[float, float]:
