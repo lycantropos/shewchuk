@@ -7,7 +7,6 @@ from shewchuk import Expansion
 from tests.strategies import finite_floats
 from tests.utils import pack
 
-indices = strategies.integers(0)
 finite_floats = finite_floats
 
 
