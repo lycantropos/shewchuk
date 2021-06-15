@@ -567,13 +567,80 @@ static PyObject *Expansion_double_richcompare(ExpansionObject *self,
   }
 }
 
+static PyObject *Expansion_PyObject_richcompare(ExpansionObject *self,
+                                                PyObject *other, int op) {
+  switch (op) {
+    case Py_EQ: {
+      if (self->size > 1) Py_RETURN_FALSE;
+      PyObject *head = PyFloat_FromDouble(self->components[0]);
+      PyObject *result = PyObject_RichCompare(head, other, op);
+      Py_DECREF(head);
+      return result;
+    }
+    case Py_GE: {
+      PyObject *head = PyFloat_FromDouble(self->components[self->size - 1]);
+      PyObject *result = PyObject_RichCompare(head, other, Py_GT);
+      if (!result || result == Py_True) return result;
+      Py_DECREF(result);
+      result = PyObject_RichCompare(head, other, Py_EQ);
+      if (!result || result == Py_False) return result;
+      Py_DECREF(result);
+      return PyBool_FromLong(self->size == 1 ||
+                             self->components[self->size - 2] > 0.0);
+    }
+    case Py_GT: {
+      PyObject *head = PyFloat_FromDouble(self->components[self->size - 1]);
+      PyObject *result = PyObject_RichCompare(head, other, Py_GT);
+      if (!result || result == Py_True) return result;
+      Py_DECREF(result);
+      result = PyObject_RichCompare(head, other, Py_EQ);
+      if (!result || result == Py_False) return result;
+      Py_DECREF(result);
+      return PyBool_FromLong(self->size > 1 &&
+                             self->components[self->size - 2] > 0.0);
+    }
+    case Py_LE: {
+      PyObject *head = PyFloat_FromDouble(self->components[self->size - 1]);
+      PyObject *result = PyObject_RichCompare(head, other, Py_LT);
+      if (!result || result == Py_True) return result;
+      Py_DECREF(result);
+      result = PyObject_RichCompare(head, other, Py_EQ);
+      if (!result || result == Py_False) return result;
+      Py_DECREF(result);
+      return PyBool_FromLong(self->size == 1 ||
+                             self->components[self->size - 2] < 0.0);
+    }
+    case Py_LT: {
+      PyObject *head = PyFloat_FromDouble(self->components[self->size - 1]);
+      PyObject *result = PyObject_RichCompare(head, other, Py_LT);
+      if (!result || result == Py_True) return result;
+      Py_DECREF(result);
+      result = PyObject_RichCompare(head, other, Py_EQ);
+      if (!result || result == Py_False) return result;
+      Py_DECREF(result);
+      return PyBool_FromLong(self->size > 1 &&
+                             self->components[self->size - 2] < 0.0);
+    }
+    case Py_NE: {
+      if (self->size > 1) Py_RETURN_TRUE;
+      PyObject *head = PyFloat_FromDouble(self->components[0]);
+      PyObject *result = PyObject_RichCompare(head, other, op);
+      Py_DECREF(head);
+      return result;
+    }
+    default:
+      Py_RETURN_NOTIMPLEMENTED;
+  }
+}
+
 static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
                                        int op) {
   if (PyObject_TypeCheck(other, &ExpansionType))
     return Expansions_richcompare(self, (ExpansionObject *)other, op);
   else if (PyFloat_Check(other))
     return Expansion_double_richcompare(self, PyFloat_AS_DOUBLE(other), op);
-  Py_RETURN_NOTIMPLEMENTED;
+  else
+    return Expansion_PyObject_richcompare(self, other, op);
 }
 
 static void Quadruple_dealloc(QuadrupleObject *self) {
