@@ -105,14 +105,13 @@ size_t compress_components_single(size_t size, double *components) {
     if (!!tail) components[top++] = tail;
     accumulator = head;
   }
-  if (!!accumulator || !top)
-    components[top++] = accumulator;
+  if (!!accumulator || !top) components[top++] = accumulator;
   return top;
 }
 
 size_t compress_components(size_t size, double *components) {
   const size_t original_size = size;
-  double* next_components = calloc(size, sizeof(double));
+  double *next_components = calloc(size, sizeof(double));
   memcpy(next_components, components, size * sizeof(double));
   for (size_t step = 0; step < original_size; ++step) {
     const size_t next_size = compress_components_single(size, next_components);
