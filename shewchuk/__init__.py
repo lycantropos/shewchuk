@@ -18,8 +18,7 @@ except ImportError:
         def __new__(cls, *components: float) -> 'Expansion':
             self = super().__new__(cls)
             if len(components) > 1:
-                components = tuple(_compress_components(sorted(components,
-                                                               key=abs)))
+                components = tuple(_compress_components(components))
             self._components = components or (0.,)
             return self
 

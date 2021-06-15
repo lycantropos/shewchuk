@@ -1,13 +1,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <math.h>
 #include <stdlib.h>
 #include <structmember.h>
-
-int doubles_cmp(const void *left, const void *right) {
-  double left_value = *(double *)left, right_value = *(double *)right;
-  return fabs(left_value) < fabs(right_value) ? -1 : 1;
-}
 
 static void fast_two_add(double left, double right, double *result_head,
                          double *result_tail) {
@@ -363,7 +357,6 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
         return NULL;
       }
     }
-    qsort(components, size, sizeof(double), doubles_cmp);
     size = compress_components(size, components);
     components = PyMem_RawRealloc(components, size * sizeof(double));
     if (!components) return PyErr_NoMemory();
