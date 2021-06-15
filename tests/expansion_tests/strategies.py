@@ -7,7 +7,7 @@ from tests.strategies import finite_floats
 
 
 def is_floats_sequence_sum_finite(values: Sequence[float]) -> bool:
-    return math.isfinite(sum(map(abs, values)))
+    return math.isfinite(2 * sum(map(abs, values)))
 
 
 finite_floats_sequences = (strategies.lists(finite_floats)
