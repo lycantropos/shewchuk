@@ -396,8 +396,7 @@ static PyObject *Expansion_add(PyObject *self, PyObject *other) {
   } else if (PyFloat_Check(self))
     return (PyObject *)Expansion_double_add((ExpansionObject *)other,
                                             PyFloat_AS_DOUBLE(self));
-  else if (!!Py_TYPE(self)->tp_as_number &&
-           !!Py_TYPE(self)->tp_as_number->nb_float) {
+  else if (is_PyObject_convertible_to_Float(self)) {
     double value = PyFloat_AsDouble(self);
     return value == -1.0 && PyErr_Occurred()
                ? NULL
