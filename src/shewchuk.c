@@ -1,6 +1,5 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <stdlib.h>
 #include <structmember.h>
 
 static int are_components_equal(size_t left_size, double *left,
