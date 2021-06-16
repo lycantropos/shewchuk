@@ -3,7 +3,8 @@
 __version__ = '0.0.0'
 
 try:
-    from _shewchuk import Expansion
+    from _shewchuk import (Expansion,
+                           vectors_cross_product)
 except ImportError:
     from sys import float_info as _float_info
     from itertools import repeat as _repeat
@@ -16,10 +17,11 @@ except ImportError:
     class Expansion:
         __slots__ = '_components',
 
-        def __new__(cls, *components: float) -> 'Expansion':
+        def __new__(cls, *components: float,
+                    _compress: bool = True) -> 'Expansion':
             self = super().__new__(cls)
             components = [float(component) for component in components]
-            if len(components) > 1:
+            if _compress and len(components) > 1:
                 components = _compress_components(components)
             elif not components:
                 components = [0.]
@@ -146,6 +148,142 @@ except ImportError:
                 and (right[right_size - left_size - 1] > 0.
                      if left_size < right_size
                      else left[left_size - right_size - 1] < 0.))
+
+
+    _EPSILON = _float_info.epsilon / 2.0
+
+
+    def _adaptive_vectors_cross_product(first_start_x: float,
+                                        first_start_y: float,
+                                        first_end_x: float,
+                                        first_end_y: float,
+                                        second_start_x: float,
+                                        second_start_y: float,
+                                        second_end_x: float,
+                                        second_end_y: float,
+                                        upper_bound: float,
+                                        first_upper_bound_coefficient: float
+                                        = (2.0 + 12.0 * _EPSILON) * _EPSILON,
+                                        second_upper_bound_coefficient: float
+                                        = ((9.0 + 64.0 * _EPSILON) * _EPSILON
+                                           * _EPSILON),
+                                        estimation_coefficient: float
+                                        = (3.0 + 8.0 * _EPSILON) * _EPSILON
+                                        ) -> _Sequence[float]:
+        minuend_x = first_end_x - first_start_x
+        minuend_y = first_end_y - first_start_y
+        subtrahend_x = second_end_x - second_start_x
+        subtrahend_y = second_end_y - second_start_y
+        minuend_tail, minuend = _two_multiply(minuend_x, subtrahend_y)
+        subtrahend_tail, subtrahend = _two_multiply(minuend_y, subtrahend_x)
+        first_components = _two_two_subtract(minuend, minuend_tail, subtrahend,
+                                             subtrahend_tail)
+        estimation = sum(first_components)
+        threshold = first_upper_bound_coefficient * upper_bound
+        if (estimation >= threshold) or (-estimation >= threshold):
+            return first_components
+        minuend_x_tail = _two_subtract_tail(first_end_x, first_start_x,
+                                            minuend_x)
+        subtrahend_x_tail = _two_subtract_tail(second_end_x, second_start_x,
+                                               subtrahend_x)
+        minuend_y_tail = _two_subtract_tail(first_end_y, first_start_y,
+                                            minuend_y)
+        subtrahend_y_tail = _two_subtract_tail(second_end_y, second_start_y,
+                                               subtrahend_y)
+        if (not minuend_x_tail and not minuend_y_tail and not subtrahend_x_tail
+                and not subtrahend_y_tail):
+            return first_components
+        threshold = (second_upper_bound_coefficient * upper_bound
+                     + estimation_coefficient * abs(estimation))
+        extra = ((minuend_x * subtrahend_y_tail
+                  + subtrahend_y * minuend_x_tail)
+                 - (minuend_y * subtrahend_x_tail
+                    + subtrahend_x * minuend_y_tail))
+        estimation += extra
+        if (estimation >= threshold) or (-estimation >= threshold):
+            return _add_float_eliminating_zeros(first_components, extra)
+        minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
+                minuend_x_tail, subtrahend_y)
+        minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
+                minuend_y_tail, subtrahend_x)
+        extra_components = _two_two_subtract(
+                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
+                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        second_components = _add_components_eliminating_zeros(
+                first_components, extra_components)
+        minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
+                minuend_x, subtrahend_y_tail)
+        minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
+                minuend_y, subtrahend_x_tail)
+        extra_components = _two_two_subtract(
+                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
+                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        third_components = _add_components_eliminating_zeros(
+                second_components, extra_components)
+        minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
+                minuend_x_tail, subtrahend_y_tail)
+        minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
+                minuend_y_tail, subtrahend_x_tail)
+        extra_components = _two_two_subtract(
+                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
+                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        return _add_components_eliminating_zeros(third_components,
+                                                 extra_components)
+
+
+    def vectors_cross_product(first_start_x: float,
+                              first_start_y: float,
+                              first_end_x: float,
+                              first_end_y: float,
+                              second_start_x: float,
+                              second_start_y: float,
+                              second_end_x: float,
+                              second_end_y: float) -> Expansion:
+        return Expansion(*_vectors_cross_product(first_start_x, first_start_y,
+                                                 first_end_x, first_end_y,
+                                                 second_start_x,
+                                                 second_start_y, second_end_x,
+                                                 second_end_y),
+                         _compress=False)
+
+
+    def _vectors_cross_product(first_start_x: float,
+                               first_start_y: float,
+                               first_end_x: float,
+                               first_end_y: float,
+                               second_start_x: float,
+                               second_start_y: float,
+                               second_end_x: float,
+                               second_end_y: float,
+                               upper_bound_coefficient: float
+                               = (3.0 + 16.0 * _EPSILON) * _EPSILON
+                               ) -> _Sequence[float]:
+        minuend = ((first_end_x - first_start_x)
+                   * (second_end_y - second_start_y))
+        subtrahend = ((first_end_y - first_start_y)
+                      * (second_end_x - second_start_x))
+        estimation = minuend - subtrahend
+        if minuend > 0.0:
+            if subtrahend <= 0.0:
+                return [estimation]
+            else:
+                upper_bound = minuend + subtrahend
+        elif minuend < 0.0:
+            if subtrahend >= 0.0:
+                return [estimation]
+            else:
+                upper_bound = -minuend - subtrahend
+        else:
+            return [estimation]
+        threshold = upper_bound_coefficient * upper_bound
+        return ([estimation]
+                if (estimation >= threshold) or (-estimation >= threshold)
+                else
+                _adaptive_vectors_cross_product(first_start_x, first_start_y,
+                                                first_end_x, first_end_y,
+                                                second_start_x, second_start_y,
+                                                second_end_x, second_end_y,
+                                                upper_bound))
 
 
     def _add_components_eliminating_zeros(left: _Sequence[float],
@@ -386,6 +524,29 @@ except ImportError:
         return tail, head
 
 
+    def _two_subtract(left: float, right: float) -> _Tuple[float, float]:
+        return _two_add(left, -right)
+
+
+    def _two_one_subtract(left_tail: float,
+                          left_head: float,
+                          right: float) -> _Tuple[float, float, float]:
+        second_tail, mid_head = _two_subtract(left_tail, right)
+        first_tail, head = _two_subtract(left_head, mid_head)
+        return second_tail, first_tail, head
+
+
+    def _two_multiply(left: float, right: float) -> _Tuple[float, float]:
+        head = left * right
+        left_low, left_high = _split(left)
+        right_low, right_high = _split(right)
+        first_error = head - left_high * right_high
+        second_error = first_error - left_low * right_high
+        third_error = second_error - left_high * right_low
+        tail = left_low * right_low - third_error
+        return tail, head
+
+
     def _two_multiply_presplit(left: float,
                                right: float,
                                right_high: float,
@@ -397,3 +558,23 @@ except ImportError:
         third_error = second_error - left_high * right_low
         tail = left_low * right_low - third_error
         return tail, head
+
+
+    def _two_subtract_tail(left: float, right: float, head: float) -> float:
+        right_virtual = left - head
+        left_virtual = head + right_virtual
+        right_tail = right_virtual - right
+        left_tail = left - left_virtual
+        return left_tail + right_tail
+
+
+    def _two_two_subtract(left_head: float,
+                          left_tail: float,
+                          right_head: float,
+                          right_tail: float
+                          ) -> _Tuple[float, float, float, float]:
+        third_tail, mid_tail, mid_head = _two_one_subtract(
+                left_tail, left_head, right_tail)
+        second_tail, first_tail, head = _two_one_subtract(mid_tail, mid_head,
+                                                          right_head)
+        return third_tail, second_tail, first_tail, head

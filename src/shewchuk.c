@@ -1,6 +1,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <float.h>
+#include <math.h>
 #include <structmember.h>
 
 static int are_components_equal(size_t left_size, double *left,
@@ -75,9 +76,24 @@ static void two_one_subtract(double left_head, double left_tail, double right,
   two_add(left_head, mid_head, head, first_tail);
 }
 
-static void two_product_presplit(double left, double right, double right_high,
-                                 double right_low, double *result_head,
-                                 double *result_tail) {
+static void two_multiply(double left, double right, double *result_head,
+                         double *result_tail) {
+  double head = left * right;
+  double left_high, left_low;
+  split(left, &left_high, &left_low);
+  double right_high, right_low;
+  split(right, &right_high, &right_low);
+  double first_error = head - left_high * right_high;
+  double second_error = first_error - left_low * right_high;
+  double third_error = second_error - left_high * right_low;
+  double tail = left_low * right_low - third_error;
+  *result_head = head;
+  *result_tail = tail;
+}
+
+static void two_multiply_presplit(double left, double right, double right_high,
+                                  double right_low, double *result_head,
+                                  double *result_tail) {
   double head = left * right;
   double left_high, left_low;
   split(left, &left_high, &left_low);
@@ -109,6 +125,14 @@ static void two_two_subtract(double left_head, double left_tail,
                    second_tail);
 }
 
+static double two_subtract_tail(double left, double right, double head) {
+  double right_virtual = left - head;
+  double left_virtual = head + right_virtual;
+  double right_error = right_virtual - right;
+  double left_error = left - left_virtual;
+  return left_error + right_error;
+}
+
 static size_t compress_components_single(size_t size, double *components) {
   size_t bottom = size - 1;
   double accumulator = components[bottom];
@@ -132,18 +156,21 @@ static size_t compress_components_single(size_t size, double *components) {
   return top;
 }
 
+static void copy_components(double *source, size_t size, double *destination) {
+  for (size_t index = 0; index < size; ++index)
+    destination[index] = source[index];
+}
+
 static size_t compress_components(size_t size, double *components) {
   const size_t original_size = size;
   double *next_components = PyMem_RawCalloc(size, sizeof(double));
-  for (size_t index = 0; index < size; ++index)
-    next_components[index] = components[index];
+  copy_components(components, size, next_components);
   for (size_t step = 0; step < original_size; ++step) {
     const size_t next_size = compress_components_single(size, next_components);
     if (are_components_equal(next_size, next_components, size, components))
       break;
     size = next_size;
-    for (size_t index = 0; index < size; ++index)
-      components[index] = next_components[index];
+    copy_components(next_components, size, components);
   }
   PyMem_RawFree(next_components);
   return size;
@@ -173,14 +200,14 @@ static size_t scale_components(size_t size, double *components, double scalar,
   double scalar_high, scalar_low;
   split(scalar, &scalar_high, &scalar_low);
   double accumulator, tail;
-  two_product_presplit(components[0], scalar, scalar_high, scalar_low,
-                       &accumulator, &tail);
+  two_multiply_presplit(components[0], scalar, scalar_high, scalar_low,
+                        &accumulator, &tail);
   size_t result_size = 0;
   if (!!tail) result[result_size++] = tail;
   for (size_t index = 1; index < size; ++index) {
     double product, product_tail;
-    two_product_presplit(components[index], scalar, scalar_high, scalar_low,
-                         &product, &product_tail);
+    two_multiply_presplit(components[index], scalar, scalar_high, scalar_low,
+                          &product, &product_tail);
     double interim;
     two_add(accumulator, product_tail, &interim, &tail);
     if (!!tail) result[result_size++] = tail;
@@ -329,6 +356,137 @@ static size_t subtract_components_eliminating_zeros(size_t minuend_size,
   }
   if (!!accumulator || !result_size) result[result_size++] = accumulator;
   return result_size;
+}
+
+static const double epsilon = DBL_EPSILON / 2.0;
+
+size_t adaptive_vectors_cross_product_impl(
+    double first_start_x, double first_start_y, double first_end_x,
+    double first_end_y, double second_start_x, double second_start_y,
+    double second_end_x, double second_end_y, double upper_bound,
+    double *result) {
+  double minuend_x = first_end_x - first_start_x;
+  double minuend_y = first_end_y - first_start_y;
+  double subtrahend_x = second_end_x - second_start_x;
+  double subtrahend_y = second_end_y - second_start_y;
+  double minuend, minuend_tail;
+  two_multiply(minuend_x, subtrahend_y, &minuend, &minuend_tail);
+  double subtrahend, subtrahend_tail;
+  two_multiply(minuend_y, subtrahend_x, &subtrahend, &subtrahend_tail);
+  double first_components[4];
+  two_two_subtract(minuend, minuend_tail, subtrahend, subtrahend_tail,
+                   &first_components[3], &first_components[2],
+                   &first_components[1], &first_components[0]);
+  double estimation = sum_components(4, first_components);
+  static const double first_upper_bound_coefficient =
+      (2.0 + 12.0 * epsilon) * epsilon;
+  double threshold = first_upper_bound_coefficient * upper_bound;
+  if ((estimation >= threshold) || (-estimation >= threshold)) {
+    copy_components(first_components, 4, result);
+    return 4;
+  }
+  double minuend_x_tail =
+      two_subtract_tail(first_end_x, first_start_x, minuend_x);
+  double subtrahend_x_tail =
+      two_subtract_tail(second_end_x, second_start_x, subtrahend_x);
+  double minuend_y_tail =
+      two_subtract_tail(first_end_y, first_start_y, minuend_y);
+  double subtrahend_y_tail =
+      two_subtract_tail(second_end_y, second_start_y, subtrahend_y);
+  if (!minuend_x_tail && !minuend_y_tail && !subtrahend_x_tail &&
+      !subtrahend_y_tail) {
+    copy_components(first_components, 4, result);
+    return 4;
+  }
+  static const double second_upper_bound_coefficient =
+      (9.0 + 64.0 * epsilon) * epsilon * epsilon;
+  static const double estimation_coefficient = (3.0 + 8.0 * epsilon) * epsilon;
+  threshold = second_upper_bound_coefficient * upper_bound +
+              estimation_coefficient * fabs(estimation);
+  double extra =
+      (minuend_x * subtrahend_y_tail + subtrahend_y * minuend_x_tail) -
+      (minuend_y * subtrahend_x_tail + subtrahend_x * minuend_y_tail);
+  estimation += extra;
+  if ((estimation >= threshold) || (-estimation >= threshold)) {
+    size_t result_size =
+        add_double_eliminating_zeros(4, first_components, extra, result);
+    return result_size;
+  }
+  double minuend_x_subtrahend_y_head, minuend_x_subtrahend_y_tail;
+  two_multiply(minuend_x_tail, subtrahend_y, &minuend_x_subtrahend_y_head,
+               &minuend_x_subtrahend_y_tail);
+  double minuend_y_subtrahend_x_head, minuend_y_subtrahend_x_tail;
+  two_multiply(minuend_y_tail, subtrahend_x, &minuend_y_subtrahend_x_head,
+               &minuend_y_subtrahend_x_tail);
+  double extra_components[4];
+  two_two_subtract(minuend_x_subtrahend_y_head, minuend_x_subtrahend_y_tail,
+                   minuend_y_subtrahend_x_head, minuend_y_subtrahend_x_tail,
+                   &extra_components[3], &extra_components[2],
+                   &extra_components[1], &extra_components[0]);
+  double second_components[8];
+  size_t second_components_size = add_components_eliminating_zeros(
+      4, first_components, 4, extra_components, second_components);
+  two_multiply(minuend_x, subtrahend_y_tail, &minuend_x_subtrahend_y_head,
+               &minuend_x_subtrahend_y_tail);
+  two_multiply(minuend_y, subtrahend_x_tail, &minuend_y_subtrahend_x_head,
+               &minuend_y_subtrahend_x_tail);
+  two_two_subtract(minuend_x_subtrahend_y_head, minuend_x_subtrahend_y_tail,
+                   minuend_y_subtrahend_x_head, minuend_y_subtrahend_x_tail,
+                   &extra_components[3], &extra_components[2],
+                   &extra_components[1], &extra_components[0]);
+  double third_components[12];
+  size_t third_components_size = add_components_eliminating_zeros(
+      second_components_size, second_components, 4, extra_components,
+      third_components);
+  two_multiply(minuend_x_tail, subtrahend_y_tail, &minuend_x_subtrahend_y_head,
+               &minuend_x_subtrahend_y_tail);
+  two_multiply(minuend_y_tail, subtrahend_x_tail, &minuend_y_subtrahend_x_head,
+               &minuend_y_subtrahend_x_tail);
+  two_two_subtract(minuend_x_subtrahend_y_head, minuend_x_subtrahend_y_tail,
+                   minuend_y_subtrahend_x_head, minuend_y_subtrahend_x_tail,
+                   &extra_components[3], &extra_components[2],
+                   &extra_components[1], &extra_components[0]);
+  return add_components_eliminating_zeros(
+      third_components_size, third_components, 4, extra_components, result);
+}
+
+double vectors_cross_product_impl(double first_start_x, double first_start_y,
+                                  double first_end_x, double first_end_y,
+                                  double second_start_x, double second_start_y,
+                                  double second_end_x, double second_end_y,
+                                  double *result) {
+  double minuend =
+      (first_end_x - first_start_x) * (second_end_y - second_start_y);
+  double subtrahend =
+      (first_end_y - first_start_y) * (second_end_x - second_start_x);
+  double estimation = minuend - subtrahend;
+  double upper_bound;
+  if (minuend > 0.0) {
+    if (subtrahend <= 0.0) {
+      result[0] = estimation;
+      return 1;
+    } else
+      upper_bound = minuend + subtrahend;
+  } else if (minuend < 0.0) {
+    if (subtrahend >= 0.0) {
+      result[0] = estimation;
+      return 1;
+    } else
+      upper_bound = -minuend - subtrahend;
+  } else {
+    result[0] = estimation;
+    return 1;
+  }
+  static const double upper_bound_coefficient =
+      (3.0 + 16.0 * epsilon) * epsilon;
+  double threshold = upper_bound_coefficient * upper_bound;
+  if ((estimation >= threshold) || (-estimation >= threshold)) {
+    result[0] = estimation;
+    return 1;
+  }
+  return adaptive_vectors_cross_product_impl(
+      first_start_x, first_start_y, first_end_x, first_end_y, second_start_x,
+      second_start_y, second_end_x, second_end_y, upper_bound, result);
 }
 
 int is_PyObject_convertible_to_Float(PyObject *self) {
@@ -773,9 +931,36 @@ static PyTypeObject ExpansionType = {
     .tp_richcompare = (richcmpfunc)Expansion_richcompare,
 };
 
+static PyObject *vectors_cross_product(PyObject *Py_UNUSED(self),
+                                       PyObject *args) {
+  double first_start_x, first_start_y, first_end_x, first_end_y, second_start_x,
+      second_start_y, second_end_x, second_end_y;
+  if (!PyArg_ParseTuple(args, "dddddddd", &first_start_x, &first_start_y,
+                        &first_end_x, &first_end_y, &second_start_x,
+                        &second_start_y, &second_end_x, &second_end_y))
+    return NULL;
+  double components[16];
+  size_t result_size = vectors_cross_product_impl(
+      first_start_x, first_start_y, first_end_x, first_end_y, second_start_x,
+      second_start_y, second_end_x, second_end_y, components);
+  double *result_components = PyMem_RawCalloc(result_size, sizeof(double));
+  if (!result_components) return PyErr_NoMemory();
+  copy_components(components, result_size, result_components);
+  return (PyObject *)construct_Expansion(&ExpansionType, result_components,
+                                         result_size);
+}
+
+static PyMethodDef _shewchuk_methods[] = {
+    {"vectors_cross_product", (PyCFunction)vectors_cross_product, METH_VARARGS,
+     PyDoc_STR("Computes cross product of two vectors given their endpoints "
+               "coordinates.")},
+    {NULL, NULL},
+};
+
 static PyModuleDef _shewchuk_module = {
     PyModuleDef_HEAD_INIT,
     .m_doc = PyDoc_STR("Robust floating point operations."),
+    .m_methods = _shewchuk_methods,
     .m_name = "shewchuk",
     .m_size = -1,
 };
