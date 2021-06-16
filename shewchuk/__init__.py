@@ -532,7 +532,7 @@ except ImportError:
                           left_head: float,
                           right: float) -> _Tuple[float, float, float]:
         second_tail, mid_head = _two_subtract(left_tail, right)
-        first_tail, head = _two_subtract(left_head, mid_head)
+        first_tail, head = _two_add(left_head, mid_head)
         return second_tail, first_tail, head
 
 
