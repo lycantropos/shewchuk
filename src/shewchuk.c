@@ -149,6 +149,12 @@ static size_t compress_components(size_t size, double *components) {
   return size;
 }
 
+double sum_components(size_t size, double *components) {
+  double result = components[0];
+  for (size_t index = 1; index < size; ++index) result += components[index];
+  return result;
+}
+
 static size_t add_double_eliminating_zeros(size_t left_size, double *left,
                                            double right, double *result) {
   size_t result_size = 0;
@@ -416,10 +422,7 @@ static void Expansion_dealloc(ExpansionObject *self) {
 }
 
 static PyObject *Expansion_float(ExpansionObject *self) {
-  double result = self->components[0];
-  for (size_t index = 1; index < self->size; ++index)
-    result += self->components[index];
-  return PyFloat_FromDouble(result);
+  return PyFloat_FromDouble(sum_components(self->size, self->components));
 }
 
 static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
