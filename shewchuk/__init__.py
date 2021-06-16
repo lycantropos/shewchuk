@@ -95,7 +95,8 @@ except ImportError:
                           else NotImplemented))
 
         def __rmul__(self, other: _Real) -> 'Expansion':
-            return (_scale_components(self._components, float(other))
+            return (Expansion(*_scale_components(self._components,
+                                                 float(other)))
                     if isinstance(other, _Real)
                     else NotImplemented)
 
