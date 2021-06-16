@@ -603,8 +603,7 @@ static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
   } else if (PyFloat_Check(self))
     return (PyObject *)double_Expansion_subtract(PyFloat_AS_DOUBLE(self),
                                                  (ExpansionObject *)other);
-  else if (!!Py_TYPE(self)->tp_as_number &&
-           !!Py_TYPE(self)->tp_as_number->nb_float) {
+  else if (is_PyObject_convertible_to_Float(self)) {
     double value = PyFloat_AsDouble(self);
     return value == -1.0 && PyErr_Occurred()
                ? NULL
