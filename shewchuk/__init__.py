@@ -167,10 +167,10 @@ except ImportError:
                                                right[right_index])
             if ((right_component > left_component)
                     is (right_component > -left_component)):
-                accumulator, tail = _fast_two_add(left_component, accumulator)
+                tail, accumulator = _fast_two_add(left_component, accumulator)
                 left_index += 1
             else:
-                accumulator, tail = _fast_two_add(right_component, accumulator)
+                tail, accumulator = _fast_two_add(right_component, accumulator)
                 right_index += 1
             if tail:
                 result.append(tail)
@@ -179,21 +179,21 @@ except ImportError:
                                                    right[right_index])
                 if ((right_component > left_component)
                         is (right_component > -left_component)):
-                    accumulator, tail = _two_add(accumulator, left_component)
+                    tail, accumulator = _two_add(accumulator, left_component)
                     left_index += 1
                 else:
-                    accumulator, tail = _two_add(accumulator, right_component)
+                    tail, accumulator = _two_add(accumulator, right_component)
                     right_index += 1
                 if tail:
                     result.append(tail)
         for left_index in range(left_index, left_length):
             left_component = left[left_index]
-            accumulator, tail = _two_add(accumulator, left_component)
+            tail, accumulator = _two_add(accumulator, left_component)
             if tail:
                 result.append(tail)
         for right_index in range(right_index, right_length):
             right_component = right[right_index]
-            accumulator, tail = _two_add(accumulator, right_component)
+            tail, accumulator = _two_add(accumulator, right_component)
             if tail:
                 result.append(tail)
         if accumulator or not result:
@@ -206,7 +206,7 @@ except ImportError:
         result = []
         accumulator = right
         for left_component in left:
-            accumulator, tail = _two_add(accumulator, left_component)
+            tail, accumulator = _two_add(accumulator, left_component)
             if tail:
                 result.append(tail)
         if accumulator or not result:
@@ -233,7 +233,7 @@ except ImportError:
         cursor = components[bottom]
         result = [None] * len(components)
         for index in range(bottom - 1, -1, -1):
-            head, tail = _two_add(cursor, components[index])
+            tail, head = _two_add(cursor, components[index])
             if tail:
                 result[bottom] = head
                 bottom -= 1
@@ -242,7 +242,7 @@ except ImportError:
                 cursor = head
         top = 0
         for index in range(bottom + 1, len(result)):
-            head, tail = _two_add(result[index], cursor)
+            tail, head = _two_add(result[index], cursor)
             if tail:
                 result[top] = tail
                 top += 1
@@ -257,27 +257,27 @@ except ImportError:
         head = left + right
         right_virtual = head - left
         tail = right - right_virtual
-        return head, tail
+        return tail, head
 
 
     def _scale_components(components: _Sequence[float],
                           scalar: float) -> _Sequence[float]:
         components_iterator = iter(components)
-        scalar_high, scalar_low = _split(scalar)
-        accumulator, tail = _two_product_presplit(next(components_iterator),
-                                                  scalar, scalar_high,
-                                                  scalar_low)
+        scalar_low, scalar_high = _split(scalar)
+        tail, accumulator = _two_multiply_presplit(next(components_iterator),
+                                                   scalar, scalar_high,
+                                                   scalar_low)
         result = []
         if tail:
             result.append(tail)
         for component in components_iterator:
-            product, product_tail = _two_product_presplit(component, scalar,
-                                                          scalar_high,
-                                                          scalar_low)
-            interim, tail = _two_add(accumulator, product_tail)
+            product_tail, product = _two_multiply_presplit(component, scalar,
+                                                           scalar_high,
+                                                           scalar_low)
+            tail, interim = _two_add(accumulator, product_tail)
             if tail:
                 result.append(tail)
-            accumulator, tail = _fast_two_add(product, interim)
+            tail, accumulator = _fast_two_add(product, interim)
             if tail:
                 result.append(tail)
         if accumulator or not result:
@@ -293,7 +293,7 @@ except ImportError:
         base = splitter * value
         high = base - (base - value)
         low = value - high
-        return high, low
+        return low, high
 
 
     def _subtract_components_eliminating_zeros(minuend: _Sequence[float],
@@ -317,11 +317,11 @@ except ImportError:
                                                            subtrahend_index])
             if ((subtrahend_component > minuend_component)
                     is (subtrahend_component > -minuend_component)):
-                accumulator, tail = _fast_two_add(minuend_component,
+                tail, accumulator = _fast_two_add(minuend_component,
                                                   accumulator)
                 minuend_index += 1
             else:
-                accumulator, tail = _fast_two_add(subtrahend_component,
+                tail, accumulator = _fast_two_add(subtrahend_component,
                                                   accumulator)
                 subtrahend_index += 1
             if tail:
@@ -332,23 +332,23 @@ except ImportError:
                     minuend[minuend_index], -subtrahend[subtrahend_index])
                 if ((subtrahend_component > minuend_component)
                         is (subtrahend_component > -minuend_component)):
-                    accumulator, tail = _two_add(accumulator,
+                    tail, accumulator = _two_add(accumulator,
                                                  minuend_component)
                     minuend_index += 1
                 else:
-                    accumulator, tail = _two_add(accumulator,
+                    tail, accumulator = _two_add(accumulator,
                                                  subtrahend_component)
                     subtrahend_index += 1
                 if tail:
                     result.append(tail)
         for minuend_index in range(minuend_index, minuend_length):
             minuend_component = minuend[minuend_index]
-            accumulator, tail = _two_add(accumulator, minuend_component)
+            tail, accumulator = _two_add(accumulator, minuend_component)
             if tail:
                 result.append(tail)
         for subtrahend_index in range(subtrahend_index, subtrahend_length):
             subtrahend_component = -subtrahend[subtrahend_index]
-            accumulator, tail = _two_add(accumulator, subtrahend_component)
+            tail, accumulator = _two_add(accumulator, subtrahend_component)
             if tail:
                 result.append(tail)
         if accumulator or not result:
@@ -368,7 +368,7 @@ except ImportError:
         result = []
         accumulator = minuend
         for subtrahend_component in subtrahend:
-            accumulator, tail = _two_add(accumulator, -subtrahend_component)
+            tail, accumulator = _two_add(accumulator, -subtrahend_component)
             if tail:
                 result.append(tail)
         if accumulator or not result:
@@ -383,17 +383,17 @@ except ImportError:
         right_tail = right - right_virtual
         left_tail = left - left_virtual
         tail = left_tail + right_tail
-        return head, tail
+        return tail, head
 
 
-    def _two_product_presplit(left: float,
-                              right: float,
-                              right_high: float,
-                              right_low: float) -> _Tuple[float, float]:
+    def _two_multiply_presplit(left: float,
+                               right: float,
+                               right_high: float,
+                               right_low: float) -> _Tuple[float, float]:
         head = left * right
-        left_high, left_low = _split(left)
+        left_low, left_high = _split(left)
         first_error = head - left_high * right_high
         second_error = first_error - left_low * right_high
         third_error = second_error - left_high * right_low
         tail = left_low * right_low - third_error
-        return head, tail
+        return tail, head
