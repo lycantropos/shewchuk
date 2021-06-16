@@ -135,21 +135,6 @@ except ImportError:
                      else NotImplemented))
 
 
-    class Quadruple:
-        __slots__ = '_head', '_tail'
-
-        def __new__(cls, _head: float = 0., _tail: float = 0.) -> 'Quadruple':
-            self = super().__new__(cls)
-            self._head, self._tail = _two_add(_head, _tail)
-            return self
-
-        def __repr__(self) -> str:
-            return (type(self).__qualname__
-                    + (('({}, {})'
-                        if self._tail
-                        else '({})').format(self._head, self._tail)))
-
-
     def _are_components_lesser_than(left: _Sequence[float],
                                     right: _Sequence[float]) -> bool:
         left_size, right_size = len(left), len(right)
