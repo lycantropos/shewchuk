@@ -818,8 +818,8 @@ static PyTypeObject QuadrupleType = {
 
 static PyModuleDef _shewchuk_module = {
     PyModuleDef_HEAD_INIT,
-    .m_name = "shewchuk",
     .m_doc = PyDoc_STR("Robust floating point operations."),
+    .m_name = "shewchuk",
     .m_size = -1,
 };
 
