@@ -1,5 +1,6 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <float.h>
 #include <structmember.h>
 
 static int are_components_equal(size_t left_size, double *left,
@@ -44,6 +45,15 @@ static void two_add(double left, double right, double *result_head,
   *result_tail = tail;
 }
 
+static void split(double value, double *result_high, double *result_low) {
+  static const double splitter = (1 << (size_t)((DBL_MANT_DIG + 1) / 2)) + 1;
+  double base = splitter * value;
+  double high = base - (base - value);
+  double low = value - high;
+  *result_high = high;
+  *result_low = low;
+}
+
 static void two_subtract(double left, double right, double *result_head,
                          double *result_tail) {
   two_add(left, -right, result_head, result_tail);
@@ -63,6 +73,20 @@ static void two_one_subtract(double left_head, double left_tail, double right,
   double mid_head;
   two_subtract(left_tail, right, &mid_head, second_tail);
   two_add(left_head, mid_head, head, first_tail);
+}
+
+static void two_product_presplit(double left, double right, double right_high,
+                                 double right_low, double *result_head,
+                                 double *result_tail) {
+  double head = left * right;
+  double left_high, left_low;
+  split(left, &left_high, &left_low);
+  double first_error = head - left_high * right_high;
+  double second_error = first_error - left_low * right_high;
+  double third_error = second_error - left_high * right_low;
+  double tail = left_low * right_low - third_error;
+  *result_head = head;
+  *result_tail = tail;
 }
 
 static void two_two_add(double left_head, double left_tail, double right_head,
@@ -132,6 +156,29 @@ static size_t add_double_eliminating_zeros(size_t left_size, double *left,
   for (size_t index = 0; index < left_size; index++) {
     double tail;
     two_add(accumulator, left[index], &accumulator, &tail);
+    if (!!tail) result[result_size++] = tail;
+  }
+  if (!!accumulator || !result_size) result[result_size++] = accumulator;
+  return result_size;
+}
+
+static size_t scale_components(size_t size, double *components, double scalar,
+                               double *result) {
+  double scalar_high, scalar_low;
+  split(scalar, &scalar_high, &scalar_low);
+  double accumulator, tail;
+  two_product_presplit(components[0], scalar, scalar_high, scalar_low,
+                       &accumulator, &tail);
+  size_t result_size = 0;
+  if (!!tail) result[result_size++] = tail;
+  for (size_t index = 1; index < size; ++index) {
+    double product, product_tail;
+    two_product_presplit(components[index], scalar, scalar_high, scalar_low,
+                         &product, &product_tail);
+    double interim;
+    two_add(accumulator, product_tail, &interim, &tail);
+    if (!!tail) result[result_size++] = tail;
+    fast_two_add(product, interim, &accumulator, &tail);
     if (!!tail) result[result_size++] = tail;
   }
   if (!!accumulator || !result_size) result[result_size++] = accumulator;
@@ -278,6 +325,11 @@ static size_t subtract_components_eliminating_zeros(size_t minuend_size,
   return result_size;
 }
 
+int is_PyObject_convertible_to_Float(PyObject *self) {
+  return !!Py_TYPE(self)->tp_as_number &&
+         !!Py_TYPE(self)->tp_as_number->nb_float;
+}
+
 typedef struct {
   PyObject_HEAD size_t size;
   double *components;
@@ -334,8 +386,7 @@ static PyObject *Expansion_add(PyObject *self, PyObject *other) {
     else if (PyFloat_Check(other))
       return (PyObject *)Expansion_double_add((ExpansionObject *)self,
                                               PyFloat_AS_DOUBLE(other));
-    else if (!!Py_TYPE(other)->tp_as_number &&
-             !!Py_TYPE(other)->tp_as_number->nb_float) {
+    else if (is_PyObject_convertible_to_Float(other)) {
       double other_value = PyFloat_AsDouble(other);
       return other_value == -1.0 && PyErr_Occurred()
                  ? NULL
@@ -370,6 +421,44 @@ static PyObject *Expansion_float(ExpansionObject *self) {
   for (size_t index = 1; index < self->size; ++index)
     result += self->components[index];
   return PyFloat_FromDouble(result);
+}
+
+static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
+                                                  double other) {
+  double *result_components =
+      PyMem_RawCalloc(2 * self->size + 1, sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  size_t result_size =
+      scale_components(self->size, self->components, other, result_components);
+  result_components =
+      PyMem_RawRealloc(result_components, result_size * sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(Py_TYPE(self), result_components, result_size);
+}
+
+static PyObject *Expansion_multiply(PyObject *self, PyObject *other) {
+  if (PyObject_TypeCheck(self, &ExpansionType)) {
+    if (PyFloat_Check(other))
+      return (PyObject *)Expansion_double_multiply((ExpansionObject *)self,
+                                                   PyFloat_AS_DOUBLE(other));
+    else if (is_PyObject_convertible_to_Float(other)) {
+      double other_value = PyFloat_AsDouble(other);
+      return other_value == -1.0 && PyErr_Occurred()
+                 ? NULL
+                 : (PyObject *)Expansion_double_multiply(
+                       (ExpansionObject *)self, other_value);
+    }
+  } else if (PyFloat_Check(self))
+    return (PyObject *)Expansion_double_multiply((ExpansionObject *)other,
+                                                 PyFloat_AS_DOUBLE(self));
+  else if (is_PyObject_convertible_to_Float(self)) {
+    double value = PyFloat_AsDouble(self);
+    return value == -1.0 && PyErr_Occurred()
+               ? NULL
+               : (PyObject *)Expansion_double_multiply((ExpansionObject *)other,
+                                                       value);
+  }
+  Py_RETURN_NOTIMPLEMENTED;
 }
 
 static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
@@ -695,6 +784,7 @@ static PyNumberMethods Expansion_as_number = {
     .nb_add = Expansion_add,
     .nb_bool = (inquiry)Expansion_bool,
     .nb_float = (unaryfunc)Expansion_float,
+    .nb_multiply = Expansion_multiply,
     .nb_negative = (unaryfunc)Expansion_negative,
     .nb_positive = (unaryfunc)Expansion_positive,
     .nb_subtract = Expansion_subtract,

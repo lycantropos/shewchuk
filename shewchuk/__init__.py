@@ -6,6 +6,7 @@ try:
     from _shewchuk import (Expansion,
                            Quadruple)
 except ImportError:
+    from sys import float_info as _float_info
     from itertools import repeat as _repeat
     from numbers import Real as _Real
     from typing import (Sequence as _Sequence,
@@ -92,6 +93,13 @@ except ImportError:
                               and self._components[-2] < 0.)
                           if isinstance(other, _Real)
                           else NotImplemented))
+
+        def __rmul__(self, other: _Real) -> 'Expansion':
+            return (_scale_components(self._components, float(other))
+                    if isinstance(other, _Real)
+                    else NotImplemented)
+
+        __mul__ = __rmul__
 
         def __neg__(self) -> 'Expansion':
             return Expansion(*[-component for component in self._components])
@@ -221,6 +229,10 @@ except ImportError:
         return result
 
 
+    def _ceil_divide(dividend: int, divisor: int) -> int:
+        return -(-dividend // divisor)
+
+
     def _compress_components(components: _Sequence[float]) -> _Sequence[float]:
         for _ in _repeat(None, len(components)):
             next_components = _compress_components_single(components)
@@ -261,6 +273,42 @@ except ImportError:
         right_virtual = head - left
         tail = right - right_virtual
         return head, tail
+
+
+    def _scale_components(components: _Sequence[float],
+                          scalar: float) -> _Sequence[float]:
+        components_iterator = iter(components)
+        scalar_high, scalar_low = _split(scalar)
+        accumulator, tail = _two_product_presplit(next(components_iterator),
+                                                  scalar, scalar_high,
+                                                  scalar_low)
+        result = []
+        if tail:
+            result.append(tail)
+        for component in components_iterator:
+            product, product_tail = _two_product_presplit(component, scalar,
+                                                          scalar_high,
+                                                          scalar_low)
+            interim, tail = _two_add(accumulator, product_tail)
+            if tail:
+                result.append(tail)
+            accumulator, tail = _fast_two_add(product, interim)
+            if tail:
+                result.append(tail)
+        if accumulator or not result:
+            result.append(accumulator)
+        return result
+
+
+    def _split(value: float,
+               *,
+               splitter: float
+               = float(1 << _ceil_divide(_float_info.mant_dig, 2) + 1)
+               ) -> _Tuple[float, float]:
+        base = splitter * value
+        high = base - (base - value)
+        low = value - high
+        return high, low
 
 
     def _subtract_components_eliminating_zeros(minuend: _Sequence[float],
@@ -350,4 +398,17 @@ except ImportError:
         right_tail = right - right_virtual
         left_tail = left - left_virtual
         tail = left_tail + right_tail
+        return head, tail
+
+
+    def _two_product_presplit(left: float,
+                              right: float,
+                              right_high: float,
+                              right_low: float) -> _Tuple[float, float]:
+        head = left * right
+        left_high, left_low = _split(left)
+        first_error = head - left_high * right_high
+        second_error = first_error - left_low * right_high
+        third_error = second_error - left_high * right_low
+        tail = left_low * right_low - third_error
         return head, tail
