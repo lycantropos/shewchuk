@@ -363,7 +363,7 @@ static ExpansionObject *Expansions_add(ExpansionObject *self,
   result_components =
       PyMem_RawRealloc(result_components, result_size * sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(Py_TYPE(self), result_components, result_size);
+  return construct_Expansion(&ExpansionType, result_components, result_size);
 }
 
 static ExpansionObject *Expansion_double_add(ExpansionObject *self,
@@ -375,7 +375,7 @@ static ExpansionObject *Expansion_double_add(ExpansionObject *self,
   result_components =
       PyMem_RawRealloc(result_components, result_size * sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(Py_TYPE(self), result_components, result_size);
+  return construct_Expansion(&ExpansionType, result_components, result_size);
 }
 
 static PyObject *Expansion_add(PyObject *self, PyObject *other) {
@@ -432,7 +432,7 @@ static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
   result_components =
       PyMem_RawRealloc(result_components, result_size * sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(Py_TYPE(self), result_components, result_size);
+  return construct_Expansion(&ExpansionType, result_components, result_size);
 }
 
 static PyObject *Expansion_multiply(PyObject *self, PyObject *other) {
@@ -498,7 +498,7 @@ static ExpansionObject *Expansion_negative(ExpansionObject *self) {
   double *result_components = PyMem_RawCalloc(self->size, sizeof(double));
   for (size_t index = 0; index < self->size; ++index)
     result_components[index] = -self->components[index];
-  return construct_Expansion(Py_TYPE(self), result_components, self->size);
+  return construct_Expansion(&ExpansionType, result_components, self->size);
 }
 
 static ExpansionObject *Expansion_positive(ExpansionObject *self) {
@@ -556,7 +556,7 @@ static ExpansionObject *Expansions_subtract(ExpansionObject *self,
   result_components =
       PyMem_RawRealloc(result_components, result_size * sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(Py_TYPE(self), result_components, result_size);
+  return construct_Expansion(&ExpansionType, result_components, result_size);
 }
 
 static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
@@ -568,7 +568,7 @@ static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
   result_components =
       PyMem_RawRealloc(result_components, result_size * sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(Py_TYPE(self), result_components, result_size);
+  return construct_Expansion(&ExpansionType, result_components, result_size);
 }
 
 static ExpansionObject *double_Expansion_subtract(double self,
