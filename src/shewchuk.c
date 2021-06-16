@@ -3,6 +3,7 @@
 #include <float.h>
 #include <math.h>
 #include <structmember.h>
+#define EPSILON (DBL_EPSILON / 2.0)
 
 static int are_components_equal(size_t left_size, double *left,
                                 size_t right_size, double *right) {
@@ -358,8 +359,6 @@ static size_t subtract_components_eliminating_zeros(size_t minuend_size,
   return result_size;
 }
 
-static const double epsilon = DBL_EPSILON / 2.0;
-
 size_t adaptive_vectors_cross_product_impl(
     double first_start_x, double first_start_y, double first_end_x,
     double first_end_y, double second_start_x, double second_start_y,
@@ -379,7 +378,7 @@ size_t adaptive_vectors_cross_product_impl(
                    &first_components[1], &first_components[0]);
   double estimation = sum_components(4, first_components);
   static const double first_upper_bound_coefficient =
-      (2.0 + 12.0 * epsilon) * epsilon;
+      (2.0 + 12.0 * EPSILON) * EPSILON;
   double threshold = first_upper_bound_coefficient * upper_bound;
   if ((estimation >= threshold) || (-estimation >= threshold)) {
     copy_components(first_components, 4, result);
@@ -399,8 +398,8 @@ size_t adaptive_vectors_cross_product_impl(
     return 4;
   }
   static const double second_upper_bound_coefficient =
-      (9.0 + 64.0 * epsilon) * epsilon * epsilon;
-  static const double estimation_coefficient = (3.0 + 8.0 * epsilon) * epsilon;
+      (9.0 + 64.0 * EPSILON) * EPSILON * EPSILON;
+  static const double estimation_coefficient = (3.0 + 8.0 * EPSILON) * EPSILON;
   threshold = second_upper_bound_coefficient * upper_bound +
               estimation_coefficient * fabs(estimation);
   double extra =
@@ -478,7 +477,7 @@ double vectors_cross_product_impl(double first_start_x, double first_start_y,
     return 1;
   }
   static const double upper_bound_coefficient =
-      (3.0 + 16.0 * epsilon) * epsilon;
+      (3.0 + 16.0 * EPSILON) * EPSILON;
   double threshold = upper_bound_coefficient * upper_bound;
   if ((estimation >= threshold) || (-estimation >= threshold)) {
     result[0] = estimation;
