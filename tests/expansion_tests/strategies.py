@@ -9,6 +9,12 @@ from tests.strategies import finite_floats
 from tests.utils import pack
 
 finite_floats = finite_floats
+floats_quadruplets = strategies.lists(finite_floats,
+                                      min_size=4,
+                                      max_size=4)
+floats_octuplets = strategies.lists(finite_floats,
+                                    min_size=8,
+                                    max_size=8)
 
 
 def is_floats_sequence_sum_finite(values: Sequence[float]) -> bool:
