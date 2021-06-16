@@ -85,7 +85,7 @@ static void two_two_subtract(double left_head, double left_tail,
                    second_tail);
 }
 
-size_t compress_components_single(size_t size, double *components) {
+static size_t compress_components_single(size_t size, double *components) {
   size_t bottom = size - 1;
   double accumulator = components[bottom];
   for (Py_ssize_t index = (Py_ssize_t)(bottom)-1; index >= 0; --index) {
@@ -108,7 +108,7 @@ size_t compress_components_single(size_t size, double *components) {
   return top;
 }
 
-size_t compress_components(size_t size, double *components) {
+static size_t compress_components(size_t size, double *components) {
   const size_t original_size = size;
   double *next_components = PyMem_RawCalloc(size, sizeof(double));
   for (size_t index = 0; index < size; ++index)
@@ -125,8 +125,8 @@ size_t compress_components(size_t size, double *components) {
   return size;
 }
 
-size_t add_double_eliminating_zeros(size_t left_size, double *left,
-                                    double right, double *result) {
+static size_t add_double_eliminating_zeros(size_t left_size, double *left,
+                                           double right, double *result) {
   size_t result_size = 0;
   double accumulator = right;
   for (size_t index = 0; index < left_size; index++) {
@@ -138,16 +138,18 @@ size_t add_double_eliminating_zeros(size_t left_size, double *left,
   return result_size;
 }
 
-size_t subtract_double_eliminating_zeros(size_t minuend_size, double *minuend,
-                                         double subtrahend, double *result) {
+static size_t subtract_double_eliminating_zeros(size_t minuend_size,
+                                                double *minuend,
+                                                double subtrahend,
+                                                double *result) {
   return add_double_eliminating_zeros(minuend_size, minuend, -subtrahend,
                                       result);
 }
 
-size_t subtract_from_double_eliminating_zeros(double minuend,
-                                              size_t subtrahend_size,
-                                              double *subtrahend,
-                                              double *result) {
+static size_t subtract_from_double_eliminating_zeros(double minuend,
+                                                     size_t subtrahend_size,
+                                                     double *subtrahend,
+                                                     double *result) {
   size_t result_size = 0;
   double accumulator = minuend;
   for (size_t index = 0; index < subtrahend_size; index++) {
@@ -159,9 +161,9 @@ size_t subtract_from_double_eliminating_zeros(double minuend,
   return result_size;
 }
 
-size_t add_components_eliminating_zeros(size_t left_size, double *left,
-                                        size_t right_size, double *right,
-                                        double *result) {
+static size_t add_components_eliminating_zeros(size_t left_size, double *left,
+                                               size_t right_size, double *right,
+                                               double *result) {
   size_t left_index = 0, right_index = 0;
   double left_component = left[left_index];
   double right_component = right[right_index];
@@ -216,11 +218,11 @@ size_t add_components_eliminating_zeros(size_t left_size, double *left,
   return result_size;
 }
 
-size_t subtract_components_eliminating_zeros(size_t minuend_size,
-                                             double *minuend,
-                                             size_t subtrahend_size,
-                                             double *subtrahend,
-                                             double *result) {
+static size_t subtract_components_eliminating_zeros(size_t minuend_size,
+                                                    double *minuend,
+                                                    size_t subtrahend_size,
+                                                    double *subtrahend,
+                                                    double *result) {
   size_t minuend_index = 0, subtrahend_index = 0;
   double minuend_component = minuend[minuend_index];
   double subtrahend_component = -subtrahend[subtrahend_index];
