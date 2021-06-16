@@ -3,8 +3,7 @@
 __version__ = '0.0.0'
 
 try:
-    from _shewchuk import (Expansion,
-                           Quadruple)
+    from _shewchuk import Expansion
 except ImportError:
     from sys import float_info as _float_info
     from itertools import repeat as _repeat
