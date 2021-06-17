@@ -957,9 +957,31 @@ static PyObject *vectors_cross_product(PyObject *Py_UNUSED(self),
                                          result_size);
 }
 
+static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
+                                     PyObject *args) {
+  double first_start_x, first_start_y, first_end_x, first_end_y, second_start_x,
+      second_start_y, second_end_x, second_end_y;
+  if (!PyArg_ParseTuple(args, "dddddddd", &first_start_x, &first_start_y,
+                        &first_end_x, &first_end_y, &second_start_x,
+                        &second_start_y, &second_end_x, &second_end_y))
+    return NULL;
+  double components[16];
+  size_t result_size = vectors_cross_product_impl(
+      first_start_x, first_start_y, first_end_x, first_end_y, -second_start_y,
+      second_start_x, -second_end_y, second_end_x, components);
+  double *result_components = PyMem_RawCalloc(result_size, sizeof(double));
+  if (!result_components) return PyErr_NoMemory();
+  copy_components(components, result_size, result_components);
+  return (PyObject *)construct_Expansion(&ExpansionType, result_components,
+                                         result_size);
+}
+
 static PyMethodDef _shewchuk_methods[] = {
-    {"vectors_cross_product", (PyCFunction)vectors_cross_product, METH_VARARGS,
+    {"vectors_cross_product", vectors_cross_product, METH_VARARGS,
      PyDoc_STR("Computes cross product of two vectors given their endpoints "
+               "coordinates.")},
+    {"vectors_dot_product", vectors_dot_product, METH_VARARGS,
+     PyDoc_STR("Computes dot product of two vectors given their endpoints "
                "coordinates.")},
     {NULL, NULL},
 };
