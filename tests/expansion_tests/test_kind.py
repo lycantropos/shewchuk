@@ -46,9 +46,9 @@ def test_endpoints_permutation(sextuplet: Tuple[float, float, float, float,
                   first_ray_second_ray_point_y, second_ray_point_x,
                   second_ray_point_y)
 
-    assert result == kind(first_ray_second_ray_point_x,
-                          first_ray_second_ray_point_y, vertex_x, vertex_y,
-                          second_ray_point_x, second_ray_point_y)
+    assert result == kind(vertex_x, vertex_y, second_ray_point_x,
+                          second_ray_point_y, first_ray_second_ray_point_x,
+                          first_ray_second_ray_point_y)
 
 
 @given(strategies.floats_sextuplets)
