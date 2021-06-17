@@ -1052,6 +1052,18 @@ static PyTypeObject ExpansionType = {
     .tp_richcompare = (richcmpfunc)Expansion_richcompare,
 };
 
+static PyObject *kind(PyObject *Py_UNUSED(self), PyObject *args) {
+  double vertex_x, vertex_y, first_ray_point_x, first_ray_point_y,
+      second_ray_point_x, second_ray_point_y;
+  if (!PyArg_ParseTuple(args, "dddddd", &vertex_x, &vertex_y,
+                        &first_ray_point_x, &first_ray_point_y,
+                        &second_ray_point_x, &second_ray_point_y))
+    return NULL;
+  return PyLong_FromLong(to_sign(vectors_cross_product_estimation(
+      vertex_x, vertex_y, first_ray_point_x, first_ray_point_y, -vertex_y,
+      vertex_x, -second_ray_point_y, second_ray_point_x)));
+}
+
 static PyObject *orientation(PyObject *Py_UNUSED(self), PyObject *args) {
   double start_x, start_y, end_x, end_y, point_x, point_y;
   if (!PyArg_ParseTuple(args, "dddddd", &start_x, &start_y, &end_x, &end_y,
@@ -1100,6 +1112,8 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
 }
 
 static PyMethodDef _shewchuk_methods[] = {
+    {"kind", kind, METH_VARARGS,
+     PyDoc_STR("Computes kind of angle given its endpoints coordinates.")},
     {"orientation", orientation, METH_VARARGS,
      PyDoc_STR("Computes orientation of point relative to segment given their "
                "coordinates.")},

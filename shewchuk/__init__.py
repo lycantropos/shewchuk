@@ -4,6 +4,7 @@ __version__ = '0.0.0'
 
 try:
     from _shewchuk import (Expansion,
+                           kind,
                            orientation,
                            vectors_cross_product,
                            vectors_dot_product)
@@ -138,6 +139,18 @@ except ImportError:
                             self._components, float(other)))
                      if isinstance(other, _Real)
                      else NotImplemented))
+
+
+    def kind(vertex_x: float,
+             vertex_y: float,
+             first_ray_point_x: float,
+             first_ray_point_y: float,
+             second_ray_point_x: float,
+             second_ray_point_y: float) -> int:
+        """Computes kind of angle given its endpoints coordinates."""
+        return _to_sign(_vectors_cross_product_estimation(
+                vertex_x, vertex_y, first_ray_point_x, first_ray_point_y,
+                -vertex_y, vertex_x, -second_ray_point_y, second_ray_point_x))
 
 
     def orientation(start_x: float,
