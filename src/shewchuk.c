@@ -361,13 +361,14 @@ static size_t subtract_components_eliminating_zeros(size_t minuend_size,
   return result_size;
 }
 
-int adaptive_orientation_impl(double start_x, double start_y, double end_x,
-                              double end_y, double point_x, double point_y,
-                              double upper_bound) {
-  double minuend_x = end_x - start_x;
-  double minuend_y = end_y - start_y;
-  double subtrahend_x = point_x - start_x;
-  double subtrahend_y = point_y - start_y;
+double adaptive_vectors_cross_product_estimation(
+    double first_start_x, double first_start_y, double first_end_x,
+    double first_end_y, double second_start_x, double second_start_y,
+    double second_end_x, double second_end_y, double upper_bound) {
+  double minuend_x = first_end_x - first_start_x;
+  double minuend_y = first_end_y - first_start_y;
+  double subtrahend_x = second_end_x - second_start_x;
+  double subtrahend_y = second_end_y - second_start_y;
   double minuend, minuend_tail;
   two_multiply(minuend_x, subtrahend_y, &minuend, &minuend_tail);
   double subtrahend, subtrahend_tail;
@@ -376,29 +377,30 @@ int adaptive_orientation_impl(double start_x, double start_y, double end_x,
   two_two_subtract(minuend, minuend_tail, subtrahend, subtrahend_tail,
                    &first_components[3], &first_components[2],
                    &first_components[1], &first_components[0]);
-  double estimation = sum_components(4, first_components);
+  double result = sum_components(4, first_components);
   static const double first_upper_bound_coefficient =
       (2.0 + 12.0 * EPSILON) * EPSILON;
   double threshold = first_upper_bound_coefficient * upper_bound;
-  if ((estimation >= threshold) || (-estimation >= threshold))
-    return to_sign(estimation);
-  double minuend_x_tail = two_subtract_tail(end_x, start_x, minuend_x);
-  double subtrahend_x_tail = two_subtract_tail(point_x, start_x, subtrahend_x);
-  double minuend_y_tail = two_subtract_tail(end_y, start_y, minuend_y);
-  double subtrahend_y_tail = two_subtract_tail(point_y, start_y, subtrahend_y);
+  if ((result >= threshold) || (-result >= threshold)) return result;
+  double minuend_x_tail =
+      two_subtract_tail(first_end_x, first_start_x, minuend_x);
+  double subtrahend_x_tail =
+      two_subtract_tail(second_end_x, second_start_x, subtrahend_x);
+  double minuend_y_tail =
+      two_subtract_tail(first_end_y, first_start_y, minuend_y);
+  double subtrahend_y_tail =
+      two_subtract_tail(second_end_y, second_start_y, subtrahend_y);
   if (!minuend_x_tail && !minuend_y_tail && !subtrahend_x_tail &&
       !subtrahend_y_tail)
-    return to_sign(estimation);
+    return result;
   static const double second_upper_bound_coefficient =
       (9.0 + 64.0 * EPSILON) * EPSILON * EPSILON;
-  static const double estimation_coefficient = (3.0 + 8.0 * EPSILON) * EPSILON;
+  static const double result_coefficient = (3.0 + 8.0 * EPSILON) * EPSILON;
   threshold = second_upper_bound_coefficient * upper_bound +
-              estimation_coefficient * fabs(estimation);
-  estimation +=
-      (minuend_x * subtrahend_y_tail + subtrahend_y * minuend_x_tail) -
-      (minuend_y * subtrahend_x_tail + subtrahend_x * minuend_y_tail);
-  if ((estimation >= threshold) || (-estimation >= threshold))
-    return to_sign(estimation);
+              result_coefficient * fabs(result);
+  result += (minuend_x * subtrahend_y_tail + subtrahend_y * minuend_x_tail) -
+            (minuend_y * subtrahend_x_tail + subtrahend_x * minuend_y_tail);
+  if ((result >= threshold) || (-result >= threshold)) return result;
   double minuend_x_subtrahend_y_head, minuend_x_subtrahend_y_tail;
   two_multiply(minuend_x_tail, subtrahend_y, &minuend_x_subtrahend_y_head,
                &minuend_x_subtrahend_y_tail);
@@ -437,34 +439,38 @@ int adaptive_orientation_impl(double start_x, double start_y, double end_x,
   size_t final_components_size =
       add_components_eliminating_zeros(third_components_size, third_components,
                                        4, extra_components, final_components);
-  return to_sign(final_components[final_components_size - 1]);
+  return final_components[final_components_size - 1];
 }
 
-int orientation_impl(double start_x, double start_y, double end_x, double end_y,
-                     double point_x, double point_y) {
-  double minuend = (end_x - start_x) * (point_y - start_y);
-  double subtrahend = (end_y - start_y) * (point_x - start_x);
-  double estimation = minuend - subtrahend;
+double vectors_cross_product_estimation(
+    double first_start_x, double first_start_y, double first_end_x,
+    double first_end_y, double second_start_x, double second_start_y,
+    double second_end_x, double second_end_y) {
+  double minuend =
+      (first_end_x - first_start_x) * (second_end_y - second_start_y);
+  double subtrahend =
+      (first_end_y - first_start_y) * (second_end_x - second_start_x);
+  double result = minuend - subtrahend;
   double upper_bound;
   if (minuend > 0.0) {
     if (subtrahend <= 0.0)
-      return to_sign(estimation);
+      return result;
     else
       upper_bound = minuend + subtrahend;
   } else if (minuend < 0.0) {
     if (subtrahend >= 0.0)
-      return to_sign(estimation);
+      return result;
     else
       upper_bound = -minuend - subtrahend;
   } else
-    return to_sign(estimation);
+    return result;
   static const double upper_bound_coefficient =
       (3.0 + 16.0 * EPSILON) * EPSILON;
   double threshold = upper_bound_coefficient * upper_bound;
-  if ((estimation >= threshold) || (-estimation >= threshold))
-    return to_sign(estimation);
-  return adaptive_orientation_impl(start_x, start_y, end_x, end_y, point_x,
-                                   point_y, upper_bound);
+  if ((result >= threshold) || (-result >= threshold)) return result;
+  return adaptive_vectors_cross_product_estimation(
+      first_start_x, first_start_y, first_end_x, first_end_y, second_start_x,
+      second_start_y, second_end_x, second_end_y, upper_bound);
 }
 
 size_t adaptive_vectors_cross_product_impl(
@@ -1051,8 +1057,8 @@ static PyObject *orientation(PyObject *Py_UNUSED(self), PyObject *args) {
   if (!PyArg_ParseTuple(args, "dddddd", &start_x, &start_y, &end_x, &end_y,
                         &point_x, &point_y))
     return NULL;
-  return PyLong_FromLong(
-      orientation_impl(start_x, start_y, end_x, end_y, point_x, point_y));
+  return PyLong_FromLong(to_sign(vectors_cross_product_estimation(
+      start_x, start_y, end_x, end_y, start_x, start_y, point_x, point_y)));
 }
 
 static PyObject *vectors_cross_product(PyObject *Py_UNUSED(self),
