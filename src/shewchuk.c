@@ -381,8 +381,12 @@ size_t adaptive_vectors_cross_product_impl(
       (2.0 + 12.0 * EPSILON) * EPSILON;
   double threshold = first_upper_bound_coefficient * upper_bound;
   if ((estimation >= threshold) || (-estimation >= threshold)) {
-    copy_components(first_components, 4, result);
-    return 4;
+    size_t offset = 0, result_size = 4;
+    for (; offset < result_size - 1 && !first_components[offset]; ++offset)
+      ;
+    result_size -= offset;
+    copy_components(&first_components[offset], result_size, result);
+    return result_size;
   }
   double minuend_x_tail =
       two_subtract_tail(first_end_x, first_start_x, minuend_x);
@@ -394,8 +398,12 @@ size_t adaptive_vectors_cross_product_impl(
       two_subtract_tail(second_end_y, second_start_y, subtrahend_y);
   if (!minuend_x_tail && !minuend_y_tail && !subtrahend_x_tail &&
       !subtrahend_y_tail) {
-    copy_components(first_components, 4, result);
-    return 4;
+    size_t offset = 0, result_size = 4;
+    for (; offset < result_size - 1 && !first_components[offset]; ++offset)
+      ;
+    result_size -= offset;
+    copy_components(&first_components[offset], result_size, result);
+    return result_size;
   }
   static const double second_upper_bound_coefficient =
       (9.0 + 64.0 * EPSILON) * EPSILON * EPSILON;
@@ -942,13 +950,9 @@ static PyObject *vectors_cross_product(PyObject *Py_UNUSED(self),
   size_t result_size = vectors_cross_product_impl(
       first_start_x, first_start_y, first_end_x, first_end_y, second_start_x,
       second_start_y, second_end_x, second_end_y, components);
-  size_t offset = 0;
-  for (; offset < result_size - 1 && !components[offset]; ++offset)
-    ;
-  result_size -= offset;
   double *result_components = PyMem_RawCalloc(result_size, sizeof(double));
   if (!result_components) return PyErr_NoMemory();
-  copy_components(&components[offset], result_size, result_components);
+  copy_components(components, result_size, result_components);
   return (PyObject *)construct_Expansion(&ExpansionType, result_components,
                                          result_size);
 }

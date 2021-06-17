@@ -146,12 +146,11 @@ except ImportError:
                               second_start_y: float,
                               second_end_x: float,
                               second_end_y: float) -> Expansion:
-        return Expansion(*_dropwhile(_not,
-                                     _vectors_cross_product(
-                                             first_start_x, first_start_y,
-                                             first_end_x, first_end_y,
-                                             second_start_x, second_start_y,
-                                             second_end_x, second_end_y)),
+        return Expansion(*_vectors_cross_product(first_start_x, first_start_y,
+                                                 first_end_x, first_end_y,
+                                                 second_start_x,
+                                                 second_start_y, second_end_x,
+                                                 second_end_y),
                          _compress=False)
 
 
@@ -225,21 +224,17 @@ except ImportError:
         return result
 
 
-    def _add_float_eliminating_zeros(left: _Sequence[float],
-                                     right: float) -> _Sequence[float]:
+    def _add_float_eliminating_zeros(components: _Sequence[float],
+                                     value: float) -> _Sequence[float]:
         result = []
-        accumulator = right
-        for left_component in left:
-            tail, accumulator = _two_add(accumulator, left_component)
+        accumulator = value
+        for component in components:
+            tail, accumulator = _two_add(accumulator, component)
             if tail:
                 result.append(tail)
         if accumulator or not result:
             result.append(accumulator)
         return result
-
-
-    def _ceil_divide(dividend: int, divisor: int) -> int:
-        return -(-dividend // divisor)
 
 
     def _compress_components(components: _Sequence[float]) -> _Sequence[float]:
@@ -312,7 +307,7 @@ except ImportError:
     def _split(value: float,
                *,
                splitter: float
-               = float(1 << _ceil_divide(_float_info.mant_dig, 2) + 1)
+               = float((1 << ((_float_info.mant_dig + 1) // 2)) + 1)
                ) -> _Tuple[float, float]:
         base = splitter * value
         high = base - (base - value)
@@ -533,7 +528,7 @@ except ImportError:
         estimation = sum(first_components)
         threshold = first_upper_bound_coefficient * upper_bound
         if (estimation >= threshold) or (-estimation >= threshold):
-            return first_components
+            return list(_dropwhile(_not, first_components))
         minuend_x_tail = _two_subtract_tail(first_end_x, first_start_x,
                                             minuend_x)
         subtrahend_x_tail = _two_subtract_tail(second_end_x, second_start_x,
@@ -544,7 +539,7 @@ except ImportError:
                                                subtrahend_y)
         if (not minuend_x_tail and not minuend_y_tail and not subtrahend_x_tail
                 and not subtrahend_y_tail):
-            return first_components
+            return list(_dropwhile(_not, first_components))
         threshold = (second_upper_bound_coefficient * upper_bound
                      + estimation_coefficient * abs(estimation))
         extra = ((minuend_x * subtrahend_y_tail
