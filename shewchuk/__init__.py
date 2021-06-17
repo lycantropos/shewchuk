@@ -4,6 +4,7 @@ __version__ = '0.0.0'
 
 try:
     from _shewchuk import (Expansion,
+                           orientation,
                            vectors_cross_product,
                            vectors_dot_product)
 except ImportError:
@@ -139,6 +140,19 @@ except ImportError:
                      else NotImplemented))
 
 
+    def orientation(start_x: float,
+                    start_y: float,
+                    end_x: float,
+                    end_y: float,
+                    point_x: float,
+                    point_y: float) -> int:
+        """
+        Computes orientation of point relative to segment
+        given their coordinates.
+        """
+        return _orientation(start_x, start_y, end_x, end_y, point_x, point_y)
+
+
     def vectors_cross_product(first_start_x: float,
                               first_start_y: float,
                               first_end_x: float,
@@ -147,6 +161,10 @@ except ImportError:
                               second_start_y: float,
                               second_end_x: float,
                               second_end_y: float) -> Expansion:
+        """
+        Computes cross product of two vectors
+        given their endpoints coordinates.
+        """
         return Expansion(*_vectors_cross_product(first_start_x, first_start_y,
                                                  first_end_x, first_end_y,
                                                  second_start_x,
@@ -163,6 +181,9 @@ except ImportError:
                             second_start_y: float,
                             second_end_x: float,
                             second_end_y: float) -> Expansion:
+        """
+        Computes dot product of two vectors given their endpoints coordinates.
+        """
         return Expansion(*_vectors_cross_product(first_start_x, first_start_y,
                                                  first_end_x, first_end_y,
                                                  -second_start_y,
@@ -412,6 +433,10 @@ except ImportError:
         return result
 
 
+    def _to_sign(value: float) -> int:
+        return 1 if value > 0.0 else (0 if not value else -1)
+
+
     def _two_add(left: float, right: float) -> _Tuple[float, float]:
         head = left + right
         right_virtual = head - left
@@ -476,6 +501,111 @@ except ImportError:
         second_tail, first_tail, head = _two_one_subtract(mid_tail, mid_head,
                                                           right_head)
         return third_tail, second_tail, first_tail, head
+
+
+    def _orientation(start_x: float,
+                     start_y: float,
+                     end_x: float,
+                     end_y: float,
+                     point_x: float,
+                     point_y: float,
+                     upper_bound_coefficient: float
+                     = (3.0 + 16.0 * _EPSILON) * _EPSILON) -> int:
+        minuend = (end_x - start_x) * (point_y - start_y)
+        subtrahend = (end_y - start_y) * (point_x - start_x)
+        estimation = minuend - subtrahend
+        if minuend > 0.0:
+            if subtrahend <= 0.0:
+                return _to_sign(estimation)
+            else:
+                upper_bound = minuend + subtrahend
+        elif minuend < 0.0:
+            if subtrahend >= 0.0:
+                return _to_sign(estimation)
+            else:
+                upper_bound = -minuend - subtrahend
+        else:
+            return _to_sign(estimation)
+        threshold = upper_bound_coefficient * upper_bound
+        return (_to_sign(estimation)
+                if (estimation >= threshold) or (-estimation >= threshold)
+                else _adaptive_orientation(start_x, start_y, end_x, end_y,
+                                           point_x, point_y, upper_bound))
+
+
+    def _adaptive_orientation(start_x: float,
+                              start_y: float,
+                              end_x: float,
+                              end_y: float,
+                              point_x: float,
+                              point_y: float,
+                              upper_bound: float,
+                              first_upper_bound_coefficient: float
+                              = (2.0 + 12.0 * _EPSILON) * _EPSILON,
+                              second_upper_bound_coefficient: float
+                              = ((9.0 + 64.0 * _EPSILON) * _EPSILON
+                                 * _EPSILON),
+                              estimation_coefficient: float
+                              = (3.0 + 8.0 * _EPSILON) * _EPSILON) -> int:
+        minuend_x = end_x - start_x
+        minuend_y = end_y - start_y
+        subtrahend_x = point_x - start_x
+        subtrahend_y = point_y - start_y
+        minuend_tail, minuend = _two_multiply(minuend_x, subtrahend_y)
+        subtrahend_tail, subtrahend = _two_multiply(minuend_y, subtrahend_x)
+        first_components = _two_two_subtract(minuend, minuend_tail, subtrahend,
+                                             subtrahend_tail)
+        estimation = sum(first_components)
+        threshold = first_upper_bound_coefficient * upper_bound
+        if (estimation >= threshold) or (-estimation >= threshold):
+            return _to_sign(estimation)
+        minuend_x_tail = _two_subtract_tail(end_x, start_x,
+                                            minuend_x)
+        subtrahend_x_tail = _two_subtract_tail(point_x, start_x,
+                                               subtrahend_x)
+        minuend_y_tail = _two_subtract_tail(end_y, start_y,
+                                            minuend_y)
+        subtrahend_y_tail = _two_subtract_tail(point_y, start_y,
+                                               subtrahend_y)
+        if (not minuend_x_tail and not minuend_y_tail and not subtrahend_x_tail
+                and not subtrahend_y_tail):
+            return _to_sign(estimation)
+        threshold = (second_upper_bound_coefficient * upper_bound
+                     + estimation_coefficient * abs(estimation))
+        estimation += ((minuend_x * subtrahend_y_tail
+                        + subtrahend_y * minuend_x_tail)
+                       - (minuend_y * subtrahend_x_tail
+                          + subtrahend_x * minuend_y_tail))
+        if (estimation >= threshold) or (-estimation >= threshold):
+            return _to_sign(estimation)
+        minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
+                minuend_x_tail, subtrahend_y)
+        minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
+                minuend_y_tail, subtrahend_x)
+        extra_components = _two_two_subtract(
+                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
+                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        second_components = _add_components_eliminating_zeros(
+                first_components, extra_components)
+        minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
+                minuend_x, subtrahend_y_tail)
+        minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
+                minuend_y, subtrahend_x_tail)
+        extra_components = _two_two_subtract(
+                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
+                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        third_components = _add_components_eliminating_zeros(
+                second_components, extra_components)
+        minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
+                minuend_x_tail, subtrahend_y_tail)
+        minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
+                minuend_y_tail, subtrahend_x_tail)
+        extra_components = _two_two_subtract(
+                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
+                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        final_components = _add_components_eliminating_zeros(third_components,
+                                                             extra_components)
+        return _to_sign(final_components[-1])
 
 
     def _vectors_cross_product(first_start_x: float,
