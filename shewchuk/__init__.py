@@ -101,8 +101,8 @@ except ImportError:
                           else NotImplemented))
 
         def __rmul__(self, other: _Real) -> 'Expansion':
-            return (Expansion(*_scale_components(self._components,
-                                                 float(other)))
+            return (Expansion(*_scale_components_eliminating_zeros(
+                    self._components, float(other)))
                     if isinstance(other, _Real)
                     else NotImplemented)
 
@@ -333,8 +333,8 @@ except ImportError:
         return tail, head
 
 
-    def _scale_components(components: _Sequence[float],
-                          scalar: float) -> _Sequence[float]:
+    def _scale_components_eliminating_zeros(components: _Sequence[float],
+                                            scalar: float) -> _Sequence[float]:
         components_iterator = iter(components)
         scalar_low, scalar_high = _split(scalar)
         tail, accumulator = _two_multiply_presplit(next(components_iterator),

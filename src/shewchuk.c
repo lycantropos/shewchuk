@@ -198,8 +198,10 @@ static size_t add_double_eliminating_zeros(size_t left_size, double *left,
   return result_size;
 }
 
-static size_t scale_components(size_t size, double *components, double scalar,
-                               double *result) {
+static size_t scale_components_eliminating_zeros(size_t size,
+                                                 double *components,
+                                                 double scalar,
+                                                 double *result) {
   double scalar_high, scalar_low;
   split(scalar, &scalar_high, &scalar_low);
   double accumulator, tail;
@@ -709,8 +711,8 @@ static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
   double *result_components =
       PyMem_RawCalloc(2 * self->size + 1, sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size =
-      scale_components(self->size, self->components, other, result_components);
+  size_t result_size = scale_components_eliminating_zeros(
+      self->size, self->components, other, result_components);
   result_components =
       PyMem_RawRealloc(result_components, result_size * sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
