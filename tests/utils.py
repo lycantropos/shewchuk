@@ -34,3 +34,7 @@ skip_reference_counter_test = pytest.mark.skipif(
         platform.python_implementation() == 'PyPy',
         reason='PyPy\'s garbage collection '
                'is not based on reference counting.')
+
+
+def to_sign(value: Domain) -> int:
+    return 1 if value > 0 else (0 if not value else -1)
