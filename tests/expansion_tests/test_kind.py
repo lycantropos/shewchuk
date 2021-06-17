@@ -30,9 +30,11 @@ def test_endpoints(quadruplet: Tuple[float, float, float, float]) -> None:
 
     assert not kind(vertex_x, vertex_y, first_ray_second_ray_point_x,
                     first_ray_second_ray_point_y, vertex_x, vertex_y)
-    assert not kind(vertex_x, vertex_y, first_ray_second_ray_point_x,
-                    first_ray_second_ray_point_y, first_ray_second_ray_point_x,
-                    first_ray_second_ray_point_y)
+    assert (kind(vertex_x, vertex_y, first_ray_second_ray_point_x,
+                 first_ray_second_ray_point_y, first_ray_second_ray_point_x,
+                 first_ray_second_ray_point_y)
+            == (vertex_x != first_ray_second_ray_point_x
+                or vertex_y != first_ray_second_ray_point_y))
 
 
 @given(strategies.floats_sextuplets)
