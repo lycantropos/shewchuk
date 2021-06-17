@@ -942,9 +942,13 @@ static PyObject *vectors_cross_product(PyObject *Py_UNUSED(self),
   size_t result_size = vectors_cross_product_impl(
       first_start_x, first_start_y, first_end_x, first_end_y, second_start_x,
       second_start_y, second_end_x, second_end_y, components);
+  size_t offset = 0;
+  for (; offset < result_size - 1 && !components[offset]; ++offset)
+    ;
+  result_size -= offset;
   double *result_components = PyMem_RawCalloc(result_size, sizeof(double));
   if (!result_components) return PyErr_NoMemory();
-  copy_components(components, result_size, result_components);
+  copy_components(&components[offset], result_size, result_components);
   return (PyObject *)construct_Expansion(&ExpansionType, result_components,
                                          result_size);
 }

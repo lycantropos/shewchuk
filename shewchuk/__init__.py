@@ -7,8 +7,10 @@ try:
                            vectors_cross_product)
 except ImportError:
     from sys import float_info as _float_info
-    from itertools import repeat as _repeat
+    from itertools import (dropwhile as _dropwhile,
+                           repeat as _repeat)
     from numbers import Real as _Real
+    from operator import not_ as _not
     from typing import (Sequence as _Sequence,
                         Tuple as _Tuple,
                         Union as _Union)
@@ -239,11 +241,12 @@ except ImportError:
                               second_start_y: float,
                               second_end_x: float,
                               second_end_y: float) -> Expansion:
-        return Expansion(*_vectors_cross_product(first_start_x, first_start_y,
-                                                 first_end_x, first_end_y,
-                                                 second_start_x,
-                                                 second_start_y, second_end_x,
-                                                 second_end_y),
+        return Expansion(*_dropwhile(_not,
+                                     _vectors_cross_product(
+                                             first_start_x, first_start_y,
+                                             first_end_x, first_end_y,
+                                             second_start_x, second_start_y,
+                                             second_end_x, second_end_y)),
                          _compress=False)
 
 
