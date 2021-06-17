@@ -307,7 +307,7 @@ except ImportError:
     def _split(value: float,
                *,
                splitter: float
-               = float((1 << ((_float_info.mant_dig + 1) // 2)) + 1)
+               = float(1 + (1 << ((_float_info.mant_dig + 1) // 2)))
                ) -> _Tuple[float, float]:
         base = splitter * value
         high = base - (base - value)

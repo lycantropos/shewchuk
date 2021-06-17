@@ -48,7 +48,7 @@ static void two_add(double left, double right, double *result_head,
 }
 
 static void split(double value, double *result_high, double *result_low) {
-  static const double splitter = (1 << (size_t)((DBL_MANT_DIG + 1) / 2)) + 1;
+  static const double splitter = 1 + (1 << (size_t)((DBL_MANT_DIG + 1) / 2));
   double base = splitter * value;
   double high = base - (base - value);
   double low = value - high;
