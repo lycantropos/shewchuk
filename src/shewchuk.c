@@ -58,6 +58,16 @@ static void split(double value, double *result_high, double *result_low) {
   *result_low = low;
 }
 
+static void square(double value, double *result_head, double *result_tail) {
+  double head = value * value;
+  double value_high, value_low;
+  split(value, &value_high, &value_low);
+  double first_error = head - value_high * value_high;
+  double second_error = first_error - (value_high + value_high) * value_low;
+  double tail = value_low * value_low - second_error;
+  *result_head = head;
+  *result_tail = tail;
+}
 static void two_subtract(double left, double right, double *result_head,
                          double *result_tail) {
   two_add(left, -right, result_head, result_tail);
@@ -361,6 +371,698 @@ static size_t subtract_components_eliminating_zeros(size_t minuend_size,
   }
   if (!!accumulator || !result_size) result[result_size++] = accumulator;
   return result_size;
+}
+
+static void cross_product(double first_dx, double first_dy, double second_dx,
+                          double second_dy, double *head, double *first_tail,
+                          double *second_tail, double *third_tail) {
+  double first_dx_second_dy_head, first_dx_second_dy_tail;
+  two_multiply(first_dx, second_dy, &first_dx_second_dy_head,
+               &first_dx_second_dy_tail);
+  double second_dx_first_dy_head, second_dx_first_dy_tail;
+  two_multiply(second_dx, first_dy, &second_dx_first_dy_head,
+               &second_dx_first_dy_tail);
+  two_two_subtract(first_dx_second_dy_head, first_dx_second_dy_tail,
+                   second_dx_first_dy_head, second_dx_first_dy_tail, head,
+                   first_tail, second_tail, third_tail);
+}
+
+static void squared_length(double dx, double dy, double *head,
+                           double *first_tail, double *second_tail,
+                           double *third_tail) {
+  double dx_squared_head, dx_squared_tail;
+  square(dx, &dx_squared_head, &dx_squared_tail);
+  double dy_squared_head, dy_squared_tail;
+  square(dy, &dy_squared_head, &dy_squared_tail);
+  two_two_add(dx_squared_head, dx_squared_tail, dy_squared_head,
+              dy_squared_tail, head, first_tail, second_tail, third_tail);
+}
+
+static size_t scale_by_squared_length(size_t size, double *components,
+                                      double dx, double dy, double *result) {
+  double axbc[8], axxbc[16], aybc[8], ayybc[16];
+  size_t axbc_size =
+      scale_components_eliminating_zeros(size, components, dx, axbc);
+  size_t axxbc_size =
+      scale_components_eliminating_zeros(axbc_size, axbc, dx, axxbc);
+  size_t aybc_size =
+      scale_components_eliminating_zeros(size, components, dy, aybc);
+  size_t ayybc_size =
+      scale_components_eliminating_zeros(aybc_size, aybc, dy, ayybc);
+  return add_components_eliminating_zeros(axxbc_size, axxbc, ayybc_size, ayybc,
+                                          result);
+}
+
+static void swap(double **first, double **second) {
+  double *temp = *first;
+  *first = *second;
+  *second = temp;
+}
+
+double adaptive_incircle_determinant_estimation(double first_x, double first_y,
+                                                double second_x,
+                                                double second_y, double third_x,
+                                                double third_y, double fourth_x,
+                                                double fourth_y,
+                                                double upper_bound) {
+  double u[4], v[4];
+  double temp8[8], temp16a[16], temp16b[16], temp16c[16];
+  double temp32a[32], temp32b[32], temp48[48], temp64[64];
+  size_t temp8_size, temp16a_size, temp16b_size, temp16c_size;
+  size_t temp32a_size, temp32b_size, temp48_size, temp64_size;
+  double axtbb[8], axtcc[8], aytbb[8], aytcc[8];
+  size_t axtbb_size, axtcc_size, aytbb_size, aytcc_size;
+  double bxtaa[8], bxtcc[8], bytaa[8], bytcc[8];
+  size_t bxtaa_size, bxtcc_size, bytaa_size, bytcc_size;
+  double cxtaa[8], cxtbb[8], cytaa[8], cytbb[8];
+  size_t cxtaa_size, cxtbb_size, cytaa_size, cytbb_size;
+  double axtbc[8], aytbc[8], bxtca[8], bytca[8], cxtab[8], cytab[8];
+  size_t axtbc_size, aytbc_size, bxtca_size, bytca_size, cxtab_size, cytab_size;
+  double axtbct[16], aytbct[16], bxtcat[16], bytcat[16], cxtabt[16], cytabt[16];
+  size_t axtbct_size, aytbct_size, bxtcat_size, bytcat_size, cxtabt_size,
+      cytabt_size;
+  double axtbctt[8], aytbctt[8], bxtcatt[8];
+  double bytcatt[8], cxtabtt[8], cytabtt[8];
+  size_t axtbctt_size, aytbctt_size, bxtcatt_size, bytcatt_size, cxtabtt_size,
+      cytabtt_size;
+  double abt[8], bct[8], cat[8];
+  size_t abt_size, bct_size, cat_size;
+  double abtt[4], bctt[4], catt[4];
+  size_t abtt_size, bctt_size, catt_size;
+  double first_dx = first_x - fourth_x;
+  double second_dx = second_x - fourth_x;
+  double third_dx = third_x - fourth_x;
+  double first_dy = first_y - fourth_y;
+  double second_dy = second_y - fourth_y;
+  double third_dy = third_y - fourth_y;
+  double second_third_cross_product[4];
+  cross_product(second_dx, second_dy, third_dx, third_dy,
+                &second_third_cross_product[3], &second_third_cross_product[2],
+                &second_third_cross_product[1], &second_third_cross_product[0]);
+  double first_components[32];
+  size_t a_size = scale_by_squared_length(4, second_third_cross_product,
+                                          first_dx, first_dy, first_components);
+  double third_first_cross_product[4];
+  cross_product(third_dx, third_dy, first_dx, first_dy,
+                &third_first_cross_product[3], &third_first_cross_product[2],
+                &third_first_cross_product[1], &third_first_cross_product[0]);
+  double second_components[32];
+  size_t b_size = scale_by_squared_length(
+      4, third_first_cross_product, second_dx, second_dy, second_components);
+  double first_second_cross_product[4];
+  cross_product(first_dx, first_dy, second_dx, second_dy,
+                &first_second_cross_product[3], &first_second_cross_product[2],
+                &first_second_cross_product[1], &first_second_cross_product[0]);
+  double third_components[32];
+  size_t c_size = scale_by_squared_length(4, first_second_cross_product,
+                                          third_dx, third_dy, third_components);
+  double first_second_sum_components[64];
+  size_t first_second_sum_size = add_components_eliminating_zeros(
+      a_size, first_components, b_size, second_components,
+      first_second_sum_components);
+  double first_buffer[1152];
+  size_t final_size = add_components_eliminating_zeros(
+      first_second_sum_size, first_second_sum_components, c_size,
+      third_components, first_buffer);
+  double result = sum_components(final_size, first_buffer);
+  static const double first_upper_bound_coefficient =
+      (4.0 + 48.0 * EPSILON) * EPSILON;
+  double threshold = first_upper_bound_coefficient * upper_bound;
+  if ((result >= threshold) || (-result >= threshold)) return result;
+  double first_dx_tail = two_subtract_tail(first_x, fourth_x, first_dx);
+  double first_dy_tail = two_subtract_tail(first_y, fourth_y, first_dy);
+  double second_dx_tail = two_subtract_tail(second_x, fourth_x, second_dx);
+  double second_dy_tail = two_subtract_tail(second_y, fourth_y, second_dy);
+  double third_dx_tail = two_subtract_tail(third_x, fourth_x, third_dx);
+  double third_dy_tail = two_subtract_tail(third_y, fourth_y, third_dy);
+  if (!first_dx_tail && !second_dx_tail && !third_dx_tail && !first_dy_tail &&
+      !second_dy_tail && !third_dy_tail)
+    return result;
+  static const double second_upper_bound_coefficient =
+      (44.0 + 576.0 * EPSILON) * EPSILON * EPSILON;
+  static const double result_coefficient = (3.0 + 8.0 * EPSILON) * EPSILON;
+  threshold = second_upper_bound_coefficient * upper_bound +
+              result_coefficient * fabs(result);
+  result += ((first_dx * first_dx + first_dy * first_dy) *
+                 ((second_dx * third_dy_tail + third_dy * second_dx_tail) -
+                  (second_dy * third_dx_tail + third_dx * second_dy_tail)) +
+             2.0 * (first_dx * first_dx_tail + first_dy * first_dy_tail) *
+                 (second_dx * third_dy - second_dy * third_dx)) +
+            ((second_dx * second_dx + second_dy * second_dy) *
+                 ((third_dx * first_dy_tail + first_dy * third_dx_tail) -
+                  (third_dy * first_dx_tail + first_dx * third_dy_tail)) +
+             2.0 * (second_dx * second_dx_tail + second_dy * second_dy_tail) *
+                 (third_dx * first_dy - third_dy * first_dx)) +
+            ((third_dx * third_dx + third_dy * third_dy) *
+                 ((first_dx * second_dy_tail + second_dy * first_dx_tail) -
+                  (first_dy * second_dx_tail + second_dx * first_dy_tail)) +
+             2.0 * (third_dx * third_dx_tail + third_dy * third_dy_tail) *
+                 (first_dx * second_dy - first_dy * second_dx));
+  if ((result >= threshold) || (-result >= threshold)) return result;
+  double first_squared_length[4];
+  if (!!second_dx_tail || !!second_dy_tail || !!third_dx_tail ||
+      !!third_dy_tail)
+    squared_length(first_dx, first_dy, &first_squared_length[3],
+                   &first_squared_length[2], &first_squared_length[1],
+                   &first_squared_length[0]);
+  double second_squared_length[4];
+  if (!!third_dx_tail || !!third_dy_tail || !!first_dx_tail || !!first_dy_tail)
+    squared_length(second_dx, second_dy, &second_squared_length[3],
+                   &second_squared_length[2], &second_squared_length[1],
+                   &second_squared_length[0]);
+  double third_squared_length[4];
+  if (!!first_dx_tail || !!first_dy_tail || !!second_dx_tail ||
+      !!second_dy_tail)
+    squared_length(third_dx, third_dy, &third_squared_length[3],
+                   &third_squared_length[2], &third_squared_length[1],
+                   &third_squared_length[0]);
+  double *final_components = first_buffer;
+  double second_buffer[1152];
+  double *accumulated_components = second_buffer;
+  if (!!first_dx_tail) {
+    axtbc_size = scale_components_eliminating_zeros(
+        4, second_third_cross_product, first_dx_tail, axtbc);
+    temp16a_size = scale_components_eliminating_zeros(axtbc_size, axtbc,
+                                                      2.0 * first_dx, temp16a);
+    axtcc_size = scale_components_eliminating_zeros(4, third_squared_length,
+                                                    first_dx_tail, axtcc);
+    temp16b_size = scale_components_eliminating_zeros(axtcc_size, axtcc,
+                                                      second_dy, temp16b);
+    axtbb_size = scale_components_eliminating_zeros(4, second_squared_length,
+                                                    first_dx_tail, axtbb);
+    temp16c_size = scale_components_eliminating_zeros(axtbb_size, axtbb,
+                                                      -third_dy, temp16c);
+    temp32a_size = add_components_eliminating_zeros(
+        temp16a_size, temp16a, temp16b_size, temp16b, temp32a);
+    temp48_size = add_components_eliminating_zeros(
+        temp16c_size, temp16c, temp32a_size, temp32a, temp48);
+    final_size = add_components_eliminating_zeros(final_size, final_components,
+                                                  temp48_size, temp48,
+                                                  accumulated_components);
+    swap(&final_components, &accumulated_components);
+  }
+  if (!!first_dy_tail) {
+    aytbc_size = scale_components_eliminating_zeros(
+        4, second_third_cross_product, first_dy_tail, aytbc);
+    temp16a_size = scale_components_eliminating_zeros(aytbc_size, aytbc,
+                                                      2.0 * first_dy, temp16a);
+    aytbb_size = scale_components_eliminating_zeros(4, second_squared_length,
+                                                    first_dy_tail, aytbb);
+    temp16b_size = scale_components_eliminating_zeros(aytbb_size, aytbb,
+                                                      third_dx, temp16b);
+    aytcc_size = scale_components_eliminating_zeros(4, third_squared_length,
+                                                    first_dy_tail, aytcc);
+    temp16c_size = scale_components_eliminating_zeros(aytcc_size, aytcc,
+                                                      -second_dx, temp16c);
+    temp32a_size = add_components_eliminating_zeros(
+        temp16a_size, temp16a, temp16b_size, temp16b, temp32a);
+    temp48_size = add_components_eliminating_zeros(
+        temp16c_size, temp16c, temp32a_size, temp32a, temp48);
+    final_size = add_components_eliminating_zeros(final_size, final_components,
+                                                  temp48_size, temp48,
+                                                  accumulated_components);
+    swap(&final_components, &accumulated_components);
+  }
+  if (!!second_dx_tail) {
+    bxtca_size = scale_components_eliminating_zeros(
+        4, third_first_cross_product, second_dx_tail, bxtca);
+    temp16a_size = scale_components_eliminating_zeros(bxtca_size, bxtca,
+                                                      2.0 * second_dx, temp16a);
+    bxtaa_size = scale_components_eliminating_zeros(4, first_squared_length,
+                                                    second_dx_tail, bxtaa);
+    temp16b_size = scale_components_eliminating_zeros(bxtaa_size, bxtaa,
+                                                      third_dy, temp16b);
+    bxtcc_size = scale_components_eliminating_zeros(4, third_squared_length,
+                                                    second_dx_tail, bxtcc);
+    temp16c_size = scale_components_eliminating_zeros(bxtcc_size, bxtcc,
+                                                      -first_dy, temp16c);
+    temp32a_size = add_components_eliminating_zeros(
+        temp16a_size, temp16a, temp16b_size, temp16b, temp32a);
+    temp48_size = add_components_eliminating_zeros(
+        temp16c_size, temp16c, temp32a_size, temp32a, temp48);
+    final_size = add_components_eliminating_zeros(final_size, final_components,
+                                                  temp48_size, temp48,
+                                                  accumulated_components);
+    swap(&final_components, &accumulated_components);
+  }
+  if (!!second_dy_tail) {
+    bytca_size = scale_components_eliminating_zeros(
+        4, third_first_cross_product, second_dy_tail, bytca);
+    temp16a_size = scale_components_eliminating_zeros(bytca_size, bytca,
+                                                      2.0 * second_dy, temp16a);
+    bytcc_size = scale_components_eliminating_zeros(4, third_squared_length,
+                                                    second_dy_tail, bytcc);
+    temp16b_size = scale_components_eliminating_zeros(bytcc_size, bytcc,
+                                                      first_dx, temp16b);
+    bytaa_size = scale_components_eliminating_zeros(4, first_squared_length,
+                                                    second_dy_tail, bytaa);
+    temp16c_size = scale_components_eliminating_zeros(bytaa_size, bytaa,
+                                                      -third_dx, temp16c);
+    temp32a_size = add_components_eliminating_zeros(
+        temp16a_size, temp16a, temp16b_size, temp16b, temp32a);
+    temp48_size = add_components_eliminating_zeros(
+        temp16c_size, temp16c, temp32a_size, temp32a, temp48);
+    final_size = add_components_eliminating_zeros(final_size, final_components,
+                                                  temp48_size, temp48,
+                                                  accumulated_components);
+    swap(&final_components, &accumulated_components);
+  }
+  if (!!third_dx_tail) {
+    cxtab_size = scale_components_eliminating_zeros(
+        4, first_second_cross_product, third_dx_tail, cxtab);
+    temp16a_size = scale_components_eliminating_zeros(cxtab_size, cxtab,
+                                                      2.0 * third_dx, temp16a);
+    cxtbb_size = scale_components_eliminating_zeros(4, second_squared_length,
+                                                    third_dx_tail, cxtbb);
+    temp16b_size = scale_components_eliminating_zeros(cxtbb_size, cxtbb,
+                                                      first_dy, temp16b);
+    cxtaa_size = scale_components_eliminating_zeros(4, first_squared_length,
+                                                    third_dx_tail, cxtaa);
+    temp16c_size = scale_components_eliminating_zeros(cxtaa_size, cxtaa,
+                                                      -second_dy, temp16c);
+    temp32a_size = add_components_eliminating_zeros(
+        temp16a_size, temp16a, temp16b_size, temp16b, temp32a);
+    temp48_size = add_components_eliminating_zeros(
+        temp16c_size, temp16c, temp32a_size, temp32a, temp48);
+    final_size = add_components_eliminating_zeros(final_size, final_components,
+                                                  temp48_size, temp48,
+                                                  accumulated_components);
+    swap(&final_components, &accumulated_components);
+  }
+  if (!!third_dy_tail) {
+    cytab_size = scale_components_eliminating_zeros(
+        4, first_second_cross_product, third_dy_tail, cytab);
+    temp16a_size = scale_components_eliminating_zeros(cytab_size, cytab,
+                                                      2.0 * third_dy, temp16a);
+    cytaa_size = scale_components_eliminating_zeros(4, first_squared_length,
+                                                    third_dy_tail, cytaa);
+    temp16b_size = scale_components_eliminating_zeros(cytaa_size, cytaa,
+                                                      second_dx, temp16b);
+    cytbb_size = scale_components_eliminating_zeros(4, second_squared_length,
+                                                    third_dy_tail, cytbb);
+    temp16c_size = scale_components_eliminating_zeros(cytbb_size, cytbb,
+                                                      -first_dx, temp16c);
+    temp32a_size = add_components_eliminating_zeros(
+        temp16a_size, temp16a, temp16b_size, temp16b, temp32a);
+    temp48_size = add_components_eliminating_zeros(
+        temp16c_size, temp16c, temp32a_size, temp32a, temp48);
+    final_size = add_components_eliminating_zeros(final_size, final_components,
+                                                  temp48_size, temp48,
+                                                  accumulated_components);
+    swap(&final_components, &accumulated_components);
+  }
+  double dx_tail_dy_head_head, dx_head_dy_tail_head;
+  double dx_tail_dy_head_tail, dx_head_dy_tail_tail;
+  if (!!first_dx_tail || !!first_dy_tail) {
+    if (!!second_dx_tail || !!second_dy_tail || !!third_dx_tail ||
+        !!third_dy_tail) {
+      two_multiply(second_dx_tail, third_dy, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(second_dx, third_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                  dx_head_dy_tail_head, dx_head_dy_tail_tail, &u[3], &u[2],
+                  &u[1], &u[0]);
+      two_multiply(third_dx_tail, -second_dy, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(third_dx, -second_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                  dx_head_dy_tail_head, dx_head_dy_tail_tail, &v[3], &v[2],
+                  &v[1], &v[0]);
+      bct_size = add_components_eliminating_zeros(4, u, 4, v, bct);
+      two_multiply(second_dx_tail, third_dy_tail, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(third_dx_tail, second_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_subtract(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                       dx_head_dy_tail_head, dx_head_dy_tail_tail, &bctt[3],
+                       &bctt[2], &bctt[1], &bctt[0]);
+      bctt_size = 4;
+    } else {
+      bct[0] = 0.0;
+      bct_size = 1;
+      bctt[0] = 0.0;
+      bctt_size = 1;
+    }
+    if (!!first_dx_tail) {
+      temp16a_size = scale_components_eliminating_zeros(axtbc_size, axtbc,
+                                                        first_dx_tail, temp16a);
+      axtbct_size = scale_components_eliminating_zeros(bct_size, bct,
+                                                       first_dx_tail, axtbct);
+      temp32a_size = scale_components_eliminating_zeros(
+          axtbct_size, axtbct, 2.0 * first_dx, temp32a);
+      temp48_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp32a_size, temp32a, temp48);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp48_size, temp48,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+      if (!!second_dy_tail) {
+        temp8_size = scale_components_eliminating_zeros(4, third_squared_length,
+                                                        first_dx_tail, temp8);
+        temp16a_size = scale_components_eliminating_zeros(
+            temp8_size, temp8, second_dy_tail, temp16a);
+        final_size = add_components_eliminating_zeros(
+            final_size, final_components, temp16a_size, temp16a,
+            accumulated_components);
+        swap(&final_components, &accumulated_components);
+      }
+      if (!!third_dy_tail) {
+        temp8_size = scale_components_eliminating_zeros(
+            4, second_squared_length, -first_dx_tail, temp8);
+        temp16a_size = scale_components_eliminating_zeros(
+            temp8_size, temp8, third_dy_tail, temp16a);
+        final_size = add_components_eliminating_zeros(
+            final_size, final_components, temp16a_size, temp16a,
+            accumulated_components);
+        swap(&final_components, &accumulated_components);
+      }
+      temp32a_size = scale_components_eliminating_zeros(axtbct_size, axtbct,
+                                                        first_dx_tail, temp32a);
+      axtbctt_size = scale_components_eliminating_zeros(bctt_size, bctt,
+                                                        first_dx_tail, axtbctt);
+      temp16a_size = scale_components_eliminating_zeros(
+          axtbctt_size, axtbctt, 2.0 * first_dx, temp16a);
+      temp16b_size = scale_components_eliminating_zeros(axtbctt_size, axtbctt,
+                                                        first_dx_tail, temp16b);
+      temp32b_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp16b_size, temp16b, temp32b);
+      temp64_size = add_components_eliminating_zeros(
+          temp32a_size, temp32a, temp32b_size, temp32b, temp64);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp64_size, temp64,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+    }
+    if (!!first_dy_tail) {
+      temp16a_size = scale_components_eliminating_zeros(aytbc_size, aytbc,
+                                                        first_dy_tail, temp16a);
+      aytbct_size = scale_components_eliminating_zeros(bct_size, bct,
+                                                       first_dy_tail, aytbct);
+      temp32a_size = scale_components_eliminating_zeros(
+          aytbct_size, aytbct, 2.0 * first_dy, temp32a);
+      temp48_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp32a_size, temp32a, temp48);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp48_size, temp48,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+      temp32a_size = scale_components_eliminating_zeros(aytbct_size, aytbct,
+                                                        first_dy_tail, temp32a);
+      aytbctt_size = scale_components_eliminating_zeros(bctt_size, bctt,
+                                                        first_dy_tail, aytbctt);
+      temp16a_size = scale_components_eliminating_zeros(
+          aytbctt_size, aytbctt, 2.0 * first_dy, temp16a);
+      temp16b_size = scale_components_eliminating_zeros(aytbctt_size, aytbctt,
+                                                        first_dy_tail, temp16b);
+      temp32b_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp16b_size, temp16b, temp32b);
+      temp64_size = add_components_eliminating_zeros(
+          temp32a_size, temp32a, temp32b_size, temp32b, temp64);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp64_size, temp64,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+    }
+  }
+  if (!!second_dx_tail || !!second_dy_tail) {
+    if (!!third_dx_tail || !!third_dy_tail || !!first_dx_tail ||
+        !!first_dy_tail) {
+      two_multiply(third_dx_tail, first_dy, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(third_dx, first_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                  dx_head_dy_tail_head, dx_head_dy_tail_tail, &u[3], &u[2],
+                  &u[1], &u[0]);
+      two_multiply(first_dx_tail, -third_dy, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(first_dx, -third_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                  dx_head_dy_tail_head, dx_head_dy_tail_tail, &v[3], &v[2],
+                  &v[1], &v[0]);
+      cat_size = add_components_eliminating_zeros(4, u, 4, v, cat);
+      two_multiply(third_dx_tail, first_dy_tail, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(first_dx_tail, third_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_subtract(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                       dx_head_dy_tail_head, dx_head_dy_tail_tail, &catt[3],
+                       &catt[2], &catt[1], &catt[0]);
+      catt_size = 4;
+    } else {
+      cat[0] = 0.0;
+      cat_size = 1;
+      catt[0] = 0.0;
+      catt_size = 1;
+    }
+    if (!!second_dx_tail) {
+      temp16a_size = scale_components_eliminating_zeros(
+          bxtca_size, bxtca, second_dx_tail, temp16a);
+      bxtcat_size = scale_components_eliminating_zeros(cat_size, cat,
+                                                       second_dx_tail, bxtcat);
+      temp32a_size = scale_components_eliminating_zeros(
+          bxtcat_size, bxtcat, 2.0 * second_dx, temp32a);
+      temp48_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp32a_size, temp32a, temp48);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp48_size, temp48,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+      if (!!third_dy_tail) {
+        temp8_size = scale_components_eliminating_zeros(4, first_squared_length,
+                                                        second_dx_tail, temp8);
+        temp16a_size = scale_components_eliminating_zeros(
+            temp8_size, temp8, third_dy_tail, temp16a);
+        final_size = add_components_eliminating_zeros(
+            final_size, final_components, temp16a_size, temp16a,
+            accumulated_components);
+        swap(&final_components, &accumulated_components);
+      }
+      if (!!first_dy_tail) {
+        temp8_size = scale_components_eliminating_zeros(4, third_squared_length,
+                                                        -second_dx_tail, temp8);
+        temp16a_size = scale_components_eliminating_zeros(
+            temp8_size, temp8, first_dy_tail, temp16a);
+        final_size = add_components_eliminating_zeros(
+            final_size, final_components, temp16a_size, temp16a,
+            accumulated_components);
+        swap(&final_components, &accumulated_components);
+      }
+      temp32a_size = scale_components_eliminating_zeros(
+          bxtcat_size, bxtcat, second_dx_tail, temp32a);
+      bxtcatt_size = scale_components_eliminating_zeros(
+          catt_size, catt, second_dx_tail, bxtcatt);
+      temp16a_size = scale_components_eliminating_zeros(
+          bxtcatt_size, bxtcatt, 2.0 * second_dx, temp16a);
+      temp16b_size = scale_components_eliminating_zeros(
+          bxtcatt_size, bxtcatt, second_dx_tail, temp16b);
+      temp32b_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp16b_size, temp16b, temp32b);
+      temp64_size = add_components_eliminating_zeros(
+          temp32a_size, temp32a, temp32b_size, temp32b, temp64);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp64_size, temp64,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+    }
+    if (!!second_dy_tail) {
+      temp16a_size = scale_components_eliminating_zeros(
+          bytca_size, bytca, second_dy_tail, temp16a);
+      bytcat_size = scale_components_eliminating_zeros(cat_size, cat,
+                                                       second_dy_tail, bytcat);
+      temp32a_size = scale_components_eliminating_zeros(
+          bytcat_size, bytcat, 2.0 * second_dy, temp32a);
+      temp48_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp32a_size, temp32a, temp48);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp48_size, temp48,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+      temp32a_size = scale_components_eliminating_zeros(
+          bytcat_size, bytcat, second_dy_tail, temp32a);
+      bytcatt_size = scale_components_eliminating_zeros(
+          catt_size, catt, second_dy_tail, bytcatt);
+      temp16a_size = scale_components_eliminating_zeros(
+          bytcatt_size, bytcatt, 2.0 * second_dy, temp16a);
+      temp16b_size = scale_components_eliminating_zeros(
+          bytcatt_size, bytcatt, second_dy_tail, temp16b);
+      temp32b_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp16b_size, temp16b, temp32b);
+      temp64_size = add_components_eliminating_zeros(
+          temp32a_size, temp32a, temp32b_size, temp32b, temp64);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp64_size, temp64,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+    }
+  }
+  if (!!third_dx_tail || !!third_dy_tail) {
+    if (!!first_dx_tail || !!first_dy_tail || !!second_dx_tail ||
+        !!second_dy_tail) {
+      two_multiply(first_dx_tail, second_dy, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(first_dx, second_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                  dx_head_dy_tail_head, dx_head_dy_tail_tail, &u[3], &u[2],
+                  &u[1], &u[0]);
+      two_multiply(second_dx_tail, -first_dy, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(second_dx, -first_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                  dx_head_dy_tail_head, dx_head_dy_tail_tail, &v[3], &v[2],
+                  &v[1], &v[0]);
+      abt_size = add_components_eliminating_zeros(4, u, 4, v, abt);
+      two_multiply(first_dx_tail, second_dy_tail, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(second_dx_tail, first_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_subtract(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                       dx_head_dy_tail_head, dx_head_dy_tail_tail, &abtt[3],
+                       &abtt[2], &abtt[1], &abtt[0]);
+      abtt_size = 4;
+    } else {
+      abt[0] = 0.0;
+      abt_size = 1;
+      abtt[0] = 0.0;
+      abtt_size = 1;
+    }
+    if (!!third_dx_tail) {
+      temp16a_size = scale_components_eliminating_zeros(cxtab_size, cxtab,
+                                                        third_dx_tail, temp16a);
+      cxtabt_size = scale_components_eliminating_zeros(abt_size, abt,
+                                                       third_dx_tail, cxtabt);
+      temp32a_size = scale_components_eliminating_zeros(
+          cxtabt_size, cxtabt, 2.0 * third_dx, temp32a);
+      temp48_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp32a_size, temp32a, temp48);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp48_size, temp48,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+      if (!!first_dy_tail) {
+        temp8_size = scale_components_eliminating_zeros(
+            4, second_squared_length, third_dx_tail, temp8);
+        temp16a_size = scale_components_eliminating_zeros(
+            temp8_size, temp8, first_dy_tail, temp16a);
+        final_size = add_components_eliminating_zeros(
+            final_size, final_components, temp16a_size, temp16a,
+            accumulated_components);
+        swap(&final_components, &accumulated_components);
+      }
+      if (!!second_dy_tail) {
+        temp8_size = scale_components_eliminating_zeros(4, first_squared_length,
+                                                        -third_dx_tail, temp8);
+        temp16a_size = scale_components_eliminating_zeros(
+            temp8_size, temp8, second_dy_tail, temp16a);
+        final_size = add_components_eliminating_zeros(
+            final_size, final_components, temp16a_size, temp16a,
+            accumulated_components);
+        swap(&final_components, &accumulated_components);
+      }
+      temp32a_size = scale_components_eliminating_zeros(cxtabt_size, cxtabt,
+                                                        third_dx_tail, temp32a);
+      cxtabtt_size = scale_components_eliminating_zeros(abtt_size, abtt,
+                                                        third_dx_tail, cxtabtt);
+      temp16a_size = scale_components_eliminating_zeros(
+          cxtabtt_size, cxtabtt, 2.0 * third_dx, temp16a);
+      temp16b_size = scale_components_eliminating_zeros(cxtabtt_size, cxtabtt,
+                                                        third_dx_tail, temp16b);
+      temp32b_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp16b_size, temp16b, temp32b);
+      temp64_size = add_components_eliminating_zeros(
+          temp32a_size, temp32a, temp32b_size, temp32b, temp64);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp64_size, temp64,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+    }
+    if (!!third_dy_tail) {
+      temp16a_size = scale_components_eliminating_zeros(cytab_size, cytab,
+                                                        third_dy_tail, temp16a);
+      cytabt_size = scale_components_eliminating_zeros(abt_size, abt,
+                                                       third_dy_tail, cytabt);
+      temp32a_size = scale_components_eliminating_zeros(
+          cytabt_size, cytabt, 2.0 * third_dy, temp32a);
+      temp48_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp32a_size, temp32a, temp48);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp48_size, temp48,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+      temp32a_size = scale_components_eliminating_zeros(cytabt_size, cytabt,
+                                                        third_dy_tail, temp32a);
+      cytabtt_size = scale_components_eliminating_zeros(abtt_size, abtt,
+                                                        third_dy_tail, cytabtt);
+      temp16a_size = scale_components_eliminating_zeros(
+          cytabtt_size, cytabtt, 2.0 * third_dy, temp16a);
+      temp16b_size = scale_components_eliminating_zeros(cytabtt_size, cytabtt,
+                                                        third_dy_tail, temp16b);
+      temp32b_size = add_components_eliminating_zeros(
+          temp16a_size, temp16a, temp16b_size, temp16b, temp32b);
+      temp64_size = add_components_eliminating_zeros(
+          temp32a_size, temp32a, temp32b_size, temp32b, temp64);
+      final_size = add_components_eliminating_zeros(
+          final_size, final_components, temp64_size, temp64,
+          accumulated_components);
+      swap(&final_components, &accumulated_components);
+    }
+  }
+  return final_components[final_size - 1];
+}
+
+double incircle_determinant_estimation(double first_x, double first_y,
+                                       double second_x, double second_y,
+                                       double third_x, double third_y,
+                                       double fourth_x, double fourth_y) {
+  double first_dx, second_dx, third_dx, first_dy, second_dy, third_dy;
+  double second_dx_third_dy, third_dx_second_dy, third_dx_first_dy,
+      first_dx_third_dy, first_dx_second_dy, second_dx_first_dy;
+  double first_squared_distance, second_squared_distance,
+      third_squared_distance;
+  double result;
+  double upper_bound, threshold;
+
+  first_dx = first_x - fourth_x;
+  second_dx = second_x - fourth_x;
+  third_dx = third_x - fourth_x;
+  first_dy = first_y - fourth_y;
+  second_dy = second_y - fourth_y;
+  third_dy = third_y - fourth_y;
+
+  second_dx_third_dy = second_dx * third_dy;
+  third_dx_second_dy = third_dx * second_dy;
+  first_squared_distance = first_dx * first_dx + first_dy * first_dy;
+
+  third_dx_first_dy = third_dx * first_dy;
+  first_dx_third_dy = first_dx * third_dy;
+  second_squared_distance = second_dx * second_dx + second_dy * second_dy;
+
+  first_dx_second_dy = first_dx * second_dy;
+  second_dx_first_dy = second_dx * first_dy;
+  third_squared_distance = third_dx * third_dx + third_dy * third_dy;
+
+  result = first_squared_distance * (second_dx_third_dy - third_dx_second_dy) +
+           second_squared_distance * (third_dx_first_dy - first_dx_third_dy) +
+           third_squared_distance * (first_dx_second_dy - second_dx_first_dy);
+
+  upper_bound = (fabs(second_dx_third_dy) + fabs(third_dx_second_dy)) *
+                    first_squared_distance +
+                (fabs(third_dx_first_dy) + fabs(first_dx_third_dy)) *
+                    second_squared_distance +
+                (fabs(first_dx_second_dy) + fabs(second_dx_first_dy)) *
+                    third_squared_distance;
+  static const double upper_bound_coefficient =
+      (10.0 + 96.0 * EPSILON) * EPSILON;
+  threshold = upper_bound_coefficient * upper_bound;
+  if ((result > threshold) || (-result > threshold)) return result;
+  return adaptive_incircle_determinant_estimation(
+      first_x, first_y, second_x, second_y, third_x, third_y, fourth_x,
+      fourth_y, upper_bound);
 }
 
 double adaptive_vectors_cross_product_estimation(
@@ -1054,6 +1756,18 @@ static PyTypeObject ExpansionType = {
     .tp_richcompare = (richcmpfunc)Expansion_richcompare,
 };
 
+static PyObject *incircle_test(PyObject *Py_UNUSED(self), PyObject *args) {
+  double first_x, first_y, second_x, second_y, third_x, third_y, fourth_x,
+      fourth_y;
+  if (!PyArg_ParseTuple(args, "dddddddd", &first_x, &first_y, &second_x,
+                        &second_y, &third_x, &third_y, &fourth_x, &fourth_y))
+    return NULL;
+  double estimation =
+      incircle_determinant_estimation(first_x, first_y, second_x, second_y,
+                                      third_x, third_y, fourth_x, fourth_y);
+  return PyLong_FromLong(to_sign(estimation));
+}
+
 static PyObject *kind(PyObject *Py_UNUSED(self), PyObject *args) {
   double vertex_x, vertex_y, first_ray_point_x, first_ray_point_y,
       second_ray_point_x, second_ray_point_y;
@@ -1114,6 +1828,9 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
 }
 
 static PyMethodDef _shewchuk_methods[] = {
+    {"incircle_test", incircle_test, METH_VARARGS,
+     PyDoc_STR("Computes location of point relative to a circle formed by "
+               "three others given their coordinates.")},
     {"kind", kind, METH_VARARGS,
      PyDoc_STR("Computes kind of angle given its endpoints coordinates.")},
     {"orientation", orientation, METH_VARARGS,

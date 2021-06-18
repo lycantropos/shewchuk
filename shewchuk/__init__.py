@@ -4,6 +4,7 @@ __version__ = '0.0.0'
 
 try:
     from _shewchuk import (Expansion,
+                           incircle_test,
                            kind,
                            orientation,
                            vectors_cross_product,
