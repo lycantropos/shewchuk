@@ -419,6 +419,269 @@ static void swap(double **first, double **second) {
   *second = temp;
 }
 
+static size_t add_extras(
+    size_t final_size, double **final_components,
+    double **accumulated_components, double first_dx, double first_dx_tail,
+    double first_dy, double first_dy_tail, double second_dx,
+    double second_dx_tail, double second_dy, double second_dy_tail,
+    double third_dx, double third_dx_tail, double third_dy,
+    double third_dy_tail, double second_third_cross_product[4],
+    double second_squared_length[4], double third_squared_length[4]) {
+  double first_buffer_16[16], second_buffer_16[16], third_buffer_16[16];
+  double first_buffer_32[32], second_buffer_32[32], buffer_48[48];
+  size_t first_buffer_16_limit, second_buffer_16_limit, third_buffer_16_limit;
+  size_t first_buffer_32_limit, second_buffer_32_limit, buffer_48_limit;
+  size_t first_dx_tail_second_third_cross_product_size;
+  double first_dx_tail_second_third_cross_product[8];
+  if (!!first_dx_tail) {
+    first_dx_tail_second_third_cross_product_size =
+        scale_components_eliminating_zeros(
+            4, second_third_cross_product, first_dx_tail,
+            first_dx_tail_second_third_cross_product);
+    first_buffer_16_limit = scale_components_eliminating_zeros(
+        first_dx_tail_second_third_cross_product_size,
+        first_dx_tail_second_third_cross_product, 2.0 * first_dx,
+        first_buffer_16);
+    double first_dx_tail_third_squared_length[8];
+    size_t first_dx_tail_third_squared_length_size =
+        scale_components_eliminating_zeros(4, third_squared_length,
+                                           first_dx_tail,
+                                           first_dx_tail_third_squared_length);
+    second_buffer_16_limit = scale_components_eliminating_zeros(
+        first_dx_tail_third_squared_length_size,
+        first_dx_tail_third_squared_length, second_dy, second_buffer_16);
+    double first_dx_tail_second_squared_length[8];
+    size_t first_dx_tail_second_squared_length_size =
+        scale_components_eliminating_zeros(4, second_squared_length,
+                                           first_dx_tail,
+                                           first_dx_tail_second_squared_length);
+    third_buffer_16_limit = scale_components_eliminating_zeros(
+        first_dx_tail_second_squared_length_size,
+        first_dx_tail_second_squared_length, -third_dy, third_buffer_16);
+    first_buffer_32_limit = add_components_eliminating_zeros(
+        first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
+        second_buffer_16, first_buffer_32);
+    buffer_48_limit = add_components_eliminating_zeros(
+        third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
+        first_buffer_32, buffer_48);
+    final_size = add_components_eliminating_zeros(final_size, *final_components,
+                                                  buffer_48_limit, buffer_48,
+                                                  *accumulated_components);
+    swap(final_components, accumulated_components);
+  }
+  size_t first_dy_tail_second_third_cross_product_size;
+  double first_dy_tail_second_third_cross_product[8];
+  if (!!first_dy_tail) {
+    first_dy_tail_second_third_cross_product_size =
+        scale_components_eliminating_zeros(
+            4, second_third_cross_product, first_dy_tail,
+            first_dy_tail_second_third_cross_product);
+    first_buffer_16_limit = scale_components_eliminating_zeros(
+        first_dy_tail_second_third_cross_product_size,
+        first_dy_tail_second_third_cross_product, 2.0 * first_dy,
+        first_buffer_16);
+    double first_dy_tail_second_squared_length[8];
+    size_t first_dy_tail_second_squared_length_size =
+        scale_components_eliminating_zeros(4, second_squared_length,
+                                           first_dy_tail,
+                                           first_dy_tail_second_squared_length);
+    second_buffer_16_limit = scale_components_eliminating_zeros(
+        first_dy_tail_second_squared_length_size,
+        first_dy_tail_second_squared_length, third_dx, second_buffer_16);
+    double first_dy_tail_third_squared_length[8];
+    size_t first_dy_tail_third_squared_length_size =
+        scale_components_eliminating_zeros(4, third_squared_length,
+                                           first_dy_tail,
+                                           first_dy_tail_third_squared_length);
+    third_buffer_16_limit = scale_components_eliminating_zeros(
+        first_dy_tail_third_squared_length_size,
+        first_dy_tail_third_squared_length, -second_dx, third_buffer_16);
+    first_buffer_32_limit = add_components_eliminating_zeros(
+        first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
+        second_buffer_16, first_buffer_32);
+    buffer_48_limit = add_components_eliminating_zeros(
+        third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
+        first_buffer_32, buffer_48);
+    final_size = add_components_eliminating_zeros(final_size, *final_components,
+                                                  buffer_48_limit, buffer_48,
+                                                  *accumulated_components);
+    swap(final_components, accumulated_components);
+  }
+  double dx_tail_dy_head_head, dx_head_dy_tail_head;
+  double dx_tail_dy_head_tail, dx_head_dy_tail_tail;
+  double buffer_8[8], buffer_64[64];
+  size_t buffer_8_limit, buffer_64_limit;
+  double first_buffer_4[4], second_buffer_4[4];
+  if (!!first_dx_tail || !!first_dy_tail) {
+    size_t second_third_cross_product_first_tails_size,
+        second_third_cross_product_second_tails_size;
+    double second_third_cross_product_first_tails[8],
+        second_third_cross_product_second_tails[4];
+    if (!!second_dx_tail || !!second_dy_tail || !!third_dx_tail ||
+        !!third_dy_tail) {
+      two_multiply(second_dx_tail, third_dy, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(second_dx, third_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                  dx_head_dy_tail_head, dx_head_dy_tail_tail,
+                  &first_buffer_4[3], &first_buffer_4[2], &first_buffer_4[1],
+                  &first_buffer_4[0]);
+      two_multiply(third_dx_tail, -second_dy, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(third_dx, -second_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                  dx_head_dy_tail_head, dx_head_dy_tail_tail,
+                  &second_buffer_4[3], &second_buffer_4[2], &second_buffer_4[1],
+                  &second_buffer_4[0]);
+      second_third_cross_product_first_tails_size =
+          add_components_eliminating_zeros(
+              4, first_buffer_4, 4, second_buffer_4,
+              second_third_cross_product_first_tails);
+      two_multiply(second_dx_tail, third_dy_tail, &dx_tail_dy_head_head,
+                   &dx_tail_dy_head_tail);
+      two_multiply(third_dx_tail, second_dy_tail, &dx_head_dy_tail_head,
+                   &dx_head_dy_tail_tail);
+      two_two_subtract(dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                       dx_head_dy_tail_head, dx_head_dy_tail_tail,
+                       &second_third_cross_product_second_tails[3],
+                       &second_third_cross_product_second_tails[2],
+                       &second_third_cross_product_second_tails[1],
+                       &second_third_cross_product_second_tails[0]);
+      second_third_cross_product_second_tails_size = 4;
+    } else {
+      second_third_cross_product_first_tails[0] = 0.0;
+      second_third_cross_product_first_tails_size = 1;
+      second_third_cross_product_second_tails[0] = 0.0;
+      second_third_cross_product_second_tails_size = 1;
+    }
+    if (!!first_dx_tail) {
+      first_buffer_16_limit = scale_components_eliminating_zeros(
+          first_dx_tail_second_third_cross_product_size,
+          first_dx_tail_second_third_cross_product, first_dx_tail,
+          first_buffer_16);
+      double first_dx_tail_second_third_cross_product_first_tails[16];
+      size_t first_dx_tail_second_third_cross_product_first_tails_size =
+          scale_components_eliminating_zeros(
+              second_third_cross_product_first_tails_size,
+              second_third_cross_product_first_tails, first_dx_tail,
+              first_dx_tail_second_third_cross_product_first_tails);
+      first_buffer_32_limit = scale_components_eliminating_zeros(
+          first_dx_tail_second_third_cross_product_first_tails_size,
+          first_dx_tail_second_third_cross_product_first_tails, 2.0 * first_dx,
+          first_buffer_32);
+      buffer_48_limit = add_components_eliminating_zeros(
+          first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
+          first_buffer_32, buffer_48);
+      final_size = add_components_eliminating_zeros(
+          final_size, *final_components, buffer_48_limit, buffer_48,
+          *accumulated_components);
+      swap(final_components, accumulated_components);
+      if (!!second_dy_tail) {
+        buffer_8_limit = scale_components_eliminating_zeros(
+            4, third_squared_length, first_dx_tail, buffer_8);
+        first_buffer_16_limit = scale_components_eliminating_zeros(
+            buffer_8_limit, buffer_8, second_dy_tail, first_buffer_16);
+        final_size = add_components_eliminating_zeros(
+            final_size, *final_components, first_buffer_16_limit,
+            first_buffer_16, *accumulated_components);
+        swap(final_components, accumulated_components);
+      }
+      if (!!third_dy_tail) {
+        buffer_8_limit = scale_components_eliminating_zeros(
+            4, second_squared_length, -first_dx_tail, buffer_8);
+        first_buffer_16_limit = scale_components_eliminating_zeros(
+            buffer_8_limit, buffer_8, third_dy_tail, first_buffer_16);
+        final_size = add_components_eliminating_zeros(
+            final_size, *final_components, first_buffer_16_limit,
+            first_buffer_16, *accumulated_components);
+        swap(final_components, accumulated_components);
+      }
+      first_buffer_32_limit = scale_components_eliminating_zeros(
+          first_dx_tail_second_third_cross_product_first_tails_size,
+          first_dx_tail_second_third_cross_product_first_tails, first_dx_tail,
+          first_buffer_32);
+      double first_dx_tail_second_third_cross_product_second_tails[8];
+      size_t first_dx_tail_second_third_cross_product_second_tails_size =
+          scale_components_eliminating_zeros(
+              second_third_cross_product_second_tails_size,
+              second_third_cross_product_second_tails, first_dx_tail,
+              first_dx_tail_second_third_cross_product_second_tails);
+      first_buffer_16_limit = scale_components_eliminating_zeros(
+          first_dx_tail_second_third_cross_product_second_tails_size,
+          first_dx_tail_second_third_cross_product_second_tails, 2.0 * first_dx,
+          first_buffer_16);
+      second_buffer_16_limit = scale_components_eliminating_zeros(
+          first_dx_tail_second_third_cross_product_second_tails_size,
+          first_dx_tail_second_third_cross_product_second_tails, first_dx_tail,
+          second_buffer_16);
+      second_buffer_32_limit = add_components_eliminating_zeros(
+          first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
+          second_buffer_16, second_buffer_32);
+      buffer_64_limit = add_components_eliminating_zeros(
+          first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
+          second_buffer_32, buffer_64);
+      final_size = add_components_eliminating_zeros(
+          final_size, *final_components, buffer_64_limit, buffer_64,
+          *accumulated_components);
+      swap(final_components, accumulated_components);
+    }
+    if (!!first_dy_tail) {
+      first_buffer_16_limit = scale_components_eliminating_zeros(
+          first_dy_tail_second_third_cross_product_size,
+          first_dy_tail_second_third_cross_product, first_dy_tail,
+          first_buffer_16);
+      double first_dy_tail_second_third_cross_product_first_tails[16];
+      size_t first_dy_tail_second_third_cross_product_first_tails_size =
+          scale_components_eliminating_zeros(
+              second_third_cross_product_first_tails_size,
+              second_third_cross_product_first_tails, first_dy_tail,
+              first_dy_tail_second_third_cross_product_first_tails);
+      first_buffer_32_limit = scale_components_eliminating_zeros(
+          first_dy_tail_second_third_cross_product_first_tails_size,
+          first_dy_tail_second_third_cross_product_first_tails, 2.0 * first_dy,
+          first_buffer_32);
+      buffer_48_limit = add_components_eliminating_zeros(
+          first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
+          first_buffer_32, buffer_48);
+      final_size = add_components_eliminating_zeros(
+          final_size, *final_components, buffer_48_limit, buffer_48,
+          *accumulated_components);
+      swap(final_components, accumulated_components);
+      first_buffer_32_limit = scale_components_eliminating_zeros(
+          first_dy_tail_second_third_cross_product_first_tails_size,
+          first_dy_tail_second_third_cross_product_first_tails, first_dy_tail,
+          first_buffer_32);
+      double first_dy_tail_second_third_cross_product_second_tails[8];
+      size_t first_dy_tail_second_third_cross_product_second_tails_size =
+          scale_components_eliminating_zeros(
+              second_third_cross_product_second_tails_size,
+              second_third_cross_product_second_tails, first_dy_tail,
+              first_dy_tail_second_third_cross_product_second_tails);
+      first_buffer_16_limit = scale_components_eliminating_zeros(
+          first_dy_tail_second_third_cross_product_second_tails_size,
+          first_dy_tail_second_third_cross_product_second_tails, 2.0 * first_dy,
+          first_buffer_16);
+      second_buffer_16_limit = scale_components_eliminating_zeros(
+          first_dy_tail_second_third_cross_product_second_tails_size,
+          first_dy_tail_second_third_cross_product_second_tails, first_dy_tail,
+          second_buffer_16);
+      second_buffer_32_limit = add_components_eliminating_zeros(
+          first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
+          second_buffer_16, second_buffer_32);
+      buffer_64_limit = add_components_eliminating_zeros(
+          first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
+          second_buffer_32, buffer_64);
+      final_size = add_components_eliminating_zeros(
+          final_size, *final_components, buffer_64_limit, buffer_64,
+          *accumulated_components);
+      swap(final_components, accumulated_components);
+    }
+  }
+  return final_size;
+}
+
 double adaptive_incircle_determinant_estimation(double first_x, double first_y,
                                                 double second_x,
                                                 double second_y, double third_x,
@@ -513,746 +776,24 @@ double adaptive_incircle_determinant_estimation(double first_x, double first_y,
                    &third_squared_length[2], &third_squared_length[1],
                    &third_squared_length[0]);
   double *final_components = first_buffer;
-  double second_buffer[1152];
-  double *accumulated_components = second_buffer;
-  double first_buffer_16[16], second_buffer_16[16], third_buffer_16[16];
-  double first_buffer_32[32], second_buffer_32[32], buffer_48[48];
-  size_t first_buffer_16_limit, second_buffer_16_limit, third_buffer_16_limit;
-  size_t first_buffer_32_limit, second_buffer_32_limit, buffer_48_limit;
-  size_t first_dx_tail_second_third_cross_product_size;
-  double first_dx_tail_second_third_cross_product[8];
-  if (!!first_dx_tail) {
-    first_dx_tail_second_third_cross_product_size =
-        scale_components_eliminating_zeros(
-            4, second_third_cross_product, first_dx_tail,
-            first_dx_tail_second_third_cross_product);
-    first_buffer_16_limit = scale_components_eliminating_zeros(
-        first_dx_tail_second_third_cross_product_size,
-        first_dx_tail_second_third_cross_product, 2.0 * first_dx,
-        first_buffer_16);
-    double first_dx_tail_third_squared_length[8];
-    size_t first_dx_tail_third_squared_length_size =
-        scale_components_eliminating_zeros(4, third_squared_length,
-                                           first_dx_tail,
-                                           first_dx_tail_third_squared_length);
-    second_buffer_16_limit = scale_components_eliminating_zeros(
-        first_dx_tail_third_squared_length_size,
-        first_dx_tail_third_squared_length, second_dy, second_buffer_16);
-    double first_dx_tail_second_squared_length[8];
-    size_t first_dx_tail_second_squared_length_size =
-        scale_components_eliminating_zeros(4, second_squared_length,
-                                           first_dx_tail,
-                                           first_dx_tail_second_squared_length);
-    third_buffer_16_limit = scale_components_eliminating_zeros(
-        first_dx_tail_second_squared_length_size,
-        first_dx_tail_second_squared_length, -third_dy, third_buffer_16);
-    first_buffer_32_limit = add_components_eliminating_zeros(
-        first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-        second_buffer_16, first_buffer_32);
-    buffer_48_limit = add_components_eliminating_zeros(
-        third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
-        first_buffer_32, buffer_48);
-    final_size = add_components_eliminating_zeros(final_size, final_components,
-                                                  buffer_48_limit, buffer_48,
-                                                  accumulated_components);
-    swap(&final_components, &accumulated_components);
-  }
-  size_t first_dy_tail_second_third_cross_product_size;
-  double first_dy_tail_second_third_cross_product[8];
-  if (!!first_dy_tail) {
-    first_dy_tail_second_third_cross_product_size =
-        scale_components_eliminating_zeros(
-            4, second_third_cross_product, first_dy_tail,
-            first_dy_tail_second_third_cross_product);
-    first_buffer_16_limit = scale_components_eliminating_zeros(
-        first_dy_tail_second_third_cross_product_size,
-        first_dy_tail_second_third_cross_product, 2.0 * first_dy,
-        first_buffer_16);
-    double first_dy_tail_second_squared_length[8];
-    size_t first_dy_tail_second_squared_length_size =
-        scale_components_eliminating_zeros(4, second_squared_length,
-                                           first_dy_tail,
-                                           first_dy_tail_second_squared_length);
-    second_buffer_16_limit = scale_components_eliminating_zeros(
-        first_dy_tail_second_squared_length_size,
-        first_dy_tail_second_squared_length, third_dx, second_buffer_16);
-    double first_dy_tail_third_squared_length[8];
-    size_t first_dy_tail_third_squared_length_size =
-        scale_components_eliminating_zeros(4, third_squared_length,
-                                           first_dy_tail,
-                                           first_dy_tail_third_squared_length);
-    third_buffer_16_limit = scale_components_eliminating_zeros(
-        first_dy_tail_third_squared_length_size,
-        first_dy_tail_third_squared_length, -second_dx, third_buffer_16);
-    first_buffer_32_limit = add_components_eliminating_zeros(
-        first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-        second_buffer_16, first_buffer_32);
-    buffer_48_limit = add_components_eliminating_zeros(
-        third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
-        first_buffer_32, buffer_48);
-    final_size = add_components_eliminating_zeros(final_size, final_components,
-                                                  buffer_48_limit, buffer_48,
-                                                  accumulated_components);
-    swap(&final_components, &accumulated_components);
-  }
-  size_t second_dx_tail_third_first_cross_product_size;
-  double second_dx_tail_third_first_cross_product[8];
-  if (!!second_dx_tail) {
-    second_dx_tail_third_first_cross_product_size =
-        scale_components_eliminating_zeros(
-            4, third_first_cross_product, second_dx_tail,
-            second_dx_tail_third_first_cross_product);
-    first_buffer_16_limit = scale_components_eliminating_zeros(
-        second_dx_tail_third_first_cross_product_size,
-        second_dx_tail_third_first_cross_product, 2.0 * second_dx,
-        first_buffer_16);
-    double second_dx_tail_first_squared_length[8];
-    size_t second_dx_tail_first_squared_length_size =
-        scale_components_eliminating_zeros(4, first_squared_length,
-                                           second_dx_tail,
-                                           second_dx_tail_first_squared_length);
-    second_buffer_16_limit = scale_components_eliminating_zeros(
-        second_dx_tail_first_squared_length_size,
-        second_dx_tail_first_squared_length, third_dy, second_buffer_16);
-    double second_dx_tail_third_squared_length[8];
-    size_t second_dx_tail_third_squared_length_size =
-        scale_components_eliminating_zeros(4, third_squared_length,
-                                           second_dx_tail,
-                                           second_dx_tail_third_squared_length);
-    third_buffer_16_limit = scale_components_eliminating_zeros(
-        second_dx_tail_third_squared_length_size,
-        second_dx_tail_third_squared_length, -first_dy, third_buffer_16);
-    first_buffer_32_limit = add_components_eliminating_zeros(
-        first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-        second_buffer_16, first_buffer_32);
-    buffer_48_limit = add_components_eliminating_zeros(
-        third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
-        first_buffer_32, buffer_48);
-    final_size = add_components_eliminating_zeros(final_size, final_components,
-                                                  buffer_48_limit, buffer_48,
-                                                  accumulated_components);
-    swap(&final_components, &accumulated_components);
-  }
-  size_t second_dy_tail_third_first_cross_product_size;
-  double second_dy_tail_third_first_cross_product[8];
-  if (!!second_dy_tail) {
-    second_dy_tail_third_first_cross_product_size =
-        scale_components_eliminating_zeros(
-            4, third_first_cross_product, second_dy_tail,
-            second_dy_tail_third_first_cross_product);
-    first_buffer_16_limit = scale_components_eliminating_zeros(
-        second_dy_tail_third_first_cross_product_size,
-        second_dy_tail_third_first_cross_product, 2.0 * second_dy,
-        first_buffer_16);
-    double second_dy_tail_third_squared_length[8];
-    size_t second_dy_tail_third_squared_length_size =
-        scale_components_eliminating_zeros(4, third_squared_length,
-                                           second_dy_tail,
-                                           second_dy_tail_third_squared_length);
-    second_buffer_16_limit = scale_components_eliminating_zeros(
-        second_dy_tail_third_squared_length_size,
-        second_dy_tail_third_squared_length, first_dx, second_buffer_16);
-    double second_dy_tail_first_squared_length[8];
-    size_t second_dy_tail_first_squared_length_size =
-        scale_components_eliminating_zeros(4, first_squared_length,
-                                           second_dy_tail,
-                                           second_dy_tail_first_squared_length);
-    third_buffer_16_limit = scale_components_eliminating_zeros(
-        second_dy_tail_first_squared_length_size,
-        second_dy_tail_first_squared_length, -third_dx, third_buffer_16);
-    first_buffer_32_limit = add_components_eliminating_zeros(
-        first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-        second_buffer_16, first_buffer_32);
-    buffer_48_limit = add_components_eliminating_zeros(
-        third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
-        first_buffer_32, buffer_48);
-    final_size = add_components_eliminating_zeros(final_size, final_components,
-                                                  buffer_48_limit, buffer_48,
-                                                  accumulated_components);
-    swap(&final_components, &accumulated_components);
-  }
-  size_t third_dx_tail_first_second_cross_product_size;
-  double third_dx_tail_first_second_cross_product[8];
-  if (!!third_dx_tail) {
-    third_dx_tail_first_second_cross_product_size =
-        scale_components_eliminating_zeros(
-            4, first_second_cross_product, third_dx_tail,
-            third_dx_tail_first_second_cross_product);
-    first_buffer_16_limit = scale_components_eliminating_zeros(
-        third_dx_tail_first_second_cross_product_size,
-        third_dx_tail_first_second_cross_product, 2.0 * third_dx,
-        first_buffer_16);
-    double third_dx_tail_second_squared_length[8];
-    size_t third_dx_tail_second_squared_length_size =
-        scale_components_eliminating_zeros(4, second_squared_length,
-                                           third_dx_tail,
-                                           third_dx_tail_second_squared_length);
-    second_buffer_16_limit = scale_components_eliminating_zeros(
-        third_dx_tail_second_squared_length_size,
-        third_dx_tail_second_squared_length, first_dy, second_buffer_16);
-    double third_dx_tail_first_squared_length[8];
-    size_t third_dx_tail_first_squared_length_size =
-        scale_components_eliminating_zeros(4, first_squared_length,
-                                           third_dx_tail,
-                                           third_dx_tail_first_squared_length);
-    third_buffer_16_limit = scale_components_eliminating_zeros(
-        third_dx_tail_first_squared_length_size,
-        third_dx_tail_first_squared_length, -second_dy, third_buffer_16);
-    first_buffer_32_limit = add_components_eliminating_zeros(
-        first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-        second_buffer_16, first_buffer_32);
-    buffer_48_limit = add_components_eliminating_zeros(
-        third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
-        first_buffer_32, buffer_48);
-    final_size = add_components_eliminating_zeros(final_size, final_components,
-                                                  buffer_48_limit, buffer_48,
-                                                  accumulated_components);
-    swap(&final_components, &accumulated_components);
-  }
-  size_t third_dy_tail_first_second_cross_product_size;
-  double third_dy_tail_first_second_cross_product[8];
-  if (!!third_dy_tail) {
-    third_dy_tail_first_second_cross_product_size =
-        scale_components_eliminating_zeros(
-            4, first_second_cross_product, third_dy_tail,
-            third_dy_tail_first_second_cross_product);
-    first_buffer_16_limit = scale_components_eliminating_zeros(
-        third_dy_tail_first_second_cross_product_size,
-        third_dy_tail_first_second_cross_product, 2.0 * third_dy,
-        first_buffer_16);
-    double third_dy_tail_first_squared_length[8];
-    size_t third_dy_tail_first_squared_length_size =
-        scale_components_eliminating_zeros(4, first_squared_length,
-                                           third_dy_tail,
-                                           third_dy_tail_first_squared_length);
-    second_buffer_16_limit = scale_components_eliminating_zeros(
-        third_dy_tail_first_squared_length_size,
-        third_dy_tail_first_squared_length, second_dx, second_buffer_16);
-    double third_dy_tail_second_squared_length[8];
-    size_t third_dy_tail_second_squared_length_size =
-        scale_components_eliminating_zeros(4, second_squared_length,
-                                           third_dy_tail,
-                                           third_dy_tail_second_squared_length);
-    third_buffer_16_limit = scale_components_eliminating_zeros(
-        third_dy_tail_second_squared_length_size,
-        third_dy_tail_second_squared_length, -first_dx, third_buffer_16);
-    first_buffer_32_limit = add_components_eliminating_zeros(
-        first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-        second_buffer_16, first_buffer_32);
-    buffer_48_limit = add_components_eliminating_zeros(
-        third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
-        first_buffer_32, buffer_48);
-    final_size = add_components_eliminating_zeros(final_size, final_components,
-                                                  buffer_48_limit, buffer_48,
-                                                  accumulated_components);
-    swap(&final_components, &accumulated_components);
-  }
-  double dx_tail_dy_head_head, dx_head_dy_tail_head;
-  double dx_tail_dy_head_tail, dx_head_dy_tail_tail;
-  double buffer_8[8], buffer_64[64];
-  size_t buffer_8_limit, buffer_64_limit;
-  double first_buffer_4[4], second_buffer_4[4];
-  if (!!first_dx_tail || !!first_dy_tail) {
-    size_t second_third_cross_product_first_tails_size,
-        second_third_cross_product_second_tails_size;
-    double second_third_cross_product_first_tails[8],
-        second_third_cross_product_second_tails[4];
-    if (!!second_dx_tail || !!second_dy_tail || !!third_dx_tail ||
-        !!third_dy_tail) {
-      two_multiply(second_dx_tail, third_dy, &dx_tail_dy_head_head,
-                   &dx_tail_dy_head_tail);
-      two_multiply(second_dx, third_dy_tail, &dx_head_dy_tail_head,
-                   &dx_head_dy_tail_tail);
-      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                  dx_head_dy_tail_head, dx_head_dy_tail_tail,
-                  &first_buffer_4[3], &first_buffer_4[2], &first_buffer_4[1],
-                  &first_buffer_4[0]);
-      two_multiply(third_dx_tail, -second_dy, &dx_tail_dy_head_head,
-                   &dx_tail_dy_head_tail);
-      two_multiply(third_dx, -second_dy_tail, &dx_head_dy_tail_head,
-                   &dx_head_dy_tail_tail);
-      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                  dx_head_dy_tail_head, dx_head_dy_tail_tail,
-                  &second_buffer_4[3], &second_buffer_4[2], &second_buffer_4[1],
-                  &second_buffer_4[0]);
-      second_third_cross_product_first_tails_size =
-          add_components_eliminating_zeros(
-              4, first_buffer_4, 4, second_buffer_4,
-              second_third_cross_product_first_tails);
-      two_multiply(second_dx_tail, third_dy_tail, &dx_tail_dy_head_head,
-                   &dx_tail_dy_head_tail);
-      two_multiply(third_dx_tail, second_dy_tail, &dx_head_dy_tail_head,
-                   &dx_head_dy_tail_tail);
-      two_two_subtract(dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                       dx_head_dy_tail_head, dx_head_dy_tail_tail,
-                       &second_third_cross_product_second_tails[3],
-                       &second_third_cross_product_second_tails[2],
-                       &second_third_cross_product_second_tails[1],
-                       &second_third_cross_product_second_tails[0]);
-      second_third_cross_product_second_tails_size = 4;
-    } else {
-      second_third_cross_product_first_tails[0] = 0.0;
-      second_third_cross_product_first_tails_size = 1;
-      second_third_cross_product_second_tails[0] = 0.0;
-      second_third_cross_product_second_tails_size = 1;
-    }
-    if (!!first_dx_tail) {
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          first_dx_tail_second_third_cross_product_size,
-          first_dx_tail_second_third_cross_product, first_dx_tail,
-          first_buffer_16);
-      double first_dx_tail_second_third_cross_product_first_tails[16];
-      size_t first_dx_tail_second_third_cross_product_first_tails_size =
-          scale_components_eliminating_zeros(
-              second_third_cross_product_first_tails_size,
-              second_third_cross_product_first_tails, first_dx_tail,
-              first_dx_tail_second_third_cross_product_first_tails);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          first_dx_tail_second_third_cross_product_first_tails_size,
-          first_dx_tail_second_third_cross_product_first_tails, 2.0 * first_dx,
-          first_buffer_32);
-      buffer_48_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
-          first_buffer_32, buffer_48);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_48_limit, buffer_48,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-      if (!!second_dy_tail) {
-        buffer_8_limit = scale_components_eliminating_zeros(
-            4, third_squared_length, first_dx_tail, buffer_8);
-        first_buffer_16_limit = scale_components_eliminating_zeros(
-            buffer_8_limit, buffer_8, second_dy_tail, first_buffer_16);
-        final_size = add_components_eliminating_zeros(
-            final_size, final_components, first_buffer_16_limit,
-            first_buffer_16, accumulated_components);
-        swap(&final_components, &accumulated_components);
-      }
-      if (!!third_dy_tail) {
-        buffer_8_limit = scale_components_eliminating_zeros(
-            4, second_squared_length, -first_dx_tail, buffer_8);
-        first_buffer_16_limit = scale_components_eliminating_zeros(
-            buffer_8_limit, buffer_8, third_dy_tail, first_buffer_16);
-        final_size = add_components_eliminating_zeros(
-            final_size, final_components, first_buffer_16_limit,
-            first_buffer_16, accumulated_components);
-        swap(&final_components, &accumulated_components);
-      }
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          first_dx_tail_second_third_cross_product_first_tails_size,
-          first_dx_tail_second_third_cross_product_first_tails, first_dx_tail,
-          first_buffer_32);
-      double first_dx_tail_second_third_cross_product_second_tails[8];
-      size_t first_dx_tail_second_third_cross_product_second_tails_size =
-          scale_components_eliminating_zeros(
-              second_third_cross_product_second_tails_size,
-              second_third_cross_product_second_tails, first_dx_tail,
-              first_dx_tail_second_third_cross_product_second_tails);
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          first_dx_tail_second_third_cross_product_second_tails_size,
-          first_dx_tail_second_third_cross_product_second_tails, 2.0 * first_dx,
-          first_buffer_16);
-      second_buffer_16_limit = scale_components_eliminating_zeros(
-          first_dx_tail_second_third_cross_product_second_tails_size,
-          first_dx_tail_second_third_cross_product_second_tails, first_dx_tail,
-          second_buffer_16);
-      second_buffer_32_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-          second_buffer_16, second_buffer_32);
-      buffer_64_limit = add_components_eliminating_zeros(
-          first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
-          second_buffer_32, buffer_64);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_64_limit, buffer_64,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-    }
-    if (!!first_dy_tail) {
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          first_dy_tail_second_third_cross_product_size,
-          first_dy_tail_second_third_cross_product, first_dy_tail,
-          first_buffer_16);
-      double first_dy_tail_second_third_cross_product_first_tails[16];
-      size_t first_dy_tail_second_third_cross_product_first_tails_size =
-          scale_components_eliminating_zeros(
-              second_third_cross_product_first_tails_size,
-              second_third_cross_product_first_tails, first_dy_tail,
-              first_dy_tail_second_third_cross_product_first_tails);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          first_dy_tail_second_third_cross_product_first_tails_size,
-          first_dy_tail_second_third_cross_product_first_tails, 2.0 * first_dy,
-          first_buffer_32);
-      buffer_48_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
-          first_buffer_32, buffer_48);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_48_limit, buffer_48,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          first_dy_tail_second_third_cross_product_first_tails_size,
-          first_dy_tail_second_third_cross_product_first_tails, first_dy_tail,
-          first_buffer_32);
-      double first_dy_tail_second_third_cross_product_second_tails[8];
-      size_t first_dy_tail_second_third_cross_product_second_tails_size =
-          scale_components_eliminating_zeros(
-              second_third_cross_product_second_tails_size,
-              second_third_cross_product_second_tails, first_dy_tail,
-              first_dy_tail_second_third_cross_product_second_tails);
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          first_dy_tail_second_third_cross_product_second_tails_size,
-          first_dy_tail_second_third_cross_product_second_tails, 2.0 * first_dy,
-          first_buffer_16);
-      second_buffer_16_limit = scale_components_eliminating_zeros(
-          first_dy_tail_second_third_cross_product_second_tails_size,
-          first_dy_tail_second_third_cross_product_second_tails, first_dy_tail,
-          second_buffer_16);
-      second_buffer_32_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-          second_buffer_16, second_buffer_32);
-      buffer_64_limit = add_components_eliminating_zeros(
-          first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
-          second_buffer_32, buffer_64);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_64_limit, buffer_64,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-    }
-  }
-  if (!!second_dx_tail || !!second_dy_tail) {
-    size_t first_third_cross_product_first_tails_size,
-        first_third_cross_product_second_tails_size;
-    double first_third_cross_product_first_tails[8],
-        first_third_cross_product_second_tails[4];
-    if (!!third_dx_tail || !!third_dy_tail || !!first_dx_tail ||
-        !!first_dy_tail) {
-      two_multiply(third_dx_tail, first_dy, &dx_tail_dy_head_head,
-                   &dx_tail_dy_head_tail);
-      two_multiply(third_dx, first_dy_tail, &dx_head_dy_tail_head,
-                   &dx_head_dy_tail_tail);
-      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                  dx_head_dy_tail_head, dx_head_dy_tail_tail,
-                  &first_buffer_4[3], &first_buffer_4[2], &first_buffer_4[1],
-                  &first_buffer_4[0]);
-      two_multiply(first_dx_tail, -third_dy, &dx_tail_dy_head_head,
-                   &dx_tail_dy_head_tail);
-      two_multiply(first_dx, -third_dy_tail, &dx_head_dy_tail_head,
-                   &dx_head_dy_tail_tail);
-      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                  dx_head_dy_tail_head, dx_head_dy_tail_tail,
-                  &second_buffer_4[3], &second_buffer_4[2], &second_buffer_4[1],
-                  &second_buffer_4[0]);
-      first_third_cross_product_first_tails_size =
-          add_components_eliminating_zeros(
-              4, first_buffer_4, 4, second_buffer_4,
-              first_third_cross_product_first_tails);
-      two_multiply(third_dx_tail, first_dy_tail, &dx_tail_dy_head_head,
-                   &dx_tail_dy_head_tail);
-      two_multiply(first_dx_tail, third_dy_tail, &dx_head_dy_tail_head,
-                   &dx_head_dy_tail_tail);
-      two_two_subtract(dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                       dx_head_dy_tail_head, dx_head_dy_tail_tail,
-                       &first_third_cross_product_second_tails[3],
-                       &first_third_cross_product_second_tails[2],
-                       &first_third_cross_product_second_tails[1],
-                       &first_third_cross_product_second_tails[0]);
-      first_third_cross_product_second_tails_size = 4;
-    } else {
-      first_third_cross_product_first_tails[0] = 0.0;
-      first_third_cross_product_first_tails_size = 1;
-      first_third_cross_product_second_tails[0] = 0.0;
-      first_third_cross_product_second_tails_size = 1;
-    }
-    if (!!second_dx_tail) {
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          second_dx_tail_third_first_cross_product_size,
-          second_dx_tail_third_first_cross_product, second_dx_tail,
-          first_buffer_16);
-      double second_dx_tail_first_third_cross_product_first_tails[16];
-      size_t second_dx_tail_first_third_cross_product_first_tails_size =
-          scale_components_eliminating_zeros(
-              first_third_cross_product_first_tails_size,
-              first_third_cross_product_first_tails, second_dx_tail,
-              second_dx_tail_first_third_cross_product_first_tails);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          second_dx_tail_first_third_cross_product_first_tails_size,
-          second_dx_tail_first_third_cross_product_first_tails, 2.0 * second_dx,
-          first_buffer_32);
-      buffer_48_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
-          first_buffer_32, buffer_48);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_48_limit, buffer_48,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-      if (!!third_dy_tail) {
-        buffer_8_limit = scale_components_eliminating_zeros(
-            4, first_squared_length, second_dx_tail, buffer_8);
-        first_buffer_16_limit = scale_components_eliminating_zeros(
-            buffer_8_limit, buffer_8, third_dy_tail, first_buffer_16);
-        final_size = add_components_eliminating_zeros(
-            final_size, final_components, first_buffer_16_limit,
-            first_buffer_16, accumulated_components);
-        swap(&final_components, &accumulated_components);
-      }
-      if (!!first_dy_tail) {
-        buffer_8_limit = scale_components_eliminating_zeros(
-            4, third_squared_length, -second_dx_tail, buffer_8);
-        first_buffer_16_limit = scale_components_eliminating_zeros(
-            buffer_8_limit, buffer_8, first_dy_tail, first_buffer_16);
-        final_size = add_components_eliminating_zeros(
-            final_size, final_components, first_buffer_16_limit,
-            first_buffer_16, accumulated_components);
-        swap(&final_components, &accumulated_components);
-      }
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          second_dx_tail_first_third_cross_product_first_tails_size,
-          second_dx_tail_first_third_cross_product_first_tails, second_dx_tail,
-          first_buffer_32);
-      double second_dx_tail_first_third_cross_product_first_tailst[8];
-      size_t second_dx_tail_first_third_cross_product_first_tailst_size =
-          scale_components_eliminating_zeros(
-              first_third_cross_product_second_tails_size,
-              first_third_cross_product_second_tails, second_dx_tail,
-              second_dx_tail_first_third_cross_product_first_tailst);
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          second_dx_tail_first_third_cross_product_first_tailst_size,
-          second_dx_tail_first_third_cross_product_first_tailst,
-          2.0 * second_dx, first_buffer_16);
-      second_buffer_16_limit = scale_components_eliminating_zeros(
-          second_dx_tail_first_third_cross_product_first_tailst_size,
-          second_dx_tail_first_third_cross_product_first_tailst, second_dx_tail,
-          second_buffer_16);
-      second_buffer_32_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-          second_buffer_16, second_buffer_32);
-      buffer_64_limit = add_components_eliminating_zeros(
-          first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
-          second_buffer_32, buffer_64);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_64_limit, buffer_64,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-    }
-    if (!!second_dy_tail) {
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          second_dy_tail_third_first_cross_product_size,
-          second_dy_tail_third_first_cross_product, second_dy_tail,
-          first_buffer_16);
-      double second_dy_tail_first_third_cross_product_first_tails[16];
-      size_t second_dy_tail_first_third_cross_product_first_tails_size =
-          scale_components_eliminating_zeros(
-              first_third_cross_product_first_tails_size,
-              first_third_cross_product_first_tails, second_dy_tail,
-              second_dy_tail_first_third_cross_product_first_tails);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          second_dy_tail_first_third_cross_product_first_tails_size,
-          second_dy_tail_first_third_cross_product_first_tails, 2.0 * second_dy,
-          first_buffer_32);
-      buffer_48_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
-          first_buffer_32, buffer_48);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_48_limit, buffer_48,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          second_dy_tail_first_third_cross_product_first_tails_size,
-          second_dy_tail_first_third_cross_product_first_tails, second_dy_tail,
-          first_buffer_32);
-      double second_dy_tail_first_third_cross_product_second_tails[8];
-      size_t second_dy_tail_first_third_cross_product_second_tails_size =
-          scale_components_eliminating_zeros(
-              first_third_cross_product_second_tails_size,
-              first_third_cross_product_second_tails, second_dy_tail,
-              second_dy_tail_first_third_cross_product_second_tails);
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          second_dy_tail_first_third_cross_product_second_tails_size,
-          second_dy_tail_first_third_cross_product_second_tails,
-          2.0 * second_dy, first_buffer_16);
-      second_buffer_16_limit = scale_components_eliminating_zeros(
-          second_dy_tail_first_third_cross_product_second_tails_size,
-          second_dy_tail_first_third_cross_product_second_tails, second_dy_tail,
-          second_buffer_16);
-      second_buffer_32_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-          second_buffer_16, second_buffer_32);
-      buffer_64_limit = add_components_eliminating_zeros(
-          first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
-          second_buffer_32, buffer_64);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_64_limit, buffer_64,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-    }
-  }
-  if (!!third_dx_tail || !!third_dy_tail) {
-    size_t first_second_cross_product_first_tails_size,
-        first_second_cross_product_second_tails_size;
-    double first_second_cross_product_first_tails[8],
-        first_second_cross_product_second_tails[4];
-    if (!!first_dx_tail || !!first_dy_tail || !!second_dx_tail ||
-        !!second_dy_tail) {
-      two_multiply(first_dx_tail, second_dy, &dx_tail_dy_head_head,
-                   &dx_tail_dy_head_tail);
-      two_multiply(first_dx, second_dy_tail, &dx_head_dy_tail_head,
-                   &dx_head_dy_tail_tail);
-      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                  dx_head_dy_tail_head, dx_head_dy_tail_tail,
-                  &first_buffer_4[3], &first_buffer_4[2], &first_buffer_4[1],
-                  &first_buffer_4[0]);
-      two_multiply(second_dx_tail, -first_dy, &dx_tail_dy_head_head,
-                   &dx_tail_dy_head_tail);
-      two_multiply(second_dx, -first_dy_tail, &dx_head_dy_tail_head,
-                   &dx_head_dy_tail_tail);
-      two_two_add(dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                  dx_head_dy_tail_head, dx_head_dy_tail_tail,
-                  &second_buffer_4[3], &second_buffer_4[2], &second_buffer_4[1],
-                  &second_buffer_4[0]);
-      first_second_cross_product_first_tails_size =
-          add_components_eliminating_zeros(
-              4, first_buffer_4, 4, second_buffer_4,
-              first_second_cross_product_first_tails);
-      two_multiply(first_dx_tail, second_dy_tail, &dx_tail_dy_head_head,
-                   &dx_tail_dy_head_tail);
-      two_multiply(second_dx_tail, first_dy_tail, &dx_head_dy_tail_head,
-                   &dx_head_dy_tail_tail);
-      two_two_subtract(dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                       dx_head_dy_tail_head, dx_head_dy_tail_tail,
-                       &first_second_cross_product_second_tails[3],
-                       &first_second_cross_product_second_tails[2],
-                       &first_second_cross_product_second_tails[1],
-                       &first_second_cross_product_second_tails[0]);
-      first_second_cross_product_second_tails_size = 4;
-    } else {
-      first_second_cross_product_first_tails[0] = 0.0;
-      first_second_cross_product_first_tails_size = 1;
-      first_second_cross_product_second_tails[0] = 0.0;
-      first_second_cross_product_second_tails_size = 1;
-    }
-    if (!!third_dx_tail) {
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          third_dx_tail_first_second_cross_product_size,
-          third_dx_tail_first_second_cross_product, third_dx_tail,
-          first_buffer_16);
-      double third_dx_tail_first_second_cross_product_first_tails[16];
-      size_t third_dx_tail_first_second_cross_product_first_tails_size =
-          scale_components_eliminating_zeros(
-              first_second_cross_product_first_tails_size,
-              first_second_cross_product_first_tails, third_dx_tail,
-              third_dx_tail_first_second_cross_product_first_tails);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          third_dx_tail_first_second_cross_product_first_tails_size,
-          third_dx_tail_first_second_cross_product_first_tails, 2.0 * third_dx,
-          first_buffer_32);
-      buffer_48_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
-          first_buffer_32, buffer_48);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_48_limit, buffer_48,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-      if (!!first_dy_tail) {
-        buffer_8_limit = scale_components_eliminating_zeros(
-            4, second_squared_length, third_dx_tail, buffer_8);
-        first_buffer_16_limit = scale_components_eliminating_zeros(
-            buffer_8_limit, buffer_8, first_dy_tail, first_buffer_16);
-        final_size = add_components_eliminating_zeros(
-            final_size, final_components, first_buffer_16_limit,
-            first_buffer_16, accumulated_components);
-        swap(&final_components, &accumulated_components);
-      }
-      if (!!second_dy_tail) {
-        buffer_8_limit = scale_components_eliminating_zeros(
-            4, first_squared_length, -third_dx_tail, buffer_8);
-        first_buffer_16_limit = scale_components_eliminating_zeros(
-            buffer_8_limit, buffer_8, second_dy_tail, first_buffer_16);
-        final_size = add_components_eliminating_zeros(
-            final_size, final_components, first_buffer_16_limit,
-            first_buffer_16, accumulated_components);
-        swap(&final_components, &accumulated_components);
-      }
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          third_dx_tail_first_second_cross_product_first_tails_size,
-          third_dx_tail_first_second_cross_product_first_tails, third_dx_tail,
-          first_buffer_32);
-      double third_dx_tail_first_second_cross_product_second_tails[8];
-      size_t third_dx_tail_first_second_cross_product_second_tails_size =
-          scale_components_eliminating_zeros(
-              first_second_cross_product_second_tails_size,
-              first_second_cross_product_second_tails, third_dx_tail,
-              third_dx_tail_first_second_cross_product_second_tails);
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          third_dx_tail_first_second_cross_product_second_tails_size,
-          third_dx_tail_first_second_cross_product_second_tails, 2.0 * third_dx,
-          first_buffer_16);
-      second_buffer_16_limit = scale_components_eliminating_zeros(
-          third_dx_tail_first_second_cross_product_second_tails_size,
-          third_dx_tail_first_second_cross_product_second_tails, third_dx_tail,
-          second_buffer_16);
-      second_buffer_32_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-          second_buffer_16, second_buffer_32);
-      buffer_64_limit = add_components_eliminating_zeros(
-          first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
-          second_buffer_32, buffer_64);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_64_limit, buffer_64,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-    }
-    if (!!third_dy_tail) {
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          third_dy_tail_first_second_cross_product_size,
-          third_dy_tail_first_second_cross_product, third_dy_tail,
-          first_buffer_16);
-      double third_dy_tail_first_second_cross_product_first_tails[16];
-      size_t third_dy_tail_first_second_cross_product_first_tails_size =
-          scale_components_eliminating_zeros(
-              first_second_cross_product_first_tails_size,
-              first_second_cross_product_first_tails, third_dy_tail,
-              third_dy_tail_first_second_cross_product_first_tails);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          third_dy_tail_first_second_cross_product_first_tails_size,
-          third_dy_tail_first_second_cross_product_first_tails, 2.0 * third_dy,
-          first_buffer_32);
-      buffer_48_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
-          first_buffer_32, buffer_48);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_48_limit, buffer_48,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
-          third_dy_tail_first_second_cross_product_first_tails_size,
-          third_dy_tail_first_second_cross_product_first_tails, third_dy_tail,
-          first_buffer_32);
-      double third_dy_tail_first_second_cross_product_second_tails[8];
-      size_t third_dy_tail_first_second_cross_product_second_tails_size =
-          scale_components_eliminating_zeros(
-              first_second_cross_product_second_tails_size,
-              first_second_cross_product_second_tails, third_dy_tail,
-              third_dy_tail_first_second_cross_product_second_tails);
-      first_buffer_16_limit = scale_components_eliminating_zeros(
-          third_dy_tail_first_second_cross_product_second_tails_size,
-          third_dy_tail_first_second_cross_product_second_tails, 2.0 * third_dy,
-          first_buffer_16);
-      second_buffer_16_limit = scale_components_eliminating_zeros(
-          third_dy_tail_first_second_cross_product_second_tails_size,
-          third_dy_tail_first_second_cross_product_second_tails, third_dy_tail,
-          second_buffer_16);
-      second_buffer_32_limit = add_components_eliminating_zeros(
-          first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
-          second_buffer_16, second_buffer_32);
-      buffer_64_limit = add_components_eliminating_zeros(
-          first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
-          second_buffer_32, buffer_64);
-      final_size = add_components_eliminating_zeros(
-          final_size, final_components, buffer_64_limit, buffer_64,
-          accumulated_components);
-      swap(&final_components, &accumulated_components);
-    }
-  }
+  double second_buffer_1152[1152];
+  double *accumulated_components = second_buffer_1152;
+  final_size = add_extras(final_size, &final_components,
+                          &accumulated_components, first_dx, first_dx_tail,
+                          first_dy, first_dy_tail, second_dx, second_dx_tail,
+                          second_dy, second_dy_tail, third_dx, third_dx_tail,
+                          third_dy, third_dy_tail, second_third_cross_product,
+                          second_squared_length, third_squared_length);
+  final_size = add_extras(
+      final_size, &final_components, &accumulated_components, second_dx,
+      second_dx_tail, second_dy, second_dy_tail, third_dx, third_dx_tail,
+      third_dy, third_dy_tail, first_dx, first_dx_tail, first_dy, first_dy_tail,
+      third_first_cross_product, third_squared_length, first_squared_length);
+  final_size = add_extras(
+      final_size, &final_components, &accumulated_components, third_dx,
+      third_dx_tail, third_dy, third_dy_tail, first_dx, first_dx_tail, first_dy,
+      first_dy_tail, second_dx, second_dx_tail, second_dy, second_dy_tail,
+      first_second_cross_product, first_squared_length, second_squared_length);
   return final_components[final_size - 1];
 }
 
