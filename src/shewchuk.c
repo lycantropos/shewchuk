@@ -1600,8 +1600,7 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
 
 static PyMethodDef _shewchuk_methods[] = {
     {"incircle_test", incircle_test, METH_VARARGS,
-     PyDoc_STR("Computes lofirst_third_cross_product_first_tailsion of point "
-               "relative to a circle formed by "
+     PyDoc_STR("Computes location  of point relative to a circle formed by "
                "three others given their coordinates.")},
     {"kind", kind, METH_VARARGS,
      PyDoc_STR("Computes kind of angle given its endpoints coordinates.")},
