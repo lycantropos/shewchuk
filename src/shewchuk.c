@@ -400,17 +400,19 @@ static void squared_length(double dx, double dy, double *head,
 
 static size_t scale_by_squared_length(size_t size, double *components,
                                       double dx, double dy, double *result) {
-  double axbc[8], axxbc[16], aybc[8], ayybc[16];
-  size_t axbc_size =
-      scale_components_eliminating_zeros(size, components, dx, axbc);
-  size_t axxbc_size =
-      scale_components_eliminating_zeros(axbc_size, axbc, dx, axxbc);
-  size_t aybc_size =
-      scale_components_eliminating_zeros(size, components, dy, aybc);
-  size_t ayybc_size =
-      scale_components_eliminating_zeros(aybc_size, aybc, dy, ayybc);
-  return add_components_eliminating_zeros(axxbc_size, axxbc, ayybc_size, ayybc,
-                                          result);
+  double dx_components[8], dx_squared_components[16], dy_components[8],
+      dy_squared_components[16];
+  size_t dx_components_size =
+      scale_components_eliminating_zeros(size, components, dx, dx_components);
+  size_t dx_squared_components_size = scale_components_eliminating_zeros(
+      dx_components_size, dx_components, dx, dx_squared_components);
+  size_t dy_components_size =
+      scale_components_eliminating_zeros(size, components, dy, dy_components);
+  size_t dy_squared_components_size = scale_components_eliminating_zeros(
+      dy_components_size, dy_components, dy, dy_squared_components);
+  return add_components_eliminating_zeros(
+      dx_squared_components_size, dx_squared_components,
+      dy_squared_components_size, dy_squared_components, result);
 }
 
 static void swap(double **first, double **second) {
@@ -699,29 +701,29 @@ double adaptive_incircle_determinant_estimation(double first_x, double first_y,
                 &second_third_cross_product[3], &second_third_cross_product[2],
                 &second_third_cross_product[1], &second_third_cross_product[0]);
   double first_components[32];
-  size_t a_size = scale_by_squared_length(4, second_third_cross_product,
-                                          first_dx, first_dy, first_components);
+  size_t first_components_size = scale_by_squared_length(
+      4, second_third_cross_product, first_dx, first_dy, first_components);
   double third_first_cross_product[4];
   cross_product(third_dx, third_dy, first_dx, first_dy,
                 &third_first_cross_product[3], &third_first_cross_product[2],
                 &third_first_cross_product[1], &third_first_cross_product[0]);
   double second_components[32];
-  size_t b_size = scale_by_squared_length(
+  size_t second_components_size = scale_by_squared_length(
       4, third_first_cross_product, second_dx, second_dy, second_components);
   double first_second_cross_product[4];
   cross_product(first_dx, first_dy, second_dx, second_dy,
                 &first_second_cross_product[3], &first_second_cross_product[2],
                 &first_second_cross_product[1], &first_second_cross_product[0]);
   double third_components[32];
-  size_t c_size = scale_by_squared_length(4, first_second_cross_product,
-                                          third_dx, third_dy, third_components);
+  size_t third_components_size = scale_by_squared_length(
+      4, first_second_cross_product, third_dx, third_dy, third_components);
   double first_second_sum_components[64];
   size_t first_second_sum_size = add_components_eliminating_zeros(
-      a_size, first_components, b_size, second_components,
-      first_second_sum_components);
+      first_components_size, first_components, second_components_size,
+      second_components, first_second_sum_components);
   double first_buffer[1152];
   size_t final_size = add_components_eliminating_zeros(
-      first_second_sum_size, first_second_sum_components, c_size,
+      first_second_sum_size, first_second_sum_components, third_components_size,
       third_components, first_buffer);
   double result = sum_components(final_size, first_buffer);
   static const double first_upper_bound_coefficient =
