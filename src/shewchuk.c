@@ -801,46 +801,35 @@ double incircle_determinant_estimation(double first_x, double first_y,
                                        double second_x, double second_y,
                                        double third_x, double third_y,
                                        double fourth_x, double fourth_y) {
-  double first_dx, second_dx, third_dx, first_dy, second_dy, third_dy;
-  double second_dx_third_dy, third_dx_second_dy, third_dx_first_dy,
-      first_dx_third_dy, first_dx_second_dy, second_dx_first_dy;
-  double first_squared_distance, second_squared_distance,
-      third_squared_distance;
-  double result;
-  double upper_bound, threshold;
-
-  first_dx = first_x - fourth_x;
-  second_dx = second_x - fourth_x;
-  third_dx = third_x - fourth_x;
-  first_dy = first_y - fourth_y;
-  second_dy = second_y - fourth_y;
-  third_dy = third_y - fourth_y;
-
-  second_dx_third_dy = second_dx * third_dy;
-  third_dx_second_dy = third_dx * second_dy;
-  first_squared_distance = first_dx * first_dx + first_dy * first_dy;
-
-  third_dx_first_dy = third_dx * first_dy;
-  first_dx_third_dy = first_dx * third_dy;
-  second_squared_distance = second_dx * second_dx + second_dy * second_dy;
-
-  first_dx_second_dy = first_dx * second_dy;
-  second_dx_first_dy = second_dx * first_dy;
-  third_squared_distance = third_dx * third_dx + third_dy * third_dy;
-
-  result = first_squared_distance * (second_dx_third_dy - third_dx_second_dy) +
-           second_squared_distance * (third_dx_first_dy - first_dx_third_dy) +
-           third_squared_distance * (first_dx_second_dy - second_dx_first_dy);
-
-  upper_bound = (fabs(second_dx_third_dy) + fabs(third_dx_second_dy)) *
-                    first_squared_distance +
-                (fabs(third_dx_first_dy) + fabs(first_dx_third_dy)) *
-                    second_squared_distance +
-                (fabs(first_dx_second_dy) + fabs(second_dx_first_dy)) *
-                    third_squared_distance;
+  double first_dx = first_x - fourth_x;
+  double second_dx = second_x - fourth_x;
+  double third_dx = third_x - fourth_x;
+  double first_dy = first_y - fourth_y;
+  double second_dy = second_y - fourth_y;
+  double third_dy = third_y - fourth_y;
+  double second_dx_third_dy = second_dx * third_dy;
+  double third_dx_second_dy = third_dx * second_dy;
+  double first_squared_distance = first_dx * first_dx + first_dy * first_dy;
+  double third_dx_first_dy = third_dx * first_dy;
+  double first_dx_third_dy = first_dx * third_dy;
+  double second_squared_distance =
+      second_dx * second_dx + second_dy * second_dy;
+  double first_dx_second_dy = first_dx * second_dy;
+  double second_dx_first_dy = second_dx * first_dy;
+  double third_squared_distance = third_dx * third_dx + third_dy * third_dy;
+  double result =
+      first_squared_distance * (second_dx_third_dy - third_dx_second_dy) +
+      second_squared_distance * (third_dx_first_dy - first_dx_third_dy) +
+      third_squared_distance * (first_dx_second_dy - second_dx_first_dy);
+  double upper_bound = (fabs(second_dx_third_dy) + fabs(third_dx_second_dy)) *
+                           first_squared_distance +
+                       (fabs(third_dx_first_dy) + fabs(first_dx_third_dy)) *
+                           second_squared_distance +
+                       (fabs(first_dx_second_dy) + fabs(second_dx_first_dy)) *
+                           third_squared_distance;
   static const double upper_bound_coefficient =
       (10.0 + 96.0 * EPSILON) * EPSILON;
-  threshold = upper_bound_coefficient * upper_bound;
+  double threshold = upper_bound_coefficient * upper_bound;
   if ((result > threshold) || (-result > threshold)) return result;
   return adaptive_incircle_determinant_estimation(
       first_x, first_y, second_x, second_y, third_x, third_y, fourth_x,
