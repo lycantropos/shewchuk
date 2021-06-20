@@ -6,6 +6,17 @@ shewchuk
 [![](https://img.shields.io/github/license/lycantropos/shewchuk.svg)](https://github.com/lycantropos/shewchuk/blob/master/LICENSE "License")
 [![](https://badge.fury.io/py/shewchuk.svg)](https://badge.fury.io/py/shewchuk "PyPI")
 
+Summary
+-------
+
+`shewchuk` is a collection of computational geometry utilities
+for robust processing of geometries with floating point coordinates.
+
+Named after and based on [the work](https://www.cs.cmu.edu/~quake/robust.html)
+of [Jonathan Richard Shewchuk](https://en.wikipedia.org/wiki/Jonathan_Shewchuk).
+
+---
+
 In what follows `python` is an alias for `python3.5` or `pypy3.5`
 or any later version (`python3.6`, `pypy3.6` and so on).
 
