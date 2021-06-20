@@ -537,10 +537,9 @@ static size_t add_extras(
                   dx_head_dy_tail_head, dx_head_dy_tail_tail,
                   &second_buffer_4[3], &second_buffer_4[2], &second_buffer_4[1],
                   &second_buffer_4[0]);
-      second_third_cross_product_bodies_size =
-          add_components_eliminating_zeros(
-              4, first_buffer_4, 4, second_buffer_4,
-              second_third_cross_product_bodies);
+      second_third_cross_product_bodies_size = add_components_eliminating_zeros(
+          4, first_buffer_4, 4, second_buffer_4,
+          second_third_cross_product_bodies);
       two_multiply(second_dx_tail, third_dy_tail, &dx_tail_dy_head_head,
                    &dx_tail_dy_head_tail);
       two_multiply(third_dx_tail, second_dy_tail, &dx_head_dy_tail_head,
