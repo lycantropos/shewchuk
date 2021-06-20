@@ -581,7 +581,9 @@ except ImportError:
                                  second_dx_first_dy_head)
 
 
-    def _scale_by_squared_length(components, dx, dy):
+    def _scale_by_squared_length(components: _Sequence[float],
+                                 dx: float,
+                                 dy: float) -> _Sequence[float]:
         dx_components = _scale_components_eliminating_zeros(components, dx)
         dx_squared_components = _scale_components_eliminating_zeros(
                 dx_components, dx)
