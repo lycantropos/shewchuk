@@ -4,7 +4,8 @@ from hypothesis import given
 
 from shewchuk import (orientation,
                       vectors_cross_product)
-from tests.utils import to_sign
+from tests.utils import (exact_orientation,
+                         to_sign)
 from . import strategies
 
 
@@ -48,3 +49,5 @@ def test_alternatives(sextuplet: Tuple[float, float, float, float, float,
     assert result == to_sign(vectors_cross_product(start_x, start_y, end_x,
                                                    end_y, start_x, start_y,
                                                    point_x, point_y))
+    assert result == exact_orientation(start_x, start_y, end_x, end_y, point_x,
+                                       point_y)

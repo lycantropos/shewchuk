@@ -1,4 +1,5 @@
 import platform
+from fractions import Fraction
 from functools import partial
 from typing import (Callable,
                     Iterable,
@@ -38,3 +39,15 @@ skip_reference_counter_test = pytest.mark.skipif(
 
 def to_sign(value: Domain) -> int:
     return 1 if value > 0 else (0 if not value else -1)
+
+
+def exact_orientation(start_x: float,
+                      start_y: float,
+                      end_x: float,
+                      end_y: float,
+                      point_x: float,
+                      point_y: float) -> int:
+    return to_sign((Fraction(end_x) - Fraction(start_x))
+                   * (Fraction(point_y) - Fraction(start_y))
+                   - (Fraction(end_y) - Fraction(start_y))
+                   * (Fraction(point_x) - Fraction(start_x)))
