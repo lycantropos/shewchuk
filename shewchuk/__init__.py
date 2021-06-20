@@ -357,15 +357,15 @@ except ImportError:
         components_iterator = iter(components)
         scalar_low, scalar_high = _split(scalar)
         tail, accumulator = _two_multiply_presplit(next(components_iterator),
-                                                   scalar, scalar_high,
-                                                   scalar_low)
+                                                   scalar, scalar_low,
+                                                   scalar_high)
         result = []
         if tail:
             result.append(tail)
         for component in components_iterator:
             product_tail, product = _two_multiply_presplit(component, scalar,
-                                                           scalar_high,
-                                                           scalar_low)
+                                                           scalar_low,
+                                                           scalar_high)
             tail, interim = _two_add(accumulator, product_tail)
             if tail:
                 result.append(tail)
@@ -504,8 +504,8 @@ except ImportError:
 
     def _two_multiply_presplit(left: float,
                                right: float,
-                               right_high: float,
-                               right_low: float) -> _Tuple[float, float]:
+                               right_low: float,
+                               right_high: float) -> _Tuple[float, float]:
         head = left * right
         left_low, left_high = _split(left)
         first_error = head - left_high * right_high
