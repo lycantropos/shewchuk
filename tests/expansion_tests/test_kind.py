@@ -4,7 +4,8 @@ from hypothesis import given
 
 from shewchuk import (kind,
                       vectors_dot_product)
-from tests.utils import to_sign
+from tests.utils import (exact_kind,
+                         to_sign)
 from . import strategies
 
 
@@ -68,3 +69,7 @@ def test_alternatives(sextuplet: Tuple[float, float, float, float, float,
             vertex_x, vertex_y, first_ray_second_ray_point_x,
             first_ray_second_ray_point_y, vertex_x, vertex_y,
             second_ray_point_x, second_ray_point_y))
+    assert result == exact_kind(vertex_x, vertex_y,
+                                first_ray_second_ray_point_x,
+                                first_ray_second_ray_point_y,
+                                second_ray_point_x, second_ray_point_y)
