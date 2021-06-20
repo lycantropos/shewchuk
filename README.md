@@ -48,6 +48,33 @@ Install
 python setup.py install
 ```
 
+Usage
+-----
+```python
+>>> from shewchuk import incircle_test
+>>> incircle_test(0, 0, 2, 0, 0, 2, 3, 3) == -1
+True
+>>> incircle_test(0, 0, 2, 0, 2, 2, 0, 2) == 0
+True
+>>> incircle_test(0, 0, 2, 0, 0, 2, 1, 1) == 1
+True
+>>> from shewchuk import kind
+>>> kind(1, 0, 0, 0, 2, 0) == -1
+True
+>>> kind(0, 0, 0, 1, 1, 0) == 0
+True
+>>> kind(0, 0, 1, 0, 2, 0) == 1
+True
+>>> from shewchuk import orientation
+>>> orientation(0, 0, 0, 1, 1, 0) == -1
+True
+>>> orientation(0, 0, 1, 0, 2, 0) == 0
+True
+>>> orientation(0, 0, 1, 0, 0, 1) == 1
+True
+
+```
+
 Development
 -----------
 
