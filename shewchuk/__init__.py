@@ -864,10 +864,9 @@ except ImportError:
                                 if (first_dx_tail or first_dy_tail
                                     or second_dx_tail or second_dy_tail)
                                 else None)
-        final_components = first_buffer
-        final_components = _add_extras(final_components, first_dx,
-                                       first_dx_tail, first_dy, first_dy_tail,
-                                       second_dx, second_dx_tail, second_dy,
+        final_components = _add_extras(first_buffer, first_dx, first_dx_tail,
+                                       first_dy, first_dy_tail, second_dx,
+                                       second_dx_tail, second_dy,
                                        second_dy_tail, third_dx, third_dx_tail,
                                        third_dy, third_dy_tail,
                                        second_third_cross_product,
