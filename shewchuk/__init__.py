@@ -491,18 +491,6 @@ except ImportError:
         return tail, head
 
 
-    def _two_subtract(left: float, right: float) -> _Tuple[float, float]:
-        return _two_add(left, -right)
-
-
-    def _two_one_subtract(left_tail: float,
-                          left_head: float,
-                          right: float) -> _Tuple[float, float, float]:
-        second_tail, mid_head = _two_subtract(left_tail, right)
-        first_tail, head = _two_add(left_head, mid_head)
-        return second_tail, first_tail, head
-
-
     def _two_multiply(left: float, right: float) -> _Tuple[float, float]:
         head = left * right
         left_low, left_high = _split(left)
@@ -527,14 +515,6 @@ except ImportError:
         return tail, head
 
 
-    def _two_subtract_tail(left: float, right: float, head: float) -> float:
-        right_virtual = left - head
-        left_virtual = head + right_virtual
-        right_tail = right_virtual - right
-        left_tail = left - left_virtual
-        return left_tail + right_tail
-
-
     def _two_one_add(left_tail: float,
                      left_head: float,
                      right: float) -> _Tuple[float, float, float]:
@@ -543,11 +523,31 @@ except ImportError:
         return second_tail, first_tail, head
 
 
-    def _two_two_add(left_head: float,
-                     left_tail: float,
-                     right_head: float,
-                     right_tail: float
-                     ) -> _Tuple[float, float, float, float]:
+    def _two_one_subtract(left_tail: float,
+                          left_head: float,
+                          right: float) -> _Tuple[float, float, float]:
+        second_tail, mid_head = _two_subtract(left_tail, right)
+        first_tail, head = _two_add(left_head, mid_head)
+        return second_tail, first_tail, head
+
+
+    def _two_subtract(left: float, right: float) -> _Tuple[float, float]:
+        head = left - right
+        return _two_subtract_tail(left, right, head), head
+
+
+    def _two_subtract_tail(left: float, right: float, head: float) -> float:
+        right_virtual = left - head
+        left_virtual = head + right_virtual
+        right_tail = right_virtual - right
+        left_tail = left - left_virtual
+        return left_tail + right_tail
+
+
+    def _two_two_add(left_tail: float,
+                     left_head: float,
+                     right_tail: float,
+                     right_head: float) -> _Tuple[float, float, float, float]:
         third_tail, mid_tail, mid_head = _two_one_add(left_tail, left_head,
                                                       right_tail)
         second_tail, first_tail, head = _two_one_add(mid_tail, mid_head,
@@ -555,10 +555,10 @@ except ImportError:
         return third_tail, second_tail, first_tail, head
 
 
-    def _two_two_subtract(left_head: float,
-                          left_tail: float,
-                          right_head: float,
-                          right_tail: float
+    def _two_two_subtract(left_tail: float,
+                          left_head: float,
+                          right_tail: float,
+                          right_head: float
                           ) -> _Tuple[float, float, float, float]:
         third_tail, mid_tail, mid_head = _two_one_subtract(
                 left_tail, left_head, right_tail)
@@ -575,9 +575,10 @@ except ImportError:
                 first_dx, second_dy)
         second_dx_first_dy_tail, second_dx_first_dy_head = _two_multiply(
                 second_dx, first_dy)
-        return _two_two_subtract(
-                first_dx_second_dy_head, first_dx_second_dy_tail,
-                second_dx_first_dy_head, second_dx_first_dy_tail)
+        return _two_two_subtract(first_dx_second_dy_tail,
+                                 first_dx_second_dy_head,
+                                 second_dx_first_dy_tail,
+                                 second_dx_first_dy_head)
 
 
     def _scale_by_squared_length(components, dx, dy):
@@ -595,8 +596,8 @@ except ImportError:
                         dy: float) -> _Tuple[float, float, float, float]:
         dx_squared_tail, dx_squared_head = _square(dx)
         dy_squared_tail, dy_squared_head = _square(dy)
-        return _two_two_add(dx_squared_head, dx_squared_tail, dy_squared_head,
-                            dy_squared_tail)
+        return _two_two_add(dx_squared_tail, dx_squared_head, dy_squared_tail,
+                            dy_squared_head)
 
 
     def _add_extras(final_components: _Sequence[float],
@@ -668,17 +669,18 @@ except ImportError:
                         second_dx_tail, third_dy)
                 dx_head_dy_tail_tail, dx_head_dy_tail_head = _two_multiply(
                         second_dx, third_dy_tail)
-                first_buffer_4 = _two_two_add(dx_tail_dy_head_head,
-                                              dx_tail_dy_head_tail,
-                                              dx_head_dy_tail_head,
-                                              dx_head_dy_tail_tail)
+                first_buffer_4 = _two_two_add(dx_tail_dy_head_tail,
+                                              dx_tail_dy_head_head,
+                                              dx_head_dy_tail_tail,
+                                              dx_head_dy_tail_head)
                 dx_tail_dy_head_tail, dx_tail_dy_head_head = _two_multiply(
                         third_dx_tail, -second_dy)
                 dx_head_dy_tail_tail, dx_head_dy_tail_head = _two_multiply(
                         third_dx, -second_dy_tail)
-                second_buffer_4 = _two_two_add(
-                        dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                        dx_head_dy_tail_head, dx_head_dy_tail_tail)
+                second_buffer_4 = _two_two_add(dx_tail_dy_head_tail,
+                                               dx_tail_dy_head_head,
+                                               dx_head_dy_tail_tail,
+                                               dx_head_dy_tail_head)
                 second_third_cross_product_bodies = (
                     _add_components_eliminating_zeros(first_buffer_4,
                                                       second_buffer_4))
@@ -687,8 +689,8 @@ except ImportError:
                 dx_head_dy_tail_tail, dx_head_dy_tail_head = _two_multiply(
                         third_dx_tail, second_dy_tail)
                 second_third_cross_product_tails = _two_two_subtract(
-                        dx_tail_dy_head_head, dx_tail_dy_head_tail,
-                        dx_head_dy_tail_head, dx_head_dy_tail_tail)
+                        dx_tail_dy_head_tail, dx_tail_dy_head_head,
+                        dx_head_dy_tail_tail, dx_head_dy_tail_head)
             else:
                 second_third_cross_product_bodies = [0.0]
                 second_third_cross_product_tails = [0.0]
@@ -999,8 +1001,8 @@ except ImportError:
         subtrahend_y = second_end_y - second_start_y
         minuend_tail, minuend = _two_multiply(minuend_x, subtrahend_y)
         subtrahend_tail, subtrahend = _two_multiply(minuend_y, subtrahend_x)
-        first_components = _two_two_subtract(minuend, minuend_tail, subtrahend,
-                                             subtrahend_tail)
+        first_components = _two_two_subtract(minuend_tail, minuend,
+                                             subtrahend_tail, subtrahend)
         result = sum(first_components)
         threshold = first_upper_bound_coefficient * upper_bound
         if (result >= threshold) or (-result >= threshold):
@@ -1028,27 +1030,30 @@ except ImportError:
                 minuend_x_tail, subtrahend_y)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
                 minuend_y_tail, subtrahend_x)
-        extra_components = _two_two_subtract(
-                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
-                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        extra_components = _two_two_subtract(minuend_x_subtrahend_y_tail,
+                                             minuend_x_subtrahend_y,
+                                             minuend_y_subtrahend_x_tail,
+                                             minuend_y_subtrahend_x)
         second_components = _add_components_eliminating_zeros(
                 first_components, extra_components)
         minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
                 minuend_x, subtrahend_y_tail)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
                 minuend_y, subtrahend_x_tail)
-        extra_components = _two_two_subtract(
-                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
-                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        extra_components = _two_two_subtract(minuend_x_subtrahend_y_tail,
+                                             minuend_x_subtrahend_y,
+                                             minuend_y_subtrahend_x_tail,
+                                             minuend_y_subtrahend_x)
         third_components = _add_components_eliminating_zeros(
                 second_components, extra_components)
         minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
                 minuend_x_tail, subtrahend_y_tail)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
                 minuend_y_tail, subtrahend_x_tail)
-        extra_components = _two_two_subtract(
-                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
-                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        extra_components = _two_two_subtract(minuend_x_subtrahend_y_tail,
+                                             minuend_x_subtrahend_y,
+                                             minuend_y_subtrahend_x_tail,
+                                             minuend_y_subtrahend_x)
         return _add_components_eliminating_zeros(third_components,
                                                  extra_components)[-1]
 
@@ -1115,8 +1120,8 @@ except ImportError:
         subtrahend_y = second_end_y - second_start_y
         minuend_tail, minuend = _two_multiply(minuend_x, subtrahend_y)
         subtrahend_tail, subtrahend = _two_multiply(minuend_y, subtrahend_x)
-        first_components = _two_two_subtract(minuend, minuend_tail, subtrahend,
-                                             subtrahend_tail)
+        first_components = _two_two_subtract(minuend_tail, minuend,
+                                             subtrahend_tail, subtrahend)
         estimation = sum(first_components)
         threshold = first_upper_bound_coefficient * upper_bound
         if (estimation >= threshold) or (-estimation >= threshold):
@@ -1145,26 +1150,29 @@ except ImportError:
                 minuend_x_tail, subtrahend_y)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
                 minuend_y_tail, subtrahend_x)
-        extra_components = _two_two_subtract(
-                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
-                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        extra_components = _two_two_subtract(minuend_x_subtrahend_y_tail,
+                                             minuend_x_subtrahend_y,
+                                             minuend_y_subtrahend_x_tail,
+                                             minuend_y_subtrahend_x)
         second_components = _add_components_eliminating_zeros(
                 first_components, extra_components)
         minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
                 minuend_x, subtrahend_y_tail)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
                 minuend_y, subtrahend_x_tail)
-        extra_components = _two_two_subtract(
-                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
-                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        extra_components = _two_two_subtract(minuend_x_subtrahend_y_tail,
+                                             minuend_x_subtrahend_y,
+                                             minuend_y_subtrahend_x_tail,
+                                             minuend_y_subtrahend_x)
         third_components = _add_components_eliminating_zeros(
                 second_components, extra_components)
         minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
                 minuend_x_tail, subtrahend_y_tail)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
                 minuend_y_tail, subtrahend_x_tail)
-        extra_components = _two_two_subtract(
-                minuend_x_subtrahend_y, minuend_x_subtrahend_y_tail,
-                minuend_y_subtrahend_x, minuend_y_subtrahend_x_tail)
+        extra_components = _two_two_subtract(minuend_x_subtrahend_y_tail,
+                                             minuend_x_subtrahend_y,
+                                             minuend_y_subtrahend_x_tail,
+                                             minuend_y_subtrahend_x)
         return _add_components_eliminating_zeros(third_components,
                                                  extra_components)
