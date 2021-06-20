@@ -142,6 +142,24 @@ except ImportError:
                      else NotImplemented))
 
 
+    def incircle_test(first_x: float,
+                      first_y: float,
+                      second_x: float,
+                      second_y: float,
+                      third_x: float,
+                      third_y: float,
+                      fourth_x: float,
+                      fourth_y: float) -> int:
+        """
+        Computes location of point relative to a circle formed by three others
+        given their coordinates.
+        """
+        return _to_sign(_incircle_determinant_estimation(first_x, first_y,
+                                                         second_x, second_y,
+                                                         third_x, third_y,
+                                                         fourth_x, fourth_y))
+
+
     def kind(vertex_x: float,
              vertex_y: float,
              first_ray_point_x: float,
@@ -370,6 +388,15 @@ except ImportError:
         return low, high
 
 
+    def _square(value: float) -> _Tuple[float, float]:
+        head = value * value
+        value_low, value_high = _split(value)
+        first_error = head - value_high * value_high
+        second_error = first_error - (value_high + value_high) * value_low
+        tail = value_low * value_low - second_error
+        return tail, head
+
+
     def _subtract_components_eliminating_zeros(minuend: _Sequence[float],
                                                subtrahend: _Sequence[float]
                                                ) -> _Sequence[float]:
@@ -508,6 +535,26 @@ except ImportError:
         return left_tail + right_tail
 
 
+    def _two_one_add(left_head: float,
+                     left_tail: float,
+                     right: float) -> _Tuple[float, float, float]:
+        second_tail, mid_head = _two_add(left_tail, right)
+        first_tail, head = _two_add(left_head, mid_head)
+        return second_tail, first_tail, head
+
+
+    def _two_two_add(left_head: float,
+                     left_tail: float,
+                     right_head: float,
+                     right_tail: float
+                     ) -> _Tuple[float, float, float, float]:
+        third_tail, mid_tail, mid_head = _two_one_subtract(
+                left_tail, left_head, right_tail)
+        second_tail, first_tail, head = _two_one_subtract(mid_tail, mid_head,
+                                                          right_head)
+        return third_tail, second_tail, first_tail, head
+
+
     def _two_two_subtract(left_head: float,
                           left_tail: float,
                           right_head: float,
@@ -518,6 +565,379 @@ except ImportError:
         second_tail, first_tail, head = _two_one_subtract(mid_tail, mid_head,
                                                           right_head)
         return third_tail, second_tail, first_tail, head
+
+
+    def _cross_product(first_dx: float,
+                       first_dy: float,
+                       second_dx: float,
+                       second_dy: float) -> _Tuple[float, float, float, float]:
+        first_dx_second_dy_head, first_dx_second_dy_tail = _two_multiply(
+                first_dx, second_dy)
+        second_dx_first_dy_head, second_dx_first_dy_tail = _two_multiply(
+                second_dx, first_dy)
+        return _two_two_subtract(
+                first_dx_second_dy_head, first_dx_second_dy_tail,
+                second_dx_first_dy_head, second_dx_first_dy_tail)
+
+
+    def _scale_by_squared_length(components, dx, dy):
+        dx_components = _scale_components_eliminating_zeros(components, dx)
+        dx_squared_components = _scale_components_eliminating_zeros(
+                dx_components, dx)
+        dy_components = _scale_components_eliminating_zeros(components, dy)
+        dy_squared_components = _scale_components_eliminating_zeros(
+                dy_components, dy)
+        return _add_components_eliminating_zeros(dx_squared_components,
+                                                 dy_squared_components)
+
+
+    def _squared_length(dx: float,
+                        dy: float) -> _Tuple[float, float, float, float]:
+        dx_squared_tail, dx_squared_head = _square(dx)
+        dy_squared_tail, dy_squared_head = _square(dy)
+        return _two_two_add(dx_squared_head, dx_squared_tail, dy_squared_head,
+                            dy_squared_tail)
+
+
+    def _add_extras(final_components: _Sequence[float],
+                    first_dx: float,
+                    first_dx_tail: float,
+                    first_dy: float,
+                    first_dy_tail: float,
+                    second_dx: float,
+                    second_dx_tail: float,
+                    second_dy: float,
+                    second_dy_tail: float,
+                    third_dx: float,
+                    third_dx_tail: float,
+                    third_dy: float,
+                    third_dy_tail: float,
+                    second_third_cross_product
+                    : _Tuple[float, float, float, float],
+                    second_squared_length: _Tuple[float, float, float, float],
+                    third_squared_length: _Tuple[float, float, float, float]):
+        if first_dx_tail:
+            first_dx_tail_second_third_cross_product = (
+                _scale_components_eliminating_zeros(
+                        second_third_cross_product, first_dx_tail))
+            first_buffer_16 = _scale_components_eliminating_zeros(
+                    first_dx_tail_second_third_cross_product, 2.0 * first_dx)
+            first_dx_tail_third_squared_length = (
+                _scale_components_eliminating_zeros(third_squared_length,
+                                                    first_dx_tail))
+            second_buffer_16 = _scale_components_eliminating_zeros(
+                    first_dx_tail_third_squared_length, second_dy)
+            first_dx_tail_second_squared_length = (
+                _scale_components_eliminating_zeros(second_squared_length,
+                                                    first_dx_tail))
+            third_buffer_16 = _scale_components_eliminating_zeros(
+                    first_dx_tail_second_squared_length, -third_dy)
+            first_buffer_32 = _add_components_eliminating_zeros(
+                    first_buffer_16, second_buffer_16)
+            buffer_48 = _add_components_eliminating_zeros(third_buffer_16,
+                                                          first_buffer_32)
+            final_components = _add_components_eliminating_zeros(
+                    final_components, buffer_48)
+            first_dy_tail_second_third_cross_product = None
+        if first_dy_tail:
+            first_dy_tail_second_third_cross_product = (
+                _scale_components_eliminating_zeros(second_third_cross_product,
+                                                    first_dy_tail))
+            first_buffer_16 = _scale_components_eliminating_zeros(
+                    first_dy_tail_second_third_cross_product, 2.0 * first_dy)
+            first_dy_tail_second_squared_length = (
+                _scale_components_eliminating_zeros(second_squared_length,
+                                                    first_dy_tail))
+            second_buffer_16 = _scale_components_eliminating_zeros(
+                    first_dy_tail_second_squared_length, third_dx)
+            first_dy_tail_third_squared_length = (
+                _scale_components_eliminating_zeros(third_squared_length,
+                                                    first_dy_tail))
+            third_buffer_16 = _scale_components_eliminating_zeros(
+                    first_dy_tail_third_squared_length, -second_dx)
+            first_buffer_32 = _add_components_eliminating_zeros(
+                    first_buffer_16, second_buffer_16)
+            buffer_48 = _add_components_eliminating_zeros(
+                    third_buffer_16, first_buffer_32)
+            final_components = _add_components_eliminating_zeros(
+                    final_components, buffer_48)
+        if first_dx_tail or first_dy_tail:
+            if (second_dx_tail or second_dy_tail or third_dx_tail
+                    or third_dy_tail):
+                dx_tail_dy_head_tail, dx_tail_dy_head_head = _two_multiply(
+                        second_dx_tail, third_dy)
+                dx_head_dy_tail_tail, dx_head_dy_tail_head = _two_multiply(
+                        second_dx, third_dy_tail)
+                first_buffer_4 = _two_two_add(dx_tail_dy_head_head,
+                                              dx_tail_dy_head_tail,
+                                              dx_head_dy_tail_head,
+                                              dx_head_dy_tail_tail)
+                dx_tail_dy_head_tail, dx_tail_dy_head_head = _two_multiply(
+                        third_dx_tail, -second_dy)
+                dx_head_dy_tail_tail, dx_head_dy_tail_head = _two_multiply(
+                        third_dx, -second_dy_tail)
+                second_buffer_4 = _two_two_add(
+                        dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                        dx_head_dy_tail_head, dx_head_dy_tail_tail)
+                second_third_cross_product_bodies = (
+                    _add_components_eliminating_zeros(first_buffer_4,
+                                                      second_buffer_4))
+                dx_tail_dy_head_head, dx_tail_dy_head_tail = _two_multiply(
+                        second_dx_tail, third_dy_tail)
+                dx_head_dy_tail_head, dx_head_dy_tail_tail = _two_multiply(
+                        third_dx_tail, second_dy_tail)
+                second_third_cross_product_tails = _two_two_subtract(
+                        dx_tail_dy_head_head, dx_tail_dy_head_tail,
+                        dx_head_dy_tail_head, dx_head_dy_tail_tail)
+            else:
+                second_third_cross_product_bodies = [0.0]
+                second_third_cross_product_tails = [0.0]
+            if first_dx_tail:
+                first_buffer_16 = _scale_components_eliminating_zeros(
+                        first_dx_tail_second_third_cross_product,
+                        first_dx_tail)
+                first_dx_tail_second_third_cross_product_bodies = (
+                    _scale_components_eliminating_zeros(
+                            second_third_cross_product_bodies,
+                            first_dx_tail))
+                first_buffer_32 = _scale_components_eliminating_zeros(
+                        first_dx_tail_second_third_cross_product_bodies,
+                        2.0 * first_dx)
+                buffer_48 = _add_components_eliminating_zeros(
+                        first_buffer_16, first_buffer_32)
+                final_components = _add_components_eliminating_zeros(
+                        buffer_48, final_components)
+                if second_dy_tail:
+                    buffer_8 = _scale_components_eliminating_zeros(
+                            third_squared_length, first_dx_tail)
+                    first_buffer_16 = _scale_components_eliminating_zeros(
+                            buffer_8, second_dy_tail)
+                    final_components = _add_components_eliminating_zeros(
+                            final_components, first_buffer_16)
+                if third_dy_tail:
+                    buffer_8 = _scale_components_eliminating_zeros(
+                            second_squared_length, -first_dx_tail)
+                    first_buffer_16 = _scale_components_eliminating_zeros(
+                            buffer_8, third_dy_tail)
+                    final_components = _add_components_eliminating_zeros(
+                            final_components, first_buffer_16)
+                    first_buffer_32 = _scale_components_eliminating_zeros(
+                            first_dx_tail_second_third_cross_product_bodies,
+                            first_dx_tail)
+                    first_dx_tail_second_third_cross_product_tails = (
+                        _scale_components_eliminating_zeros(
+                                second_third_cross_product_tails,
+                                first_dx_tail))
+                    first_buffer_16 = _scale_components_eliminating_zeros(
+                            first_dx_tail_second_third_cross_product_tails,
+                            2.0 * first_dx)
+                    second_buffer_16 = _scale_components_eliminating_zeros(
+                            first_dx_tail_second_third_cross_product_tails,
+                            first_dx_tail)
+                    second_buffer_32 = _add_components_eliminating_zeros(
+                            first_buffer_16, second_buffer_16)
+                    buffer_64 = _add_components_eliminating_zeros(
+                            first_buffer_32, second_buffer_32)
+                    final_components = _add_components_eliminating_zeros(
+                            final_components, buffer_64)
+            if first_dy_tail:
+                first_buffer_16 = _scale_components_eliminating_zeros(
+                        first_dy_tail_second_third_cross_product,
+                        first_dy_tail)
+                first_dy_tail_second_third_cross_product_bodies = (
+                    _scale_components_eliminating_zeros(
+                            second_third_cross_product_bodies,
+                            first_dy_tail))
+                first_buffer_32 = _scale_components_eliminating_zeros(
+                        first_dy_tail_second_third_cross_product_bodies,
+                        2.0 * first_dy)
+                buffer_48 = _add_components_eliminating_zeros(
+                        first_buffer_16, first_buffer_32)
+                final_components = _add_components_eliminating_zeros(
+                        final_components, buffer_48)
+                first_buffer_32 = _scale_components_eliminating_zeros(
+                        first_dy_tail_second_third_cross_product_bodies,
+                        first_dy_tail)
+                first_dy_tail_second_third_cross_product_tails = (
+                    _scale_components_eliminating_zeros(
+                            second_third_cross_product_tails, first_dy_tail))
+                first_buffer_16 = _scale_components_eliminating_zeros(
+                        first_dy_tail_second_third_cross_product_tails,
+                        2.0 * first_dy)
+                second_buffer_16 = _scale_components_eliminating_zeros(
+                        first_dy_tail_second_third_cross_product_tails,
+                        first_dy_tail)
+                second_buffer_32 = _add_components_eliminating_zeros(
+                        first_buffer_16, second_buffer_16)
+                buffer_64 = _add_components_eliminating_zeros(
+                        first_buffer_32, second_buffer_32)
+                final_components = _add_components_eliminating_zeros(
+                        final_components, buffer_64)
+        return final_components
+
+
+    def _adaptive_incircle_determinant_estimation(
+            first_x: float,
+            first_y: float,
+            second_x: float,
+            second_y: float,
+            third_x: float,
+            third_y: float,
+            fourth_x: float,
+            fourth_y: float,
+            upper_bound: float,
+            second_upper_bound_coefficient: float
+            = (44.0 + 576.0 * _EPSILON) * _EPSILON * _EPSILON,
+            result_coefficient: float = (3.0 + 8.0 * _EPSILON) * _EPSILON
+    ) -> float:
+        first_dx = first_x - fourth_x
+        second_dx = second_x - fourth_x
+        third_dx = third_x - fourth_x
+        first_dy = first_y - fourth_y
+        second_dy = second_y - fourth_y
+        third_dy = third_y - fourth_y
+        first_second_cross_product = _cross_product(first_dx, first_dy,
+                                                    second_dx, second_dy)
+        second_third_cross_product = _cross_product(second_dx, second_dy,
+                                                    third_dx, third_dy)
+        third_first_cross_product = _cross_product(third_dx, third_dy,
+                                                   first_dx, first_dy)
+        first_components = _scale_by_squared_length(second_third_cross_product,
+                                                    first_dx, first_dy)
+        second_components = _scale_by_squared_length(third_first_cross_product,
+                                                     second_dx, second_dy)
+        third_components = _scale_by_squared_length(first_second_cross_product,
+                                                    third_dx, third_dy)
+        first_second_sum_components = _add_components_eliminating_zeros(
+                first_components, second_components)
+        first_buffer = _add_components_eliminating_zeros(
+                first_second_sum_components, third_components)
+        result = sum(first_buffer)
+        first_upper_bound_coefficient = (4.0 + 48.0 * _EPSILON) * _EPSILON
+        threshold = first_upper_bound_coefficient * upper_bound
+        if (result >= threshold) or (-result >= threshold): return result
+        first_dx_tail = _two_subtract_tail(first_x, fourth_x, first_dx)
+        first_dy_tail = _two_subtract_tail(first_y, fourth_y, first_dy)
+        second_dx_tail = _two_subtract_tail(second_x, fourth_x, second_dx)
+        second_dy_tail = _two_subtract_tail(second_y, fourth_y, second_dy)
+        third_dx_tail = _two_subtract_tail(third_x, fourth_x, third_dx)
+        third_dy_tail = _two_subtract_tail(third_y, fourth_y, third_dy)
+        if (not first_dx_tail and not second_dx_tail and not third_dx_tail
+                and not first_dy_tail and not second_dy_tail
+                and not third_dy_tail):
+            return result
+        threshold = (second_upper_bound_coefficient * upper_bound
+                     + result_coefficient * abs(result))
+        result += (((first_dx * first_dx + first_dy * first_dy)
+                    * ((second_dx * third_dy_tail + third_dy * second_dx_tail)
+                       - (second_dy * third_dx_tail
+                          + third_dx * second_dy_tail))
+                    + 2.0 * (first_dx * first_dx_tail
+                             + first_dy * first_dy_tail)
+                    * (second_dx * third_dy - second_dy * third_dx))
+                   + ((second_dx * second_dx + second_dy * second_dy)
+                      * ((third_dx * first_dy_tail + first_dy * third_dx_tail)
+                         - (third_dy * first_dx_tail
+                            + first_dx * third_dy_tail))
+                      + 2.0 * (second_dx * second_dx_tail
+                               + second_dy * second_dy_tail)
+                      * (third_dx * first_dy - third_dy * first_dx))
+                   + ((third_dx * third_dx + third_dy * third_dy)
+                      * ((first_dx * second_dy_tail
+                          + second_dy * first_dx_tail)
+                         - (first_dy * second_dx_tail
+                            + second_dx * first_dy_tail))
+                      + 2.0 * (third_dx * third_dx_tail
+                               + third_dy * third_dy_tail)
+                      * (first_dx * second_dy - first_dy * second_dx)))
+        if (result >= threshold) or (-result >= threshold):
+            return result
+        first_squared_length = (_squared_length(first_dx, first_dy)
+                                if (second_dx_tail or second_dy_tail
+                                    or third_dx_tail or third_dy_tail)
+                                else None)
+        second_squared_length = (_squared_length(second_dx, second_dy)
+                                 if (third_dx_tail or third_dy_tail
+                                     or first_dx_tail or first_dy_tail)
+                                 else None)
+        third_squared_length = (_squared_length(third_dx, third_dy)
+                                if (first_dx_tail or first_dy_tail
+                                    or second_dx_tail or second_dy_tail)
+                                else None)
+        final_components = first_buffer
+        final_components = _add_extras(final_components, first_dx,
+                                       first_dx_tail, first_dy, first_dy_tail,
+                                       second_dx, second_dx_tail, second_dy,
+                                       second_dy_tail, third_dx, third_dx_tail,
+                                       third_dy, third_dy_tail,
+                                       second_third_cross_product,
+                                       second_squared_length,
+                                       third_squared_length)
+        final_components = _add_extras(final_components, second_dx,
+                                       second_dx_tail, second_dy,
+                                       second_dy_tail, third_dx, third_dx_tail,
+                                       third_dy, third_dy_tail, first_dx,
+                                       first_dx_tail, first_dy, first_dy_tail,
+                                       third_first_cross_product,
+                                       third_squared_length,
+                                       first_squared_length)
+        final_components = _add_extras(final_components, third_dx,
+                                       third_dx_tail, third_dy, third_dy_tail,
+                                       first_dx, first_dx_tail, first_dy,
+                                       first_dy_tail, second_dx,
+                                       second_dx_tail, second_dy,
+                                       second_dy_tail,
+                                       first_second_cross_product,
+                                       first_squared_length,
+                                       second_squared_length)
+        return final_components[-1]
+
+
+    def _incircle_determinant_estimation(first_x: float,
+                                         first_y: float,
+                                         second_x: float,
+                                         second_y: float,
+                                         third_x: float,
+                                         third_y: float,
+                                         fourth_x: float,
+                                         fourth_y: float,
+                                         upper_bound_coefficient: float
+                                         = (10.0 + 96.0 * _EPSILON) * _EPSILON
+                                         ) -> float:
+        first_dx = first_x - fourth_x
+        second_dx = second_x - fourth_x
+        third_dx = third_x - fourth_x
+        first_dy = first_y - fourth_y
+        second_dy = second_y - fourth_y
+        third_dy = third_y - fourth_y
+        second_dx_third_dy = second_dx * third_dy
+        third_dx_second_dy = third_dx * second_dy
+        first_squared_distance = first_dx * first_dx + first_dy * first_dy
+        third_dx_first_dy = third_dx * first_dy
+        first_dx_third_dy = first_dx * third_dy
+        second_squared_distance = second_dx * second_dx + second_dy * second_dy
+        first_dx_second_dy = first_dx * second_dy
+        second_dx_first_dy = second_dx * first_dy
+        third_squared_distance = third_dx * third_dx + third_dy * third_dy
+        result = (first_squared_distance * (second_dx_third_dy
+                                            - third_dx_second_dy) +
+                  second_squared_distance * (third_dx_first_dy
+                                             - first_dx_third_dy) +
+                  third_squared_distance * (first_dx_second_dy
+                                            - second_dx_first_dy))
+        upper_bound = ((abs(second_dx_third_dy) + abs(third_dx_second_dy))
+                       * first_squared_distance
+                       + (abs(third_dx_first_dy) + abs(first_dx_third_dy))
+                       * second_squared_distance
+                       + (abs(first_dx_second_dy) + abs(second_dx_first_dy))
+                       * third_squared_distance)
+        threshold = upper_bound_coefficient * upper_bound
+        return (result
+                if (result > threshold) or (-result > threshold)
+                else
+                _adaptive_incircle_determinant_estimation(
+                        first_x, first_y, second_x, second_y, third_x, third_y,
+                        fourth_x, fourth_y, upper_bound))
 
 
     def _vectors_cross_product_estimation(first_start_x: float,
