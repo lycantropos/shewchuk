@@ -7,6 +7,13 @@ from shewchuk import Expansion
 from . import strategies
 
 
+@given(strategies.reals, strategies.non_zero_expansions)
+def test_alternatives(first: Real, second: Expansion) -> None:
+    result = first / second
+
+    assert result == first / float(second)
+
+
 @given(strategies.reals, strategies.zero_expansions)
 def test_zero_divisor(first: Real, second: Expansion) -> None:
     with pytest.raises(ZeroDivisionError):
