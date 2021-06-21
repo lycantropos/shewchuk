@@ -1524,7 +1524,7 @@ static PyObject *Expansion_true_divide(PyObject *self, PyObject *other) {
       }
       return (PyObject *)Expansion_double_multiply((ExpansionObject *)self,
                                                    1.0 / other_value);
-    } else if (PyObject_IsInstance(other, (PyObject *)&ExpansionType) ||
+    } else if (PyObject_TypeCheck(other, &ExpansionType) ||
                PyObject_IsInstance(other, Real)) {
       double other_value = PyFloat_AsDouble(other);
       if (other_value == -1.0 && PyErr_Occurred())
