@@ -10,11 +10,12 @@ try:
                            vectors_cross_product,
                            vectors_dot_product)
 except ImportError:
-    from sys import float_info as _float_info
+    from functools import reduce as _reduce
     from itertools import (dropwhile as _dropwhile,
                            repeat as _repeat)
     from numbers import Real as _Real
     from operator import not_ as _not
+    from sys import float_info as _float_info
     from typing import (Sequence as _Sequence,
                         Tuple as _Tuple,
                         Union as _Union)
@@ -107,7 +108,11 @@ except ImportError:
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        __mul__ = __rmul__
+        def __mul__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
+            return (_multiply_components_eliminating_zeros(self._components,
+                                                           other._components)
+                    if isinstance(other, Expansion)
+                    else self.__rmul__(other))
 
         def __neg__(self) -> 'Expansion':
             return Expansion(*[-component for component in self._components])
@@ -362,6 +367,14 @@ except ImportError:
         right_virtual = head - left
         tail = right - right_virtual
         return tail, head
+
+
+    def _multiply_components_eliminating_zeros(left: _Sequence[float],
+                                               right: _Sequence[float]
+                                               ) -> _Sequence[float]:
+        if len(left) < len(right):
+            left, right = right, left
+        return _reduce(_scale_components_eliminating_zeros, right, left)
 
 
     def _scale_components_eliminating_zeros(components: _Sequence[float],
