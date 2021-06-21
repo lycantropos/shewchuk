@@ -1177,10 +1177,41 @@ static PyObject *Expansion_float(ExpansionObject *self) {
   return PyFloat_FromDouble(sum_components(self->size, self->components));
 }
 
+static ExpansionObject *Expansions_multiply(ExpansionObject *self,
+                                            ExpansionObject *other) {
+  if (self->size < other->size) {
+    ExpansionObject *tmp = self;
+    self = other;
+    other = tmp;
+  }
+  double *result_components =
+      PyMem_RawCalloc((self->size + 1) * other->size, sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  double *step_components = PyMem_RawCalloc(self->size + 1, sizeof(double));
+  if (!step_components) {
+    PyMem_RawFree(result_components);
+    return (ExpansionObject *)PyErr_NoMemory();
+  }
+  size_t result_size = scale_components_eliminating_zeros(
+      self->size, self->components, other->components[0], result_components);
+  for (size_t index = 1; index < other->size; ++index) {
+    size_t step_size = scale_components_eliminating_zeros(
+        self->size, self->components, other->components[index],
+        step_components);
+    result_size = add_components_eliminating_zeros(
+        result_size, result_components, step_size, step_components,
+        result_components);
+  }
+  PyMem_RawFree(step_components);
+  result_components = PyMem_RawRealloc(result_components, result_size * sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(&ExpansionType, result_components, result_size);
+}
+
 static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
                                                   double other) {
   double *result_components =
-      PyMem_RawCalloc(2 * self->size + 1, sizeof(double));
+      PyMem_RawCalloc(self->size + 1, sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
   size_t result_size = scale_components_eliminating_zeros(
       self->size, self->components, other, result_components);
@@ -1195,6 +1226,9 @@ static PyObject *Expansion_multiply(PyObject *self, PyObject *other) {
     if (PyFloat_Check(other))
       return (PyObject *)Expansion_double_multiply((ExpansionObject *)self,
                                                    PyFloat_AS_DOUBLE(other));
+    else if (PyObject_TypeCheck(other, &ExpansionType))
+      return (PyObject *)Expansions_multiply((ExpansionObject *)self,
+                                             (ExpansionObject *)other);
     else if (PyObject_IsInstance(other, Real)) {
       double other_value = PyFloat_AsDouble(other);
       return other_value == -1.0 && PyErr_Occurred()
