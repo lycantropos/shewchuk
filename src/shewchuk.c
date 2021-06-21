@@ -1086,10 +1086,7 @@ double vectors_cross_product_impl(double first_start_x, double first_start_y,
       second_start_y, second_end_x, second_end_y, upper_bound, result);
 }
 
-int is_PyObject_convertible_to_Float(PyObject *self) {
-  return !!Py_TYPE(self)->tp_as_number &&
-         !!Py_TYPE(self)->tp_as_number->nb_float;
-}
+static PyObject *Real = NULL;
 
 typedef struct {
   PyObject_HEAD size_t size;
@@ -1147,7 +1144,7 @@ static PyObject *Expansion_add(PyObject *self, PyObject *other) {
     else if (PyFloat_Check(other))
       return (PyObject *)Expansion_double_add((ExpansionObject *)self,
                                               PyFloat_AS_DOUBLE(other));
-    else if (is_PyObject_convertible_to_Float(other)) {
+    else if (PyObject_IsInstance(other, Real)) {
       double other_value = PyFloat_AsDouble(other);
       return other_value == -1.0 && PyErr_Occurred()
                  ? NULL
@@ -1157,7 +1154,7 @@ static PyObject *Expansion_add(PyObject *self, PyObject *other) {
   } else if (PyFloat_Check(self))
     return (PyObject *)Expansion_double_add((ExpansionObject *)other,
                                             PyFloat_AS_DOUBLE(self));
-  else if (is_PyObject_convertible_to_Float(self)) {
+  else if (PyObject_IsInstance(self, Real)) {
     double value = PyFloat_AsDouble(self);
     return value == -1.0 && PyErr_Occurred()
                ? NULL
@@ -1198,7 +1195,7 @@ static PyObject *Expansion_multiply(PyObject *self, PyObject *other) {
     if (PyFloat_Check(other))
       return (PyObject *)Expansion_double_multiply((ExpansionObject *)self,
                                                    PyFloat_AS_DOUBLE(other));
-    else if (is_PyObject_convertible_to_Float(other)) {
+    else if (PyObject_IsInstance(other, Real)) {
       double other_value = PyFloat_AsDouble(other);
       return other_value == -1.0 && PyErr_Occurred()
                  ? NULL
@@ -1208,7 +1205,7 @@ static PyObject *Expansion_multiply(PyObject *self, PyObject *other) {
   } else if (PyFloat_Check(self))
     return (PyObject *)Expansion_double_multiply((ExpansionObject *)other,
                                                  PyFloat_AS_DOUBLE(self));
-  else if (is_PyObject_convertible_to_Float(self)) {
+  else if (PyObject_IsInstance(self, Real)) {
     double value = PyFloat_AsDouble(self);
     return value == -1.0 && PyErr_Occurred()
                ? NULL
@@ -1360,7 +1357,7 @@ static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
   } else if (PyFloat_Check(self))
     return (PyObject *)double_Expansion_subtract(PyFloat_AS_DOUBLE(self),
                                                  (ExpansionObject *)other);
-  else if (is_PyObject_convertible_to_Float(self)) {
+  else if (PyObject_IsInstance(self, Real)) {
     double value = PyFloat_AsDouble(self);
     return value == -1.0 && PyErr_Occurred()
                ? NULL
@@ -1625,6 +1622,14 @@ static PyModuleDef _shewchuk_module = {
     .m_size = -1,
 };
 
+static int load_real() {
+  PyObject *numbers_module = PyImport_ImportModule("numbers");
+  if (!numbers_module) return -1;
+  Real = PyObject_GetAttrString(numbers_module, "Real");
+  Py_DECREF(numbers_module);
+  return !Real ? -1 : 0;
+}
+
 PyMODINIT_FUNC PyInit__shewchuk(void) {
   PyObject *result;
   if (PyType_Ready(&ExpansionType) < 0) return NULL;
@@ -1633,6 +1638,10 @@ PyMODINIT_FUNC PyInit__shewchuk(void) {
   Py_INCREF(&ExpansionType);
   if (PyModule_AddObject(result, "Expansion", (PyObject *)&ExpansionType) < 0) {
     Py_DECREF(&ExpansionType);
+    Py_DECREF(result);
+    return NULL;
+  }
+  if (load_real() < 0) {
     Py_DECREF(result);
     return NULL;
   }
