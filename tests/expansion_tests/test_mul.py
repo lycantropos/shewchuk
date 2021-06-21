@@ -27,11 +27,14 @@ def test_absorbing_element(first: Expansion, second: Expansion) -> None:
 
 
 @skip_reference_counter_test
-@given(strategies.expansions, strategies.reals)
-def test_reference_counter(first: Expansion, second: Real) -> None:
+@given(strategies.expansions, strategies.expansions)
+def test_reference_counter(first: Expansion, second: Expansion) -> None:
     first_refcount_before = sys.getrefcount(first)
+    second_refcount_before = sys.getrefcount(second)
 
     result = first * second
 
     first_refcount_after = sys.getrefcount(first)
+    second_refcount_after = sys.getrefcount(second)
     assert first_refcount_after == first_refcount_before
+    assert second_refcount_after == second_refcount_before
