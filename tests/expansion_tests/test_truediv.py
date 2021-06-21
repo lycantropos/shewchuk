@@ -11,8 +11,8 @@ from tests.utils import (equivalence,
 from . import strategies
 
 
-@given(strategies.expansions, strategies.non_zero_expansions)
-def test_basic(first: Expansion, second: Expansion) -> None:
+@given(strategies.expansions, strategies.non_zero_reals_or_expansions)
+def test_basic(first: Expansion, second: Union[Real, Expansion]) -> None:
     result = first / second
 
     assert isinstance(result, Expansion)
@@ -24,8 +24,9 @@ def test_commutative_case(first: Expansion, second: Expansion) -> None:
                        abs(first) == abs(second))
 
 
-@given(strategies.zero_expansions, strategies.non_zero_expansions)
-def test_left_absorbing_element(first: Expansion, second: Expansion) -> None:
+@given(strategies.zero_expansions, strategies.non_zero_reals_or_expansions)
+def test_left_absorbing_element(first: Expansion,
+                                second: Union[Real, Expansion]) -> None:
     assert first / second == first
 
 
