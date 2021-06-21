@@ -1300,73 +1300,6 @@ static PyObject *Expansion_repr(ExpansionObject *self) {
   return result;
 }
 
-static ExpansionObject *Expansions_subtract(ExpansionObject *self,
-                                            ExpansionObject *other) {
-  double *result_components =
-      PyMem_RawCalloc(self->size + other->size, sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = subtract_components_eliminating_zeros(
-      self->size, self->components, other->size, other->components,
-      result_components);
-  result_components =
-      PyMem_RawRealloc(result_components, result_size * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(&ExpansionType, result_components, result_size);
-}
-
-static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
-                                                  double other) {
-  double *result_components = PyMem_RawCalloc(self->size + 1, sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = subtract_double_eliminating_zeros(
-      self->size, self->components, other, result_components);
-  result_components =
-      PyMem_RawRealloc(result_components, result_size * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(&ExpansionType, result_components, result_size);
-}
-
-static ExpansionObject *double_Expansion_subtract(double self,
-                                                  ExpansionObject *other) {
-  double *result_components = PyMem_RawCalloc(other->size + 1, sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = subtract_from_double_eliminating_zeros(
-      self, other->size, other->components, result_components);
-  result_components =
-      PyMem_RawRealloc(result_components, result_size * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(Py_TYPE(other), result_components, result_size);
-}
-
-static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
-  if (PyObject_TypeCheck(self, &ExpansionType)) {
-    if (PyObject_TypeCheck(other, &ExpansionType))
-      return (PyObject *)Expansions_subtract((ExpansionObject *)self,
-                                             (ExpansionObject *)other);
-    else if (PyFloat_Check(other))
-      return (PyObject *)Expansion_double_subtract((ExpansionObject *)self,
-                                                   PyFloat_AS_DOUBLE(other));
-    else if (!!Py_TYPE(other)->tp_as_number &&
-             !!Py_TYPE(other)->tp_as_number->nb_float) {
-      double other_value = PyFloat_AsDouble(other);
-      return other_value == -1.0 && PyErr_Occurred()
-                 ? NULL
-                 : (PyObject *)Expansion_double_subtract(
-                       (ExpansionObject *)self, other_value);
-    }
-  } else if (PyFloat_Check(self))
-    return (PyObject *)double_Expansion_subtract(PyFloat_AS_DOUBLE(self),
-                                                 (ExpansionObject *)other);
-  else if (PyObject_IsInstance(self, Real)) {
-    double value = PyFloat_AsDouble(self);
-    return value == -1.0 && PyErr_Occurred()
-               ? NULL
-               : (PyObject *)double_Expansion_subtract(
-                     value, (ExpansionObject *)other);
-  }
-  Py_RETURN_NOTIMPLEMENTED;
-}
-
 static PyObject *Expansions_richcompare(ExpansionObject *self,
                                         ExpansionObject *other, int op) {
   switch (op) {
@@ -1499,6 +1432,73 @@ static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
     return Expansion_double_richcompare(self, PyFloat_AS_DOUBLE(other), op);
   else
     return Expansion_PyObject_richcompare(self, other, op);
+}
+
+static ExpansionObject *Expansions_subtract(ExpansionObject *self,
+                                            ExpansionObject *other) {
+  double *result_components =
+      PyMem_RawCalloc(self->size + other->size, sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  size_t result_size = subtract_components_eliminating_zeros(
+      self->size, self->components, other->size, other->components,
+      result_components);
+  result_components =
+      PyMem_RawRealloc(result_components, result_size * sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(&ExpansionType, result_components, result_size);
+}
+
+static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
+                                                  double other) {
+  double *result_components = PyMem_RawCalloc(self->size + 1, sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  size_t result_size = subtract_double_eliminating_zeros(
+      self->size, self->components, other, result_components);
+  result_components =
+      PyMem_RawRealloc(result_components, result_size * sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(&ExpansionType, result_components, result_size);
+}
+
+static ExpansionObject *double_Expansion_subtract(double self,
+                                                  ExpansionObject *other) {
+  double *result_components = PyMem_RawCalloc(other->size + 1, sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  size_t result_size = subtract_from_double_eliminating_zeros(
+      self, other->size, other->components, result_components);
+  result_components =
+      PyMem_RawRealloc(result_components, result_size * sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(Py_TYPE(other), result_components, result_size);
+}
+
+static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
+  if (PyObject_TypeCheck(self, &ExpansionType)) {
+    if (PyObject_TypeCheck(other, &ExpansionType))
+      return (PyObject *)Expansions_subtract((ExpansionObject *)self,
+                                             (ExpansionObject *)other);
+    else if (PyFloat_Check(other))
+      return (PyObject *)Expansion_double_subtract((ExpansionObject *)self,
+                                                   PyFloat_AS_DOUBLE(other));
+    else if (!!Py_TYPE(other)->tp_as_number &&
+             !!Py_TYPE(other)->tp_as_number->nb_float) {
+      double other_value = PyFloat_AsDouble(other);
+      return other_value == -1.0 && PyErr_Occurred()
+                 ? NULL
+                 : (PyObject *)Expansion_double_subtract(
+                       (ExpansionObject *)self, other_value);
+    }
+  } else if (PyFloat_Check(self))
+    return (PyObject *)double_Expansion_subtract(PyFloat_AS_DOUBLE(self),
+                                                 (ExpansionObject *)other);
+  else if (PyObject_IsInstance(self, Real)) {
+    double value = PyFloat_AsDouble(self);
+    return value == -1.0 && PyErr_Occurred()
+               ? NULL
+               : (PyObject *)double_Expansion_subtract(
+                     value, (ExpansionObject *)other);
+  }
+  Py_RETURN_NOTIMPLEMENTED;
 }
 
 static PyObject *PyObject_Expansion_true_divide(PyObject *self,
