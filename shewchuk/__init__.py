@@ -106,7 +106,7 @@ except ImportError:
             return (Expansion(
                     *_scale_components_eliminating_zeros(self._components,
                                                          float(other)),
-                    _normalize=False)
+                    _compress=False)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
@@ -114,7 +114,7 @@ except ImportError:
             return (Expansion(
                     *_multiply_components_eliminating_zeros(self._components,
                                                             other._components),
-                    _normalize=False)
+                    _compress=False)
                     if isinstance(other, Expansion)
                     else self.__rmul__(other))
 
