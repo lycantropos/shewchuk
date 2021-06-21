@@ -131,6 +131,12 @@ except ImportError:
                     if isinstance(other, _Real)
                     else NotImplemented)
 
+        def __rtruediv__(self, other: _Union[_Real, 'Expansion']
+                         ) -> 'Expansion':
+            return (other / float(self)
+                    if isinstance(other, _Real)
+                    else NotImplemented)
+
         def __sub__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
             return (Expansion(*_subtract_components_eliminating_zeros(
                     self._components, other._components))
@@ -140,6 +146,12 @@ except ImportError:
                             self._components, float(other)))
                      if isinstance(other, _Real)
                      else NotImplemented))
+
+        def __truediv__(self, other: _Union[_Real, 'Expansion']
+                        ) -> 'Expansion':
+            return (self * (1.0 / float(other))
+                    if isinstance(other, (_Real, Expansion))
+                    else NotImplemented)
 
 
     def incircle_test(first_x: float,

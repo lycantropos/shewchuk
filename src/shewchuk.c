@@ -1501,6 +1501,46 @@ static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
     return Expansion_PyObject_richcompare(self, other, op);
 }
 
+static PyObject *PyObject_Expansion_true_divide(PyObject *self,
+                                                ExpansionObject *other) {
+  if (!Expansion_bool(other)) {
+    PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
+    return NULL;
+  }
+  PyObject *other_float = Expansion_float(other);
+  if (!other_float) return NULL;
+  PyObject *result = PyNumber_TrueDivide(self, other_float);
+  Py_DECREF(other_float);
+  return result;
+}
+
+static PyObject *Expansion_true_divide(PyObject *self, PyObject *other) {
+  if (PyObject_TypeCheck(self, &ExpansionType)) {
+    if (PyFloat_Check(other)) {
+      double other_value = PyFloat_AS_DOUBLE(other);
+      if (!other_value) {
+        PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
+        return NULL;
+      }
+      return (PyObject *)Expansion_double_multiply((ExpansionObject *)self,
+                                                   1.0 / other_value);
+    } else if (PyObject_IsInstance(other, (PyObject *)&ExpansionType) ||
+               PyObject_IsInstance(other, Real)) {
+      double other_value = PyFloat_AsDouble(other);
+      if (other_value == -1.0 && PyErr_Occurred())
+        return NULL;
+      else if (!other_value) {
+        PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
+        return NULL;
+      }
+      return (PyObject *)Expansion_double_multiply((ExpansionObject *)self,
+                                                   1.0 / other_value);
+    }
+  } else if (PyFloat_Check(self) || PyObject_IsInstance(self, Real))
+    return PyObject_Expansion_true_divide(self, (ExpansionObject *)other);
+  Py_RETURN_NOTIMPLEMENTED;
+}
+
 static PyNumberMethods Expansion_as_number = {
     .nb_absolute = (unaryfunc)Expansion_absolute,
     .nb_add = Expansion_add,
@@ -1510,6 +1550,7 @@ static PyNumberMethods Expansion_as_number = {
     .nb_negative = (unaryfunc)Expansion_negative,
     .nb_positive = (unaryfunc)Expansion_positive,
     .nb_subtract = Expansion_subtract,
+    .nb_true_divide = Expansion_true_divide,
 };
 
 static PyTypeObject ExpansionType = {
