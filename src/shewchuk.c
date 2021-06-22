@@ -1258,7 +1258,24 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
   Py_ssize_t raw_size = PyTuple_Size(args);
   if (raw_size < 0) return NULL;
   size_t size = (size_t)raw_size;
-  if (size) {
+  if (size == 1) {
+    PyObject *argument = PyTuple_GET_ITEM(args, 0);
+    if (PyObject_TypeCheck(argument, &ExpansionType)) {
+      ExpansionObject *expansion_argument = (ExpansionObject *)argument;
+      components = PyMem_Calloc(expansion_argument->size, sizeof(double));
+      if (!components) return NULL;
+      copy_components(expansion_argument->components, expansion_argument->size,
+                      components);
+      size = expansion_argument->size;
+    } else {
+      components = (double *)PyMem_Malloc(sizeof(double));
+      if (!components) return PyErr_NoMemory();
+      double value = PyFloat_AsDouble(argument);
+      if (value == 1.0 && PyErr_Occurred()) return NULL;
+      components[0] = value;
+      size = 1;
+    }
+  } else if (size) {
     components = (double *)PyMem_Calloc(size, sizeof(double));
     if (!components) return PyErr_NoMemory();
     for (size_t index = 0; index < size; ++index) {

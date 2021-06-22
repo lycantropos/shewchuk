@@ -25,14 +25,20 @@ except ImportError:
     class Expansion:
         __slots__ = '_components',
 
-        def __new__(cls, *components: float,
+        def __new__(cls, *args: _Union[_Real, 'Expansion'],
                     _compress: bool = True) -> 'Expansion':
             self = super().__new__(cls)
-            components = [float(component) for component in components]
-            if _compress and len(components) > 1:
-                components = _compress_components(components)
-            elif not components:
-                components = [0.]
+            if len(args) == 1:
+                argument, = args
+                components = (argument._components
+                              if isinstance(argument, Expansion)
+                              else [float(argument)])
+            else:
+                components = [float(component) for component in args]
+                if _compress and len(components) > 1:
+                    components = _compress_components(components)
+                elif not components:
+                    components = [0.]
             self._components = components
             return self
 
