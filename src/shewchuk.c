@@ -1173,8 +1173,12 @@ static void Expansion_dealloc(ExpansionObject *self) {
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
+static double Expansion_double(ExpansionObject *self) {
+  return sum_components(self->size, self->components);
+}
+
 static PyObject *Expansion_float(ExpansionObject *self) {
-  return PyFloat_FromDouble(sum_components(self->size, self->components));
+  return PyFloat_FromDouble(Expansion_double(self));
 }
 
 static ExpansionObject *Expansions_multiply(ExpansionObject *self,
@@ -1570,22 +1574,7 @@ static PyObject *Expansion_true_divide(PyObject *self, PyObject *other) {
 
 static PyObject *Expansion_trunc(ExpansionObject *self,
                                  PyObject *Py_UNUSED(args)) {
-  PyObject *result = PyLong_FromDouble(self->components[self->size - 1]);
-  if (!result) return NULL;
-  for (size_t offset = 2; offset <= self->size; ++offset) {
-    PyObject *step = PyLong_FromDouble(self->components[self->size - offset]);
-    if (!step) {
-      Py_DECREF(result);
-      return NULL;
-    }
-    if (!PyObject_IsTrue(step)) break;
-    PyObject *tmp = result;
-    result = PyNumber_Add(result, step);
-    Py_DECREF(tmp);
-    Py_DECREF(step);
-    if (!result) return NULL;
-  }
-  return result;
+  return PyLong_FromDouble(Expansion_double(self));
 }
 
 static PyNumberMethods Expansion_as_number = {
