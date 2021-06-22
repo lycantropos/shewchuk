@@ -10,6 +10,16 @@
 
 static int to_sign(double value) { return value > 0.0 ? 1 : (!value ? 0 : -1); }
 
+static double double_remainder(double dividend, double divisor) {
+  double result = fmod(dividend, divisor);
+  // ensure the remainder has the same sign as the denominator
+  if (result) {
+    if ((divisor < 0) != (result < 0)) result += divisor;
+  } else
+    result = copysign(0.0, divisor);
+  return result;
+}
+
 static int are_components_equal(size_t left_size, double *left,
                                 size_t right_size, double *right) {
   if (left_size != right_size) return 0;
@@ -1372,14 +1382,14 @@ static ExpansionObject *Expansion_double_remainder(ExpansionObject *self,
   }
   double *result_components = PyMem_Calloc(self->size, sizeof(double));
   size_t result_size;
-  result_components[0] = fmod(self->components[0], other);
+  result_components[0] = double_remainder(self->components[0], other);
   result_size = 1;
   for (size_t index = 1; index < self->size; ++index)
     result_size = add_double_eliminating_zeros(
-        result_size, result_components, fmod(self->components[index], other),
-        result_components);
-  for (size_t index = 0; index < result_size; ++index)
-    result_components[index] = fmod(result_components[index], other);
+        result_size, result_components,
+        double_remainder(self->components[index], other), result_components);
+  result_components[result_size - 1] =
+      double_remainder(result_components[result_size - 1], other);
   return construct_Expansion(&ExpansionType, result_components, result_size);
 }
 

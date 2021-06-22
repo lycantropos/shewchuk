@@ -12,8 +12,7 @@ try:
 except ImportError:
     from functools import reduce as _reduce
     from itertools import (dropwhile as _dropwhile,
-                           repeat as _repeat,
-                           takewhile as _takewhile)
+                           repeat as _repeat)
     from numbers import Real as _Real
     from operator import not_ as _not
     from sys import float_info as _float_info
@@ -419,7 +418,7 @@ except ImportError:
         result = [next(iterator) % value]
         for component in iterator:
             result = _add_float_eliminating_zeros(result, component % value)
-        result = [component % value for component in result]
+        result[-1] %= value
         return result
 
 
