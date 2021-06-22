@@ -75,7 +75,9 @@ except ImportError:
 
         def __floordiv__(self, other: _Union[_Real, 'Expansion']
                          ) -> _Union[_Real, 'Expansion']:
-            return (_floor_divide_components(self._components, float(other))
+            return (Expansion(*_floor_divide_components(self._components,
+                                                        float(other)),
+                              _compress=False)
                     if isinstance(other, (_Real, Expansion))
                     else NotImplemented)
 
