@@ -12,7 +12,8 @@ try:
 except ImportError:
     from functools import reduce as _reduce
     from itertools import (dropwhile as _dropwhile,
-                           repeat as _repeat)
+                           repeat as _repeat,
+                           takewhile as _takewhile)
     from numbers import Real as _Real
     from operator import not_ as _not
     from sys import float_info as _float_info
@@ -161,6 +162,12 @@ except ImportError:
             return (self * (1.0 / float(other))
                     if isinstance(other, (_Real, Expansion))
                     else NotImplemented)
+
+        def __trunc__(self) -> int:
+            return sum(
+                    _takewhile(bool,
+                               [int(component)
+                                for component in reversed(self._components)]))
 
 
     def incircle_test(first_x: float,

@@ -3,6 +3,7 @@
 #include <float.h>
 #include <math.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <structmember.h>
 #define EPSILON (DBL_EPSILON / 2.0)
 
@@ -1575,6 +1576,26 @@ static PyObject *Expansion_true_divide(PyObject *self, PyObject *other) {
   Py_RETURN_NOTIMPLEMENTED;
 }
 
+static PyObject *Expansion_trunc(ExpansionObject *self,
+                                 PyObject *Py_UNUSED(args)) {
+  PyObject *result = PyLong_FromDouble(self->components[self->size - 1]);
+  if (!result) return NULL;
+  for (size_t offset = 2; offset <= self->size; ++offset) {
+    PyObject *step = PyLong_FromDouble(self->components[self->size - offset]);
+    if (!step) {
+      Py_DECREF(result);
+      return NULL;
+    }
+    if (!PyObject_IsTrue(step)) break;
+    PyObject *tmp = result;
+    result = PyNumber_Add(result, step);
+    Py_DECREF(tmp);
+    Py_DECREF(step);
+    if (!result) return NULL;
+  }
+  return result;
+}
+
 static PyNumberMethods Expansion_as_number = {
     .nb_absolute = (unaryfunc)Expansion_absolute,
     .nb_add = Expansion_add,
@@ -1587,6 +1608,11 @@ static PyNumberMethods Expansion_as_number = {
     .nb_true_divide = Expansion_true_divide,
 };
 
+static PyMethodDef Expansion_methods[] = {
+    {"__trunc__", (PyCFunction)Expansion_trunc, METH_NOARGS, NULL},
+    {NULL, NULL} /* sentinel */
+};
+
 static PyTypeObject ExpansionType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_as_number = &Expansion_as_number,
     .tp_basicsize = sizeof(ExpansionObject),
@@ -1594,6 +1620,7 @@ static PyTypeObject ExpansionType = {
     .tp_doc = PyDoc_STR("Represents floating point number expansion."),
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_itemsize = 0,
+    .tp_methods = Expansion_methods,
     .tp_name = "shewchuk.Expansion",
     .tp_new = Expansion_new,
     .tp_repr = (reprfunc)Expansion_repr,
