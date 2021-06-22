@@ -64,6 +64,12 @@ except ImportError:
         def __float__(self) -> float:
             return sum(self._components)
 
+        def __floordiv__(self, other: _Union[_Real, 'Expansion']
+                         ) -> _Union[_Real, 'Expansion']:
+            return (_floor_divide_components(self._components, float(other))
+                    if isinstance(other, (_Real, Expansion))
+                    else NotImplemented)
+
         def __ge__(self, other: _Union[_Real, 'Expansion']) -> bool:
             return (not _are_components_lesser_than(self._components,
                                                     other._components)
@@ -95,6 +101,11 @@ except ImportError:
                     else (self.__float__() < other
                           if isinstance(other, _Real)
                           else NotImplemented))
+
+        def __rfloordiv__(self, other: _Real) -> _Real:
+            return (other // float(self)
+                    if isinstance(other, _Real)
+                    else NotImplemented)
 
         def __rmul__(self, other: _Real) -> 'Expansion':
             return (Expansion(
@@ -361,6 +372,11 @@ except ImportError:
             result[top] = cursor
             top += 1
         return result[:top]
+
+
+    def _floor_divide_components(components: _Sequence[float],
+                                 value: float) -> _Sequence[float]:
+        return [component // value for component in components]
 
 
     def _fast_two_add(left: float, right: float) -> _Tuple[float, float]:
