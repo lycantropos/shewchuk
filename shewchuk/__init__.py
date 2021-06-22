@@ -24,6 +24,14 @@ except ImportError:
 
     @_Real.register
     class Expansion:
+        @property
+        def real(self) -> _Real:
+            return self
+
+        @property
+        def imag(self) -> _Real:
+            return 0
+
         __slots__ = '_components',
 
         def __new__(cls, *args: _Union[_Real, 'Expansion'],

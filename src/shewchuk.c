@@ -1563,6 +1563,22 @@ static PyNumberMethods Expansion_as_number = {
     .nb_true_divide = Expansion_true_divide,
 };
 
+PyObject *Expansion_getimag(ExpansionObject *self, void *closure) {
+  return PyLong_FromLong(0);
+}
+
+PyObject *Expansion_getreal(ExpansionObject *self, void *closure) {
+  return (PyObject *)Expansion_positive(self);
+}
+
+static PyGetSetDef Expansion_getset[] = {
+    {"real", (getter)Expansion_getreal, (setter)NULL,
+     "The real part of the expansion.", NULL},
+    {"imag", (getter)Expansion_getimag, (setter)NULL,
+     "The imaginary part of the expansion", NULL},
+    {NULL} /* Sentinel */
+};
+
 static PyMethodDef Expansion_methods[] = {
     {"__trunc__", (PyCFunction)Expansion_trunc, METH_NOARGS, NULL},
     {NULL, NULL} /* sentinel */
@@ -1574,6 +1590,7 @@ static PyTypeObject ExpansionType = {
     .tp_dealloc = (destructor)Expansion_dealloc,
     .tp_doc = PyDoc_STR("Represents floating point number expansion."),
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_getset = Expansion_getset,
     .tp_itemsize = 0,
     .tp_methods = Expansion_methods,
     .tp_name = "shewchuk.Expansion",
