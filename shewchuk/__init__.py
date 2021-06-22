@@ -113,8 +113,18 @@ except ImportError:
                           if isinstance(other, _Real)
                           else NotImplemented))
 
+        def __mod__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
+            return (_modulo_components(self._components, float(other))
+                    if isinstance(other, _Real)
+                    else NotImplemented)
+
         def __rfloordiv__(self, other: _Real) -> _Real:
             return (other // float(self)
+                    if isinstance(other, _Real)
+                    else NotImplemented)
+
+        def __rmod__(self, other: _Real) -> _Real:
+            return (other % float(self)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
@@ -398,6 +408,16 @@ except ImportError:
                 result = result[1 - offset:]
                 break
             result[-offset] = candidate
+        return result
+
+
+    def _modulo_components(components: _Sequence[float],
+                           value: float) -> _Sequence[float]:
+        iterator = iter(components)
+        result = [next(iterator) % value]
+        for component in iterator:
+            result = _add_float_eliminating_zeros(result, component % value)
+        result = [component % value for component in result]
         return result
 
 
