@@ -1361,112 +1361,23 @@ static PyObject *Expansions_richcompare(ExpansionObject *self,
   }
 }
 
-static PyObject *Expansion_double_richcompare(ExpansionObject *self,
-                                              double other, int op) {
-  switch (op) {
-    case Py_EQ:
-      return PyBool_FromLong(self->size == 1 && self->components[0] == other);
-    case Py_GE:
-      return PyBool_FromLong(
-          self->components[self->size - 1] > other ||
-          (self->components[self->size - 1] == other &&
-           (self->size == 1 || self->components[self->size - 2] > 0.0)));
-    case Py_GT:
-      return PyBool_FromLong(
-          self->components[self->size - 1] > other ||
-          (self->components[self->size - 1] == other &&
-           (self->size > 1 && self->components[self->size - 2] > 0.0)));
-    case Py_LE:
-      return PyBool_FromLong(
-          self->components[self->size - 1] < other ||
-          (self->components[self->size - 1] == other &&
-           (self->size == 1 || self->components[self->size - 2] < 0.0)));
-    case Py_LT:
-      return PyBool_FromLong(
-          self->components[self->size - 1] < other ||
-          (self->components[self->size - 1] == other &&
-           (self->size > 1 && self->components[self->size - 2] < 0.0)));
-    case Py_NE:
-      return PyBool_FromLong(self->size > 1 || self->components[0] != other);
-    default:
-      Py_RETURN_NOTIMPLEMENTED;
-  }
-}
-
 static PyObject *Expansion_PyObject_richcompare(ExpansionObject *self,
                                                 PyObject *other, int op) {
-  switch (op) {
-    case Py_EQ: {
-      if (self->size > 1) Py_RETURN_FALSE;
-      PyObject *head = PyFloat_FromDouble(self->components[0]);
-      PyObject *result = PyObject_RichCompare(head, other, op);
-      Py_DECREF(head);
-      return result;
-    }
-    case Py_GE: {
-      PyObject *head = PyFloat_FromDouble(self->components[self->size - 1]);
-      PyObject *result = PyObject_RichCompare(head, other, Py_GT);
-      if (!result || result == Py_True) return result;
-      Py_DECREF(result);
-      result = PyObject_RichCompare(head, other, Py_EQ);
-      if (!result || result == Py_False) return result;
-      Py_DECREF(result);
-      return PyBool_FromLong(self->size == 1 ||
-                             self->components[self->size - 2] > 0.0);
-    }
-    case Py_GT: {
-      PyObject *head = PyFloat_FromDouble(self->components[self->size - 1]);
-      PyObject *result = PyObject_RichCompare(head, other, Py_GT);
-      if (!result || result == Py_True) return result;
-      Py_DECREF(result);
-      result = PyObject_RichCompare(head, other, Py_EQ);
-      if (!result || result == Py_False) return result;
-      Py_DECREF(result);
-      return PyBool_FromLong(self->size > 1 &&
-                             self->components[self->size - 2] > 0.0);
-    }
-    case Py_LE: {
-      PyObject *head = PyFloat_FromDouble(self->components[self->size - 1]);
-      PyObject *result = PyObject_RichCompare(head, other, Py_LT);
-      if (!result || result == Py_True) return result;
-      Py_DECREF(result);
-      result = PyObject_RichCompare(head, other, Py_EQ);
-      if (!result || result == Py_False) return result;
-      Py_DECREF(result);
-      return PyBool_FromLong(self->size == 1 ||
-                             self->components[self->size - 2] < 0.0);
-    }
-    case Py_LT: {
-      PyObject *head = PyFloat_FromDouble(self->components[self->size - 1]);
-      PyObject *result = PyObject_RichCompare(head, other, Py_LT);
-      if (!result || result == Py_True) return result;
-      Py_DECREF(result);
-      result = PyObject_RichCompare(head, other, Py_EQ);
-      if (!result || result == Py_False) return result;
-      Py_DECREF(result);
-      return PyBool_FromLong(self->size > 1 &&
-                             self->components[self->size - 2] < 0.0);
-    }
-    case Py_NE: {
-      if (self->size > 1) Py_RETURN_TRUE;
-      PyObject *head = PyFloat_FromDouble(self->components[0]);
-      PyObject *result = PyObject_RichCompare(head, other, op);
-      Py_DECREF(head);
-      return result;
-    }
-    default:
-      Py_RETURN_NOTIMPLEMENTED;
-  }
+  PyObject *self_float = Expansion_float(self);
+  if (!self_float) return NULL;
+  PyObject *result = PyObject_RichCompare(self_float, other, op);
+  Py_DECREF(self_float);
+  return result;
 }
 
 static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
                                        int op) {
   if (PyObject_TypeCheck(other, &ExpansionType))
     return Expansions_richcompare(self, (ExpansionObject *)other, op);
-  else if (PyFloat_Check(other))
-    return Expansion_double_richcompare(self, PyFloat_AS_DOUBLE(other), op);
-  else
+  else if (PyObject_IsInstance(other, Real))
     return Expansion_PyObject_richcompare(self, other, op);
+  else
+    Py_RETURN_NOTIMPLEMENTED;
 }
 
 static ExpansionObject *Expansions_subtract(ExpansionObject *self,

@@ -51,8 +51,7 @@ except ImportError:
         def __eq__(self, other: _Union[_Real, 'Expansion']) -> bool:
             return (self._components == other._components
                     if isinstance(other, Expansion)
-                    else (len(self._components) == 1
-                          and self._components[0] == other
+                    else (self.__float__() == other
                           if isinstance(other, _Real)
                           else NotImplemented))
 
@@ -63,10 +62,7 @@ except ImportError:
             return (not _are_components_lesser_than(self._components,
                                                     other._components)
                     if isinstance(other, Expansion)
-                    else (self._components[-1] > other
-                          or self._components[-1] == other
-                          and (len(self._components) == 1
-                               or self._components[-2] > 0.)
+                    else (self.__float__() >= other
                           if isinstance(other, _Real)
                           else NotImplemented))
 
@@ -74,10 +70,7 @@ except ImportError:
             return (_are_components_lesser_than(other._components,
                                                 self._components)
                     if isinstance(other, Expansion)
-                    else (self._components[-1] > other
-                          or (self._components[-1] == other
-                              and len(self._components) > 1
-                              and self._components[-2] > 0.)
+                    else (self.__float__() > other
                           if isinstance(other, _Real)
                           else NotImplemented))
 
@@ -85,10 +78,7 @@ except ImportError:
             return (not _are_components_lesser_than(other._components,
                                                     self._components)
                     if isinstance(other, Expansion)
-                    else (self._components[-1] < other
-                          or self._components[-1] == other
-                          and (len(self._components) == 1
-                               or self._components[-2] < 0.)
+                    else (self.__float__() <= other
                           if isinstance(other, _Real)
                           else NotImplemented))
 
@@ -96,10 +86,7 @@ except ImportError:
             return (_are_components_lesser_than(self._components,
                                                 other._components)
                     if isinstance(other, Expansion)
-                    else (self._components[-1] < other
-                          or (self._components[-1] == other
-                              and len(self._components) > 1
-                              and self._components[-2] < 0.)
+                    else (self.__float__() < other
                           if isinstance(other, _Real)
                           else NotImplemented))
 
