@@ -387,7 +387,17 @@ except ImportError:
 
     def _floor_divide_components(components: _Sequence[float],
                                  value: float) -> _Sequence[float]:
-        return [component // value for component in components]
+        result = [None] * len(components)
+        iterator = reversed(components)
+        result[-1] = next(iterator) // value
+        for offset, component in enumerate(iterator,
+                                           start=2):
+            candidate = component // value
+            if not candidate:
+                result = result[1 - offset:]
+                break
+            result[-offset] = candidate
+        return result
 
 
     def _fast_two_add(left: float, right: float) -> _Tuple[float, float]:

@@ -1189,21 +1189,21 @@ static ExpansionObject *Expansion_double_floor_divide(ExpansionObject *self,
     return NULL;
   }
   double *result_components = PyMem_Calloc(self->size, sizeof(double));
-  size_t result_size = self->size;
-  for (size_t offset = 1; offset <= self->size; ++offset) {
+  result_components[self->size - 1] = floor(self->components[self->size - 1] / other);
+  size_t offset = 2;
+  for (; offset <= self->size; ++offset) {
     size_t index = self->size - offset;
     double component = floor(self->components[index] / other);
     if (!component) {
-      offset -= (offset > 1);
-      copy_components(&result_components[self->size - offset], offset,
+      copy_components(&result_components[index + 1], offset - 1,
                       result_components);
-      if (!PyMem_Resize(result_components, double, offset))
+      if (!PyMem_Resize(result_components, double, offset - 1))
         return (ExpansionObject *)PyErr_NoMemory();
-      result_size = offset;
       break;
     }
     result_components[index] = component;
   }
+  size_t result_size = offset - 1;
   return construct_Expansion(&ExpansionType, result_components, result_size);
 }
 
