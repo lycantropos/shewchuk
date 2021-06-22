@@ -1515,8 +1515,7 @@ static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
     else if (PyFloat_Check(other))
       return (PyObject *)Expansion_double_subtract((ExpansionObject *)self,
                                                    PyFloat_AS_DOUBLE(other));
-    else if (!!Py_TYPE(other)->tp_as_number &&
-             !!Py_TYPE(other)->tp_as_number->nb_float) {
+    else if (PyObject_IsInstance(other, Real)) {
       double other_value = PyFloat_AsDouble(other);
       return other_value == -1.0 && PyErr_Occurred()
                  ? NULL
