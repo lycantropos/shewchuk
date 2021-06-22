@@ -151,10 +151,7 @@ except ImportError:
                     else NotImplemented)
 
         def __trunc__(self) -> int:
-            return sum(
-                    _takewhile(bool,
-                               [int(component)
-                                for component in reversed(self._components)]))
+            return int(self.__float__())
 
 
     def incircle_test(first_x: float,
