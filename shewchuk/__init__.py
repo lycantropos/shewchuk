@@ -114,7 +114,9 @@ except ImportError:
                           else NotImplemented))
 
         def __mod__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
-            return (_modulo_components(self._components, float(other))
+            return (Expansion(*_modulo_components(self._components,
+                                                  float(other)),
+                              _compress=False)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
