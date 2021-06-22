@@ -78,7 +78,7 @@ except ImportError:
             return (Expansion(*_floor_divide_components(self._components,
                                                         float(other)),
                               _compress=False)
-                    if isinstance(other, (_Real, Expansion))
+                    if isinstance(other, _Real)
                     else NotImplemented)
 
         def __ge__(self, other: _Union[_Real, 'Expansion']) -> bool:
@@ -176,7 +176,7 @@ except ImportError:
         def __truediv__(self, other: _Union[_Real, 'Expansion']
                         ) -> 'Expansion':
             return (self * (1.0 / float(other))
-                    if isinstance(other, (_Real, Expansion))
+                    if isinstance(other, _Real)
                     else NotImplemented)
 
         def __trunc__(self) -> int:
