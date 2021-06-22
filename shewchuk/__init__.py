@@ -135,7 +135,8 @@ except ImportError:
                     else self.__rmul__(other))
 
         def __neg__(self) -> 'Expansion':
-            return Expansion(*[-component for component in self._components])
+            return Expansion(*[-component for component in self._components],
+                             _compress=False)
 
         def __pos__(self) -> 'Expansion':
             return self
