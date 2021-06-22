@@ -19,6 +19,13 @@ def test_no_argument() -> None:
     assert not result
 
 
+@given(strategies.expansions)
+def test_expansion_argument(value: Expansion) -> None:
+    result = Expansion(value)
+
+    assert result == value
+
+
 @given(strategies.finite_floats)
 def test_float_argument(value: float) -> None:
     result = Expansion(value)
