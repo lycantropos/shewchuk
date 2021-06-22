@@ -1189,9 +1189,9 @@ static ExpansionObject *Expansions_multiply(ExpansionObject *self,
     other = tmp;
   }
   double *result_components =
-      PyMem_Calloc((2 * self->size - 1) * other->size, sizeof(double));
+      PyMem_Calloc(2 * self->size * other->size, sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  double *step_components = PyMem_Calloc(2 * self->size - 1, sizeof(double));
+  double *step_components = PyMem_Calloc(2 * self->size, sizeof(double));
   if (!step_components) {
     PyMem_Free(result_components);
     return (ExpansionObject *)PyErr_NoMemory();
@@ -1214,7 +1214,7 @@ static ExpansionObject *Expansions_multiply(ExpansionObject *self,
 
 static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
                                                   double other) {
-  double *result_components = PyMem_Calloc(2 * self->size - 1, sizeof(double));
+  double *result_components = PyMem_Calloc(2 * self->size, sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
   size_t result_size = scale_components_eliminating_zeros(
       self->size, self->components, other, result_components);
