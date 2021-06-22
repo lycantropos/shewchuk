@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <structmember.h>
 #define EPSILON (DBL_EPSILON / 2.0)
+#define PY39_OR_MORE PY_VERSION_HEX >= 0x03090000
 
 static int to_sign(double value) { return value > 0.0 ? 1 : (!value ? 0 : -1); }
 
@@ -1674,6 +1675,22 @@ static int load_real() {
   return !Real ? -1 : 0;
 }
 
+static int mark_as_real(PyObject *python_type) {
+  PyObject *register_method_name = PyUnicode_FromString("register");
+  if (!register_method_name) return -1;
+  PyObject *tmp =
+#if PY39_OR_MORE
+      PyObject_CallMethodOneArg(Real, register_method_name, python_type);
+#else
+      PyObject_CallMethodObjArgs(Real, register_method_name, python_type, NULL)
+#endif
+  ;
+  Py_DECREF(register_method_name);
+  if (!tmp) return -1;
+  Py_DECREF(tmp);
+  return 0;
+}
+
 PyMODINIT_FUNC PyInit__shewchuk(void) {
   PyObject *result;
   if (PyType_Ready(&ExpansionType) < 0) return NULL;
@@ -1686,6 +1703,11 @@ PyMODINIT_FUNC PyInit__shewchuk(void) {
     return NULL;
   }
   if (load_real() < 0) {
+    Py_DECREF(result);
+    return NULL;
+  }
+  if (mark_as_real((PyObject *)&ExpansionType) < 0) {
+    Py_DECREF(Real);
     Py_DECREF(result);
     return NULL;
   }

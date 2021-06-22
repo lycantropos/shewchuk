@@ -22,6 +22,7 @@ except ImportError:
                         Union as _Union)
 
 
+    @_Real.register
     class Expansion:
         __slots__ = '_components',
 
