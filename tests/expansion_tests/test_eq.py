@@ -34,7 +34,7 @@ def test_connection_with_inequality(first: Expansion, second: Real) -> None:
 
 @given(strategies.expansions, strategies.finite_floats)
 def test_float_operand(first: Expansion, second: float) -> None:
-    assert implication(first == second, float(first) == second)
+    assert equivalence(first == second, float(first) == second)
 
 
 @skip_reference_counter_test
