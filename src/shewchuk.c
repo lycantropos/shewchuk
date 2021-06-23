@@ -1188,6 +1188,25 @@ static double Expansion_double(ExpansionObject *self) {
   return sum_components(self->size, self->components);
 }
 
+static PyObject *Expansion_ceil(ExpansionObject *self,
+                                PyObject *Py_UNUSED(args)) {
+  double value = Expansion_double(self);
+  PyObject *result = PyLong_FromDouble(value);
+  if (value > 0.0) {
+    double integer_part;
+    PyObject *increment = PyLong_FromLong(!!modf(value, &integer_part));
+    if (!increment) {
+      Py_DECREF(result);
+      return NULL;
+    }
+    PyObject *tmp = result;
+    result = PyNumber_Add(result, increment);
+    Py_DECREF(tmp);
+    Py_DECREF(increment);
+  }
+  return result;
+}
+
 static PyObject *Expansion_float(ExpansionObject *self) {
   return PyFloat_FromDouble(Expansion_double(self));
 }
@@ -1637,6 +1656,7 @@ static PyGetSetDef Expansion_getset[] = {
 };
 
 static PyMethodDef Expansion_methods[] = {
+    {"__ceil__", (PyCFunction)Expansion_ceil, METH_NOARGS, NULL},
     {"__trunc__", (PyCFunction)Expansion_trunc, METH_NOARGS, NULL},
     {NULL, NULL} /* sentinel */
 };

@@ -13,6 +13,7 @@ except ImportError:
     from functools import reduce as _reduce
     from itertools import (dropwhile as _dropwhile,
                            repeat as _repeat)
+    from math import ceil as _ceil
     from numbers import Real as _Real
     from operator import not_ as _not
     from sys import float_info as _float_info
@@ -59,6 +60,9 @@ except ImportError:
 
         def __bool__(self) -> bool:
             return bool(self._components[-1])
+
+        def __ceil__(self) -> int:
+            return _ceil(self.__float__())
 
         def __eq__(self, other: _Real) -> bool:
             return (self._components == other._components
