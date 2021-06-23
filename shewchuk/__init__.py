@@ -17,8 +17,7 @@ except ImportError:
     from operator import not_ as _not
     from sys import float_info as _float_info
     from typing import (Sequence as _Sequence,
-                        Tuple as _Tuple,
-                        Union as _Union)
+                        Tuple as _Tuple)
 
 
     @_Real.register
