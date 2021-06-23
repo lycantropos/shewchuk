@@ -18,7 +18,7 @@ floats_sextuplets = strategies.lists(finite_floats,
 floats_octuplets = strategies.lists(finite_floats,
                                     min_size=8,
                                     max_size=8)
-reals = strategies.integers() | strategies.fractions() | finite_floats
+reals = strategies.integers() | finite_floats
 
 
 def is_floats_sequence_sum_finite(values: Sequence[float]) -> bool:
