@@ -1117,7 +1117,8 @@ static ExpansionObject *construct_Expansion(PyTypeObject *cls,
   if (result) {
     result->components = components;
     result->size = size;
-  }
+  } else
+    PyMem_Free(components);
   return result;
 }
 
