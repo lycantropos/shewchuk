@@ -13,7 +13,8 @@ except ImportError:
     from functools import reduce as _reduce
     from itertools import (dropwhile as _dropwhile,
                            repeat as _repeat)
-    from math import ceil as _ceil
+    from math import (ceil as _ceil,
+                      floor as _floor)
     from numbers import Real as _Real
     from operator import not_ as _not
     from sys import float_info as _float_info
@@ -73,6 +74,9 @@ except ImportError:
 
         def __float__(self) -> float:
             return sum(self._components)
+
+        def __floor__(self) -> int:
+            return _floor(self.__float__())
 
         def __floordiv__(self, other: _Real) -> _Real:
             return (Expansion(*_floor_divide_components(self._components,
