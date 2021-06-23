@@ -1237,6 +1237,13 @@ static PyObject *Expansion_floor_divide(PyObject *self, PyObject *other) {
   Py_RETURN_NOTIMPLEMENTED;
 }
 
+static Py_hash_t Expansion_hash(ExpansionObject *self) {
+  PyObject *self_float = Expansion_float(self);
+  Py_hash_t result = PyObject_Hash(self_float);
+  Py_DECREF(self_float);
+  return result;
+}
+
 static ExpansionObject *Expansions_multiply(ExpansionObject *self,
                                             ExpansionObject *other) {
   if (self->size < other->size) {
@@ -1641,6 +1648,7 @@ static PyTypeObject ExpansionType = {
     .tp_doc = PyDoc_STR("Represents floating point number expansion."),
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_getset = Expansion_getset,
+    .tp_hash = (hashfunc)Expansion_hash,
     .tp_itemsize = 0,
     .tp_methods = Expansion_methods,
     .tp_name = "shewchuk.Expansion",

@@ -93,6 +93,9 @@ except ImportError:
                           if isinstance(other, _Real)
                           else NotImplemented))
 
+        def __hash__(self) -> int:
+            return hash(self.__float__())
+
         def __le__(self, other: _Real) -> bool:
             return (not _are_components_lesser_than(other._components,
                                                     self._components)
