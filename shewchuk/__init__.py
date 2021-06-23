@@ -33,8 +33,7 @@ except ImportError:
 
         __slots__ = '_components',
 
-        def __new__(cls, *args: _Union[_Real, 'Expansion'],
-                    _compress: bool = True) -> 'Expansion':
+        def __new__(cls, *args: _Real, _compress: bool = True) -> 'Expansion':
             self = super().__new__(cls)
             if len(args) == 1:
                 argument, = args
@@ -53,7 +52,7 @@ except ImportError:
         def __abs__(self) -> 'Expansion':
             return +self if self._components[-1] > 0. else -self
 
-        def __add__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
+        def __add__(self, other: _Real) -> 'Expansion':
             return (Expansion(*_add_components_eliminating_zeros(
                     self._components, other._components))
                     if isinstance(other, Expansion)
@@ -62,7 +61,7 @@ except ImportError:
         def __bool__(self) -> bool:
             return bool(self._components[-1])
 
-        def __eq__(self, other: _Union[_Real, 'Expansion']) -> bool:
+        def __eq__(self, other: _Real) -> bool:
             return (self._components == other._components
                     if isinstance(other, Expansion)
                     else (self.__float__() == other
@@ -72,15 +71,14 @@ except ImportError:
         def __float__(self) -> float:
             return sum(self._components)
 
-        def __floordiv__(self, other: _Union[_Real, 'Expansion']
-                         ) -> _Union[_Real, 'Expansion']:
+        def __floordiv__(self, other: _Real) -> _Real:
             return (Expansion(*_floor_divide_components(self._components,
                                                         float(other)),
                               _compress=False)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        def __ge__(self, other: _Union[_Real, 'Expansion']) -> bool:
+        def __ge__(self, other: _Real) -> bool:
             return (not _are_components_lesser_than(self._components,
                                                     other._components)
                     if isinstance(other, Expansion)
@@ -88,7 +86,7 @@ except ImportError:
                           if isinstance(other, _Real)
                           else NotImplemented))
 
-        def __gt__(self, other: _Union[_Real, 'Expansion']) -> bool:
+        def __gt__(self, other: _Real) -> bool:
             return (_are_components_lesser_than(other._components,
                                                 self._components)
                     if isinstance(other, Expansion)
@@ -96,7 +94,7 @@ except ImportError:
                           if isinstance(other, _Real)
                           else NotImplemented))
 
-        def __le__(self, other: _Union[_Real, 'Expansion']) -> bool:
+        def __le__(self, other: _Real) -> bool:
             return (not _are_components_lesser_than(other._components,
                                                     self._components)
                     if isinstance(other, Expansion)
@@ -104,7 +102,7 @@ except ImportError:
                           if isinstance(other, _Real)
                           else NotImplemented))
 
-        def __lt__(self, other: _Union[_Real, 'Expansion']) -> bool:
+        def __lt__(self, other: _Real) -> bool:
             return (_are_components_lesser_than(self._components,
                                                 other._components)
                     if isinstance(other, Expansion)
@@ -112,7 +110,7 @@ except ImportError:
                           if isinstance(other, _Real)
                           else NotImplemented))
 
-        def __mod__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
+        def __mod__(self, other: _Real) -> 'Expansion':
             return (Expansion(*_modulo_components(self._components,
                                                   float(other)),
                               _compress=False)
@@ -137,7 +135,7 @@ except ImportError:
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        def __mul__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
+        def __mul__(self, other: _Real) -> 'Expansion':
             return (Expansion(
                     *_multiply_components_eliminating_zeros(self._components,
                                                             other._components),
@@ -162,19 +160,18 @@ except ImportError:
             return (type(self).__qualname__
                     + '({})'.format(', '.join(map(str, self._components))))
 
-        def __rsub__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
+        def __rsub__(self, other: _Real) -> 'Expansion':
             return (Expansion(*_subtract_from_double_eliminating_zeros(
                     float(other), self._components))
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        def __rtruediv__(self, other: _Union[_Real, 'Expansion']
-                         ) -> 'Expansion':
+        def __rtruediv__(self, other: _Real) -> 'Expansion':
             return (other / float(self)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        def __sub__(self, other: _Union[_Real, 'Expansion']) -> 'Expansion':
+        def __sub__(self, other: _Real) -> 'Expansion':
             return (Expansion(*_subtract_components_eliminating_zeros(
                     self._components, other._components))
                     if isinstance(other, Expansion)
@@ -184,8 +181,7 @@ except ImportError:
                      if isinstance(other, _Real)
                      else NotImplemented))
 
-        def __truediv__(self, other: _Union[_Real, 'Expansion']
-                        ) -> 'Expansion':
+        def __truediv__(self, other: _Real) -> 'Expansion':
             return (self * (1.0 / float(other))
                     if isinstance(other, _Real)
                     else NotImplemented)
