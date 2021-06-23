@@ -117,24 +117,6 @@ except ImportError:
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        def __rfloordiv__(self, other: _Real) -> _Real:
-            return (other // float(self)
-                    if isinstance(other, _Real)
-                    else NotImplemented)
-
-        def __rmod__(self, other: _Real) -> _Real:
-            return (other % float(self)
-                    if isinstance(other, _Real)
-                    else NotImplemented)
-
-        def __rmul__(self, other: _Real) -> 'Expansion':
-            return (Expansion(
-                    *_scale_components_eliminating_zeros(self._components,
-                                                         float(other)),
-                    _compress=False)
-                    if isinstance(other, _Real)
-                    else NotImplemented)
-
         def __mul__(self, other: _Real) -> 'Expansion':
             return (Expansion(
                     *_multiply_components_eliminating_zeros(self._components,
@@ -159,6 +141,24 @@ except ImportError:
         def __repr__(self) -> str:
             return (type(self).__qualname__
                     + '({})'.format(', '.join(map(str, self._components))))
+
+        def __rfloordiv__(self, other: _Real) -> _Real:
+            return (other // float(self)
+                    if isinstance(other, _Real)
+                    else NotImplemented)
+
+        def __rmod__(self, other: _Real) -> _Real:
+            return (other % float(self)
+                    if isinstance(other, _Real)
+                    else NotImplemented)
+
+        def __rmul__(self, other: _Real) -> 'Expansion':
+            return (Expansion(
+                    *_scale_components_eliminating_zeros(self._components,
+                                                         float(other)),
+                    _compress=False)
+                    if isinstance(other, _Real)
+                    else NotImplemented)
 
         def __rsub__(self, other: _Real) -> 'Expansion':
             return (Expansion(*_subtract_from_double_eliminating_zeros(
