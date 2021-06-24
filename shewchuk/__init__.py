@@ -42,12 +42,12 @@ except ImportError:
                 components = (argument._components
                               if isinstance(argument, Expansion)
                               else [float(argument)])
-            else:
+            elif args:
                 components = [float(component) for component in args]
                 if _compress and len(components) > 1:
                     components = _compress_components(components)
-                elif not components:
-                    components = [0.]
+            else:
+                components = [0.]
             self._components = components
             return self
 
