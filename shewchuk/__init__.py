@@ -152,8 +152,10 @@ except ImportError:
             return pow(self.__float__(), exponent, modulo)
 
         def __radd__(self, other: _Real) -> 'Expansion':
-            return (Expansion(*_add_float_eliminating_zeros(self._components,
-                                                            float(other)))
+            return (Expansion(
+                    *_compress_components_single(_add_float_eliminating_zeros(
+                            self._components, float(other))),
+                    _compress=False)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
