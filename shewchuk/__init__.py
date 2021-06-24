@@ -129,8 +129,11 @@ except ImportError:
 
         def __mul__(self, other: _Real) -> 'Expansion':
             return (Expansion(
-                    *_multiply_components_eliminating_zeros(self._components,
-                                                            other._components),
+                    *(_multiply_components_eliminating_zeros(other._components,
+                                                             self._components)
+                      if len(self._components) < len(other._components)
+                      else _multiply_components_eliminating_zeros(
+                            self._components, other._components)),
                     _compress=False)
                     if isinstance(other, Expansion)
                     else self.__rmul__(other))
@@ -438,12 +441,11 @@ except ImportError:
     def _multiply_components_eliminating_zeros(left: _Sequence[float],
                                                right: _Sequence[float]
                                                ) -> _Sequence[float]:
-        if len(left) < len(right):
-            left, right = right, left
-        return _reduce(_add_components_eliminating_zeros,
-                       [_scale_components_eliminating_zeros(left,
-                                                            right_component)
-                        for right_component in right])
+        return _compress_components_single(
+                _reduce(_add_components_eliminating_zeros,
+                        [_scale_components_eliminating_zeros(left,
+                                                             right_component)
+                         for right_component in right]))
 
 
     def _scale_components_eliminating_zeros(components: _Sequence[float],

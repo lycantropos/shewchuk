@@ -326,6 +326,22 @@ static size_t add_components_eliminating_zeros(size_t left_size, double *left,
   return result_size;
 }
 
+static size_t multiply_components_eliminating_zeros(size_t left_size,
+                                                    double *left,
+                                                    size_t right_size,
+                                                    double *right, double *step,
+                                                    double *result) {
+  size_t result_size =
+      scale_components_eliminating_zeros(left_size, left, right[0], result);
+  for (size_t index = 1; index < right_size; ++index) {
+    size_t step_size =
+        scale_components_eliminating_zeros(left_size, left, right[index], step);
+    result_size = add_components_eliminating_zeros(result_size, result,
+                                                   step_size, step, result);
+  }
+  return compress_components_single(result_size, result);
+}
+
 static size_t subtract_components_eliminating_zeros(size_t minuend_size,
                                                     double *minuend,
                                                     size_t subtrahend_size,
@@ -1290,24 +1306,30 @@ static ExpansionObject *Expansions_multiply(ExpansionObject *self,
     self = other;
     other = tmp;
   }
+  size_t max_size, min_size;
+  double *max_size_components, *min_size_components;
+  if (self->size < other->size) {
+    max_size = other->size;
+    max_size_components = other->components;
+    min_size = self->size;
+    min_size_components = self->components;
+  } else {
+    max_size = self->size;
+    max_size_components = self->components;
+    min_size = other->size;
+    min_size_components = other->components;
+  }
   double *result_components =
-      PyMem_Calloc(2 * self->size * other->size, sizeof(double));
+      PyMem_Calloc(2 * max_size * min_size, sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  double *step_components = PyMem_Calloc(2 * self->size, sizeof(double));
+  double *step_components = PyMem_Calloc(2 * max_size, sizeof(double));
   if (!step_components) {
     PyMem_Free(result_components);
     return (ExpansionObject *)PyErr_NoMemory();
   }
-  size_t result_size = scale_components_eliminating_zeros(
-      self->size, self->components, other->components[0], result_components);
-  for (size_t index = 1; index < other->size; ++index) {
-    size_t step_size = scale_components_eliminating_zeros(
-        self->size, self->components, other->components[index],
-        step_components);
-    result_size = add_components_eliminating_zeros(
-        result_size, result_components, step_size, step_components,
-        result_components);
-  }
+  size_t result_size = multiply_components_eliminating_zeros(
+      max_size, max_size_components, min_size, min_size_components,
+      step_components, result_components);
   PyMem_Free(step_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
