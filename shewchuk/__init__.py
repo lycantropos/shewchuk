@@ -149,13 +149,17 @@ except ImportError:
         def __pow__(self,
                     exponent: _Real,
                     modulo: _Optional[_Real] = None) -> _Real:
-            if isinstance(exponent, int) and exponent > 0:
-                result = Expansion(*_power_components(self._components,
-                                                      exponent),
-                                   _compress=False)
-                return result if modulo is None else result % modulo
-            else:
-                return pow(self.__float__(), exponent, modulo)
+            result = pow(self.__float__(), exponent, modulo)
+            if isinstance(exponent, int) and exponent >= 0:
+                size_upper_bound_exponent = 2 ** (exponent.bit_length() - 1)
+                if (size_upper_bound_exponent < 7
+                        and ((2 * len(self._components))
+                             ** size_upper_bound_exponent) < 128):
+                    result = Expansion(*_power_components(self._components,
+                                                          exponent),
+                                       _compress=False)
+                    return result if modulo is None else result % modulo
+            return result
 
         def __radd__(self, other: _Real) -> 'Expansion':
             return (Expansion(*_add_float_eliminating_zeros(self._components,
@@ -452,11 +456,13 @@ except ImportError:
                           exponent: int) -> _Sequence[float]:
         step = components
         result = [1.0]
-        while exponent:
+        while exponent > 1:
             if exponent & 1:
                 result = _multiply_components_eliminating_zeros(result, step)
             step = _multiply_components_eliminating_zeros(step, step)
             exponent >>= 1
+        if exponent:
+            result = _multiply_components_eliminating_zeros(result, step)
         return result
 
 

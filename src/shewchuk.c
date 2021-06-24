@@ -9,7 +9,7 @@
 #define PY39_OR_MORE PY_VERSION_HEX >= 0x03090000
 
 static size_t bits_count(size_t size) {
-  size_t result = 1;
+  size_t result = 0;
   for (; !!size; size >>= 1) ++result;
   return result;
 }
@@ -33,12 +33,14 @@ static void swap(double **first, double **second) {
 }
 
 static size_t power_size(size_t base, size_t exponent) {
+  if (!exponent) return 1;
   size_t result = 1;
   size_t step = base;
-  for (; !!exponent; exponent >>= 1) {
+  for (; exponent > 1; exponent >>= 1) {
     if (exponent & 1) result *= step;
     step *= step;
   }
+  result *= step;
   return result;
 }
 
@@ -369,9 +371,10 @@ static size_t power_components_eliminating_zeros(
     double **second_buffer, double **step, double **result) {
   (*result)[0] = 1.0;
   size_t result_size = 1;
+  if (!exponent) return result_size;
   size_t step_size = size;
   copy_components(components, size, *step);
-  for (; !!exponent; exponent >>= 1) {
+  for (; exponent > 1; exponent >>= 1) {
     if (exponent & 1) {
       result_size = multiply_components_eliminating_zeros(
           result_size, *result, step_size, *step, *first_buffer,
@@ -382,6 +385,9 @@ static size_t power_components_eliminating_zeros(
         step_size, *step, step_size, *step, *first_buffer, *second_buffer);
     swap(step, second_buffer);
   }
+  result_size = multiply_components_eliminating_zeros(
+      result_size, *result, step_size, *step, *first_buffer, *second_buffer);
+  swap(result, second_buffer);
   return result_size;
 }
 
@@ -1518,10 +1524,8 @@ static PyObject *Expansion_remainder(PyObject *self, PyObject *other) {
 }
 
 static ExpansionObject *Expansion_long_power(ExpansionObject *self,
-                                             size_t exponent) {
-  size_t exponent_bits_count = bits_count(exponent);
-  size_t size_upper_bound = power_size(2, exponent_bits_count - 1) *
-                            power_size(self->size, exponent_bits_count);
+                                             size_t exponent,
+                                             size_t size_upper_bound) {
   double *first_buffer = PyMem_Calloc(size_upper_bound, sizeof(double));
   if (!first_buffer) return (ExpansionObject *)PyErr_NoMemory();
   double *second_buffer = PyMem_Calloc(size_upper_bound, sizeof(double));
@@ -1556,16 +1560,35 @@ static ExpansionObject *Expansion_long_power(ExpansionObject *self,
 static PyObject *Expansion_power(PyObject *self, PyObject *exponent,
                                  PyObject *modulo) {
   if (PyObject_TypeCheck(self, &ExpansionType)) {
-    if (PyLong_Check(exponent)) {
-      long exponent_long = PyLong_AsLong(exponent);
-      if (exponent_long == -1 && PyErr_Occurred()) return NULL;
-      if (exponent_long >= 0)
-        return (PyObject *)Expansion_long_power((ExpansionObject *)self,
-                                                exponent_long);
-    }
     PyObject *self_float = Expansion_float((ExpansionObject *)self);
     PyObject *result = PyNumber_Power(self_float, exponent, modulo);
     Py_DECREF(self_float);
+    if (!result) return NULL;
+    if (PyLong_Check(exponent)) {
+      int overflow_flag;
+      long exponent_long = PyLong_AsLongAndOverflow(exponent, &overflow_flag);
+      if (exponent_long == -1 && PyErr_Occurred())
+        return NULL;
+      else if (!overflow_flag && exponent_long >= 0) {
+        size_t exponent_bits_count = bits_count(exponent_long);
+        size_t size_upper_bound_exponent =
+            power_size(2, exponent_bits_count - 1);
+        if (size_upper_bound_exponent < 7) {
+          size_t size_upper_bound = power_size(
+              2 * ((ExpansionObject *)self)->size, size_upper_bound_exponent);
+          if (size_upper_bound < 128) {
+            Py_DECREF(result);
+            result = (PyObject *)Expansion_long_power(
+                (ExpansionObject *)self, exponent_long, size_upper_bound);
+            if (!!result && modulo != Py_None) {
+              PyObject *tmp = result;
+              result = Expansion_remainder(result, modulo);
+              Py_DECREF(tmp);
+            }
+          }
+        }
+      }
+    }
     return result;
   } else if (PyObject_TypeCheck(exponent, &ExpansionType)) {
     PyObject *exponent_float = Expansion_float((ExpansionObject *)self);
