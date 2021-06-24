@@ -9,6 +9,7 @@ from typing import (Callable,
 import pytest
 from hypothesis.strategies import SearchStrategy as Strategy
 
+import shewchuk
 from shewchuk import Expansion
 
 Strategy = Strategy
@@ -76,7 +77,7 @@ def implication(antecedent: bool, consequent: bool) -> bool:
 
 
 def is_expansion_valid(expansion: Expansion) -> bool:
-    return Expansion(expansion) == expansion
+    return eval(repr(expansion), vars(shewchuk)) == expansion
 
 
 def pack(function: Callable[..., Range]
