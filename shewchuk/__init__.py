@@ -466,7 +466,7 @@ except ImportError:
     def _multiply_components_eliminating_zeros(left: _Sequence[float],
                                                right: _Sequence[float]
                                                ) -> _Sequence[float]:
-        return _compress_components_single(
+        return _compress_components(
                 _reduce(_add_components_eliminating_zeros,
                         [_scale_components_eliminating_zeros(left,
                                                              right_component)

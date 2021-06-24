@@ -345,7 +345,7 @@ static size_t multiply_components_eliminating_zeros(size_t left_size,
     result_size = add_components_eliminating_zeros(result_size, result,
                                                    step_size, step, result);
   }
-  return compress_components_single(result_size, result);
+  return compress_components(result_size, result);
 }
 
 static size_t subtract_components_eliminating_zeros(size_t minuend_size,
