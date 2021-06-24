@@ -5,7 +5,8 @@ from typing import Union
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import skip_reference_counter_test
+from tests.utils import (is_expansion_valid,
+                         skip_reference_counter_test)
 from . import strategies
 
 
@@ -14,6 +15,7 @@ def test_basic(first: Expansion, second: Union[Real, Expansion]) -> None:
     result = first * second
 
     assert isinstance(result, Expansion)
+    assert is_expansion_valid(result)
 
 
 @given(strategies.expansions, strategies.reals)
