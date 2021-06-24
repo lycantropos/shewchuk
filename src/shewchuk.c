@@ -214,13 +214,13 @@ double sum_components(size_t size, double *components) {
   return result;
 }
 
-static size_t add_double_eliminating_zeros(size_t left_size, double *left,
-                                           double right, double *result) {
+static size_t add_double_eliminating_zeros(size_t size, double *components,
+                                           double value, double *result) {
   size_t result_size = 0;
-  double accumulator = right;
-  for (size_t index = 0; index < left_size; index++) {
+  double accumulator = value;
+  for (size_t index = 0; index < size; index++) {
     double tail;
-    two_add(accumulator, left[index], &accumulator, &tail);
+    two_add(accumulator, components[index], &accumulator, &tail);
     if (!!tail) result[result_size++] = tail;
   }
   if (!!accumulator || !result_size) result[result_size++] = accumulator;
