@@ -439,7 +439,7 @@ except ImportError:
         for component in iterator:
             result = _add_float_eliminating_zeros(result, component % value)
         result[-1] %= value
-        return result
+        return _compress_components_single(result)
 
 
     def _power_components(components: _Sequence[float],

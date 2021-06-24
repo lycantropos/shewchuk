@@ -1459,6 +1459,7 @@ static ExpansionObject *Expansion_double_remainder(ExpansionObject *self,
         double_remainder(self->components[index], other), result_components);
   result_components[result_size - 1] =
       double_remainder(result_components[result_size - 1], other);
+  result_size = compress_components_single(result_size, result_components);
   return construct_Expansion(&ExpansionType, result_components, result_size);
 }
 
