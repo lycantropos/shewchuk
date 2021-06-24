@@ -1342,6 +1342,7 @@ static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
   size_t result_size = scale_components_eliminating_zeros(
       self->size, self->components, other, result_components);
+  result_size = compress_components_single(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_components, result_size);
