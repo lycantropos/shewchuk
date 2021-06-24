@@ -18,7 +18,8 @@ except ImportError:
     from numbers import Real as _Real
     from operator import not_ as _not
     from sys import float_info as _float_info
-    from typing import (Sequence as _Sequence,
+    from typing import (Optional as _Optional,
+                        Sequence as _Sequence,
                         Tuple as _Tuple)
 
 
@@ -145,6 +146,17 @@ except ImportError:
         def __pos__(self) -> 'Expansion':
             return self
 
+        def __pow__(self,
+                    exponent: _Real,
+                    modulo: _Optional[_Real] = None) -> _Real:
+            if isinstance(exponent, int) and exponent > 0:
+                result = Expansion(*_power_components(self._components,
+                                                      exponent),
+                                   _compress=False)
+                return result if modulo is None else result % modulo
+            else:
+                return pow(self.__float__(), exponent, modulo)
+
         def __radd__(self, other: _Real) -> 'Expansion':
             return (Expansion(*_add_float_eliminating_zeros(self._components,
                                                             float(other)))
@@ -171,6 +183,11 @@ except ImportError:
                                                          float(other)),
                     _compress=False)
                     if isinstance(other, _Real)
+                    else NotImplemented)
+
+        def __rpow__(self, base: _Real) -> _Real:
+            return (base ** self.__float__()
+                    if isinstance(base, _Real)
                     else NotImplemented)
 
         def __rsub__(self, other: _Real) -> 'Expansion':
@@ -428,6 +445,18 @@ except ImportError:
         for component in iterator:
             result = _add_float_eliminating_zeros(result, component % value)
         result[-1] %= value
+        return result
+
+
+    def _power_components(components: _Sequence[float],
+                          exponent: int) -> _Sequence[float]:
+        step = components
+        result = [1.0]
+        while exponent:
+            if exponent & 1:
+                result = _multiply_components_eliminating_zeros(result, step)
+            step = _multiply_components_eliminating_zeros(step, step)
+            exponent >>= 1
         return result
 
 

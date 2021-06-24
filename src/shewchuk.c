@@ -8,6 +8,12 @@
 #define EPSILON (DBL_EPSILON / 2.0)
 #define PY39_OR_MORE PY_VERSION_HEX >= 0x03090000
 
+static size_t bits_count(size_t size) {
+  size_t result = 1;
+  for (; !!size; size >>= 1) ++result;
+  return result;
+}
+
 static int to_sign(double value) { return value > 0.0 ? 1 : (!value ? 0 : -1); }
 
 static double double_remainder(double dividend, double divisor) {
@@ -17,6 +23,22 @@ static double double_remainder(double dividend, double divisor) {
     if ((divisor < 0) != (result < 0)) result += divisor;
   } else
     result = copysign(0.0, divisor);
+  return result;
+}
+
+static void swap(double **first, double **second) {
+  double *temp = *first;
+  *first = *second;
+  *second = temp;
+}
+
+static size_t power_size(size_t base, size_t exponent) {
+  size_t result = 1;
+  size_t step = base;
+  for (; !!exponent; exponent >>= 1) {
+    if (exponent & 1) result *= step;
+    step *= step;
+  }
   return result;
 }
 
@@ -342,6 +364,27 @@ static size_t multiply_components_eliminating_zeros(size_t left_size,
   return compress_components_single(result_size, result);
 }
 
+static size_t power_components_eliminating_zeros(
+    size_t size, double *components, size_t exponent, double **first_buffer,
+    double **second_buffer, double **step, double **result) {
+  (*result)[0] = 1.0;
+  size_t result_size = 1;
+  size_t step_size = size;
+  copy_components(components, size, *step);
+  for (; !!exponent; exponent >>= 1) {
+    if (exponent & 1) {
+      result_size = multiply_components_eliminating_zeros(
+          result_size, *result, step_size, *step, *first_buffer,
+          *second_buffer);
+      swap(result, second_buffer);
+    }
+    step_size = multiply_components_eliminating_zeros(
+        step_size, *step, step_size, *step, *first_buffer, *second_buffer);
+    swap(step, second_buffer);
+  }
+  return result_size;
+}
+
 static size_t subtract_components_eliminating_zeros(size_t minuend_size,
                                                     double *minuend,
                                                     size_t subtrahend_size,
@@ -442,12 +485,6 @@ static size_t scale_by_squared_length(size_t size, double *components,
   return add_components_eliminating_zeros(
       dx_squared_components_size, dx_squared_components,
       dy_squared_components_size, dy_squared_components, result);
-}
-
-static void swap(double **first, double **second) {
-  double *temp = *first;
-  *first = *second;
-  *second = temp;
 }
 
 static size_t add_extras(
@@ -1480,6 +1517,65 @@ static PyObject *Expansion_remainder(PyObject *self, PyObject *other) {
   Py_RETURN_NOTIMPLEMENTED;
 }
 
+static ExpansionObject *Expansion_long_power(ExpansionObject *self,
+                                             size_t exponent) {
+  size_t exponent_bits_count = bits_count(exponent);
+  size_t size_upper_bound = power_size(2, exponent_bits_count - 1) *
+                            power_size(self->size, exponent_bits_count);
+  double *first_buffer = PyMem_Calloc(size_upper_bound, sizeof(double));
+  if (!first_buffer) return (ExpansionObject *)PyErr_NoMemory();
+  double *second_buffer = PyMem_Calloc(size_upper_bound, sizeof(double));
+  if (!second_buffer) {
+    PyMem_Free(first_buffer);
+    return (ExpansionObject *)PyErr_NoMemory();
+  }
+  double *step_components = PyMem_Calloc(size_upper_bound, sizeof(double));
+  if (!step_components) {
+    PyMem_Free(first_buffer);
+    PyMem_Free(second_buffer);
+    return (ExpansionObject *)PyErr_NoMemory();
+  }
+  double *result_components = PyMem_Calloc(size_upper_bound, sizeof(double));
+  if (!result_components) {
+    PyMem_Free(first_buffer);
+    PyMem_Free(second_buffer);
+    PyMem_Free(step_components);
+    return (ExpansionObject *)PyErr_NoMemory();
+  }
+  size_t result_size = power_components_eliminating_zeros(
+      self->size, self->components, exponent, &first_buffer, &second_buffer,
+      &step_components, &result_components);
+  PyMem_Free(first_buffer);
+  PyMem_Free(second_buffer);
+  PyMem_Free(step_components);
+  if (!PyMem_Resize(result_components, double, result_size))
+    return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(&ExpansionType, result_components, result_size);
+}
+
+static PyObject *Expansion_power(PyObject *self, PyObject *exponent,
+                                 PyObject *modulo) {
+  if (PyObject_TypeCheck(self, &ExpansionType)) {
+    if (PyLong_Check(exponent)) {
+      long exponent_long = PyLong_AsLong(exponent);
+      if (exponent_long == -1 && PyErr_Occurred()) return NULL;
+      if (exponent_long >= 0)
+        return (PyObject *)Expansion_long_power((ExpansionObject *)self,
+                                                exponent_long);
+    }
+    PyObject *self_float = Expansion_float((ExpansionObject *)self);
+    PyObject *result = PyNumber_Power(self_float, exponent, modulo);
+    Py_DECREF(self_float);
+    return result;
+  } else if (PyObject_TypeCheck(exponent, &ExpansionType)) {
+    PyObject *exponent_float = Expansion_float((ExpansionObject *)self);
+    PyObject *result = PyNumber_Power(self, exponent_float, modulo);
+    Py_DECREF(exponent_float);
+    return result;
+  }
+  Py_RETURN_NOTIMPLEMENTED;
+}
+
 static PyObject *Expansion_repr(ExpansionObject *self) {
   PyObject *result;
   if (self->size > 1) {
@@ -1676,6 +1772,7 @@ static PyNumberMethods Expansion_as_number = {
     .nb_multiply = Expansion_multiply,
     .nb_negative = (unaryfunc)Expansion_negative,
     .nb_positive = (unaryfunc)Expansion_positive,
+    .nb_power = Expansion_power,
     .nb_remainder = Expansion_remainder,
     .nb_subtract = Expansion_subtract,
     .nb_true_divide = Expansion_true_divide,
