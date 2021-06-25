@@ -81,8 +81,7 @@ except ImportError:
 
         def __floordiv__(self, other: _Real) -> _Real:
             return (Expansion(*_floor_divide_components(self._components,
-                                                        float(other)),
-                              _compress=False)
+                                                        float(other)))
                     if isinstance(other, _Real)
                     else NotImplemented)
 
@@ -123,19 +122,18 @@ except ImportError:
 
         def __mod__(self, other: _Real) -> 'Expansion':
             return (Expansion(*_modulo_components(self._components,
-                                                  float(other)),
-                              _compress=False)
+                                                  float(other)))
                     if isinstance(other, _Real)
                     else NotImplemented)
 
         def __mul__(self, other: _Real) -> 'Expansion':
             return (Expansion(
-                    *(_multiply_components_eliminating_zeros(other._components,
-                                                             self._components)
-                      if len(self._components) < len(other._components)
-                      else _multiply_components_eliminating_zeros(
-                            self._components, other._components)),
-                    _compress=False)
+                    *_compress_components(
+                            _multiply_components_eliminating_zeros(
+                                    other._components, self._components)
+                            if len(self._components) < len(other._components)
+                            else _multiply_components_eliminating_zeros(
+                                    self._components, other._components)))
                     if isinstance(other, Expansion)
                     else self.__rmul__(other))
 
@@ -152,10 +150,8 @@ except ImportError:
             return pow(self.__float__(), exponent, modulo)
 
         def __radd__(self, other: _Real) -> 'Expansion':
-            return (Expansion(
-                    *_compress_components_single(_add_float_eliminating_zeros(
-                            self._components, float(other))),
-                    _compress=False)
+            return (Expansion(*_add_float_eliminating_zeros(self._components,
+                                                            float(other)))
                     if isinstance(other, _Real)
                     else NotImplemented)
 
@@ -431,6 +427,8 @@ except ImportError:
                 result = result[1 - offset:]
                 break
             result[-offset] = candidate
+        result = _compress_components_single(result)
+        result[-1] //= value
         return result
 
 
@@ -441,20 +439,6 @@ except ImportError:
         for component in iterator:
             result = _add_float_eliminating_zeros(result, component % value)
         result[-1] %= value
-        return _compress_components_single(result)
-
-
-    def _power_components(components: _Sequence[float],
-                          exponent: int) -> _Sequence[float]:
-        step = components
-        result = [1.0]
-        while exponent > 1:
-            if exponent & 1:
-                result = _multiply_components_eliminating_zeros(result, step)
-            step = _multiply_components_eliminating_zeros(step, step)
-            exponent >>= 1
-        if exponent:
-            result = _multiply_components_eliminating_zeros(result, step)
         return result
 
 
@@ -468,11 +452,10 @@ except ImportError:
     def _multiply_components_eliminating_zeros(left: _Sequence[float],
                                                right: _Sequence[float]
                                                ) -> _Sequence[float]:
-        return _compress_components(
-                _reduce(_add_components_eliminating_zeros,
-                        [_scale_components_eliminating_zeros(left,
-                                                             right_component)
-                         for right_component in right]))
+        return _reduce(_add_components_eliminating_zeros,
+                       [_scale_components_eliminating_zeros(left,
+                                                            right_component)
+                        for right_component in right])
 
 
     def _scale_components_eliminating_zeros(components: _Sequence[float],

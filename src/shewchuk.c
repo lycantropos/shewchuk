@@ -345,7 +345,7 @@ static size_t multiply_components_eliminating_zeros(size_t left_size,
     result_size = add_components_eliminating_zeros(result_size, result,
                                                    step_size, step, result);
   }
-  return compress_components(result_size, result);
+  return result_size;
 }
 
 static size_t subtract_components_eliminating_zeros(size_t minuend_size,
@@ -1148,6 +1148,7 @@ static ExpansionObject *Expansions_add(ExpansionObject *self,
   size_t result_size = add_components_eliminating_zeros(
       self->size, self->components, other->size, other->components,
       result_components);
+  result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_components, result_size);
@@ -1159,7 +1160,7 @@ static ExpansionObject *Expansion_double_add(ExpansionObject *self,
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
   size_t result_size = add_double_eliminating_zeros(
       self->size, self->components, other, result_components);
-  result_size = compress_components_single(result_size, result_components);
+  result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_components, result_size);
@@ -1271,6 +1272,9 @@ static ExpansionObject *Expansion_double_floor_divide(ExpansionObject *self,
     result_components[index] = component;
   }
   size_t result_size = offset - 1;
+  result_size = compress_components_single(result_size, result_components);
+  result_components[result_size - 1] =
+      floor(result_components[result_size - 1] / other);
   return construct_Expansion(&ExpansionType, result_components, result_size);
 }
 
@@ -1332,6 +1336,7 @@ static ExpansionObject *Expansions_multiply(ExpansionObject *self,
       max_size, max_size_components, min_size, min_size_components,
       step_components, result_components);
   PyMem_Free(step_components);
+  result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_components, result_size);
@@ -1343,7 +1348,7 @@ static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
   size_t result_size = scale_components_eliminating_zeros(
       self->size, self->components, other, result_components);
-  result_size = compress_components_single(result_size, result_components);
+  result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_components, result_size);
@@ -1586,6 +1591,7 @@ static ExpansionObject *Expansions_subtract(ExpansionObject *self,
   size_t result_size = subtract_components_eliminating_zeros(
       self->size, self->components, other->size, other->components,
       result_components);
+  result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_components, result_size);
@@ -1597,6 +1603,7 @@ static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
   size_t result_size = subtract_double_eliminating_zeros(
       self->size, self->components, other, result_components);
+  result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_components, result_size);
@@ -1608,6 +1615,7 @@ static ExpansionObject *double_Expansion_subtract(double self,
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
   size_t result_size = subtract_from_double_eliminating_zeros(
       self, other->size, other->components, result_components);
+  result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(Py_TYPE(other), result_components, result_size);
