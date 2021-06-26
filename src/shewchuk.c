@@ -87,6 +87,7 @@ static void square(double value, double *result_head, double *result_tail) {
   *result_head = head;
   *result_tail = tail;
 }
+
 static void two_subtract(double left, double right, double *result_head,
                          double *result_tail) {
   two_add(left, -right, result_head, result_tail);
