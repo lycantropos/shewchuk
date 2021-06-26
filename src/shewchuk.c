@@ -1,7 +1,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <float.h>
-#include <math.h>
+#include <pymath.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <structmember.h>
