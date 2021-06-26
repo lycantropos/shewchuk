@@ -1249,44 +1249,13 @@ static PyObject *Expansion_floor(ExpansionObject *self,
   return result;
 }
 
-static ExpansionObject *Expansion_double_floor_divide(ExpansionObject *self,
-                                                      double other) {
-  if (!other) {
-    PyErr_SetString(PyExc_ZeroDivisionError, "Zero divisor.");
-    return NULL;
-  }
-  double *result_components = PyMem_Calloc(self->size, sizeof(double));
-  result_components[self->size - 1] =
-      floor(self->components[self->size - 1] / other);
-  size_t offset = 2;
-  for (; offset <= self->size; ++offset) {
-    size_t index = self->size - offset;
-    double component = floor(self->components[index] / other);
-    if (!component) {
-      copy_components(&result_components[index + 1], offset - 1,
-                      result_components);
-      if (!PyMem_Resize(result_components, double, offset - 1))
-        return (ExpansionObject *)PyErr_NoMemory();
-      break;
-    }
-    result_components[index] = component;
-  }
-  size_t result_size = offset - 1;
-  result_size = compress_components_single(result_size, result_components);
-  result_components[result_size - 1] =
-      floor(result_components[result_size - 1] / other);
-  return construct_Expansion(&ExpansionType, result_components, result_size);
-}
-
 static PyObject *Expansion_floor_divide(PyObject *self, PyObject *other) {
   if (PyObject_TypeCheck(self, &ExpansionType)) {
-    if (PyObject_IsInstance(other, Real)) {
-      double other_value = PyFloat_AsDouble(other);
-      return other_value == -1.0 && PyErr_Occurred()
-                 ? NULL
-                 : (PyObject *)Expansion_double_floor_divide(
-                       (ExpansionObject *)self, other_value);
-    }
+    PyObject *self_float = Expansion_float((ExpansionObject *)self);
+    if (!self_float) return NULL;
+    PyObject *result = PyNumber_FloorDivide(self_float, other);
+    Py_DECREF(self_float);
+    return result;
   } else if (PyObject_IsInstance(self, Real)) {
     PyObject *other_float = Expansion_float((ExpansionObject *)other);
     if (!other_float) return NULL;

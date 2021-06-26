@@ -80,10 +80,7 @@ except ImportError:
             return _floor(self.__float__())
 
         def __floordiv__(self, other: _Real) -> _Real:
-            return (Expansion(*_floor_divide_components(self._components,
-                                                        float(other)))
-                    if isinstance(other, _Real)
-                    else NotImplemented)
+            return self.__float__() // other
 
         def __ge__(self, other: _Real) -> bool:
             return (not _are_components_lesser_than(self._components,
