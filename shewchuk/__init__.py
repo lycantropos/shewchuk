@@ -125,12 +125,11 @@ except ImportError:
 
         def __mul__(self, other: _Real) -> 'Expansion':
             return (Expansion(
-                    *_compress_components(
-                            _multiply_components_eliminating_zeros(
-                                    other._components, self._components)
-                            if len(self._components) < len(other._components)
-                            else _multiply_components_eliminating_zeros(
-                                    self._components, other._components)))
+                    *(_multiply_components_eliminating_zeros(
+                            other._components, self._components)
+                      if len(self._components) < len(other._components)
+                      else _multiply_components_eliminating_zeros(
+                            self._components, other._components)))
                     if isinstance(other, Expansion)
                     else self.__rmul__(other))
 
@@ -169,8 +168,7 @@ except ImportError:
         def __rmul__(self, other: _Real) -> 'Expansion':
             return (Expansion(
                     *_scale_components_eliminating_zeros(self._components,
-                                                         float(other)),
-                    _compress=False)
+                                                         float(other)))
                     if isinstance(other, _Real)
                     else NotImplemented)
 
