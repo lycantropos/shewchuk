@@ -214,22 +214,22 @@ except ImportError:
             return int(self.__float__())
 
 
-    def incircle_test(first_x: float,
-                      first_y: float,
-                      second_x: float,
-                      second_y: float,
-                      third_x: float,
-                      third_y: float,
-                      fourth_x: float,
-                      fourth_y: float) -> int:
+    def incircle_test(_first_x: float,
+                      _first_y: float,
+                      _second_x: float,
+                      _second_y: float,
+                      _third_x: float,
+                      _third_y: float,
+                      _fourth_x: float,
+                      _fourth_y: float) -> int:
         """
         Computes location of point relative to a circle formed by three others
         given their coordinates.
         """
-        return _to_sign(_incircle_determinant_estimation(first_x, first_y,
-                                                         second_x, second_y,
-                                                         third_x, third_y,
-                                                         fourth_x, fourth_y))
+        return _to_sign(_incircle_determinant_estimation(_first_x, _first_y,
+                                                         _second_x, _second_y,
+                                                         _third_x, _third_y,
+                                                         _fourth_x, _fourth_y))
 
 
     def kind(vertex_x: float,
