@@ -1116,6 +1116,7 @@ double vectors_cross_product_impl(double first_start_x, double first_start_y,
       second_start_y, second_end_x, second_end_y, upper_bound, result);
 }
 
+static PyObject *PyObject_round = NULL;
 static PyObject *Real = NULL;
 
 typedef struct {
@@ -1548,6 +1549,30 @@ static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
     Py_RETURN_NOTIMPLEMENTED;
 }
 
+static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
+  PyObject *self_float = Expansion_float(self);
+  if (!self_float) return NULL;
+  Py_ssize_t size = PyTuple_Size(args);
+  if (size < 0) {
+    Py_DECREF(self_float);
+    return NULL;
+  }
+  PyObject *full_args = PyTuple_New(size + 1);
+  if (!full_args) {
+    Py_DECREF(self_float);
+    return NULL;
+  }
+  PyTuple_SET_ITEM(full_args, 0, self_float);
+  for (Py_ssize_t index = 0; index < size; ++index) {
+    PyObject *argument = PyTuple_GET_ITEM(args, index);
+    Py_INCREF(argument);
+    PyTuple_SET_ITEM(full_args, index + 1, argument);
+  }
+  PyObject *result = PyObject_CallObject(PyObject_round, full_args);
+  Py_DECREF(full_args);
+  return result;
+}
+
 static ExpansionObject *Expansions_subtract(ExpansionObject *self,
                                             ExpansionObject *other) {
   double *result_components =
@@ -1693,6 +1718,7 @@ static PyGetSetDef Expansion_getset[] = {
 static PyMethodDef Expansion_methods[] = {
     {"__ceil__", (PyCFunction)Expansion_ceil, METH_NOARGS, NULL},
     {"__floor__", (PyCFunction)Expansion_floor, METH_NOARGS, NULL},
+    {"__round__", (PyCFunction)Expansion_round, METH_VARARGS, NULL},
     {"__trunc__", (PyCFunction)Expansion_trunc, METH_NOARGS, NULL},
     {NULL, NULL} /* sentinel */
 };
@@ -1810,6 +1836,14 @@ static PyModuleDef _shewchuk_module = {
     .m_size = -1,
 };
 
+static int load_PyObject_round() {
+  PyObject *builtins_module = PyImport_ImportModule("builtins");
+  if (!builtins_module) return -1;
+  PyObject_round = PyObject_GetAttrString(builtins_module, "round");
+  Py_DECREF(builtins_module);
+  return !PyObject_round ? -1 : 0;
+}
+
 static int load_real() {
   PyObject *numbers_module = PyImport_ImportModule("numbers");
   if (!numbers_module) return -1;
@@ -1845,11 +1879,17 @@ PyMODINIT_FUNC PyInit__shewchuk(void) {
     Py_DECREF(result);
     return NULL;
   }
+  if (load_PyObject_round() < 0) {
+    Py_DECREF(result);
+    return NULL;
+  }
   if (load_real() < 0) {
+    Py_DECREF(PyObject_round);
     Py_DECREF(result);
     return NULL;
   }
   if (mark_as_real((PyObject *)&ExpansionType) < 0) {
+    Py_DECREF(PyObject_round);
     Py_DECREF(Real);
     Py_DECREF(result);
     return NULL;

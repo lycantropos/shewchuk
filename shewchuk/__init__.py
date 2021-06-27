@@ -172,6 +172,9 @@ except ImportError:
                     if isinstance(other, _Real)
                     else NotImplemented)
 
+        def __round__(self, precision: _Optional[int] = None) -> _Real:
+            return round(self.__float__(), precision)
+
         def __rpow__(self, base: _Real) -> _Real:
             return (base ** self.__float__()
                     if isinstance(base, _Real)
