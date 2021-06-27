@@ -1,7 +1,8 @@
 shewchuk
 ========
 
-[![](https://dev.azure.com/lycantropos/shewchuk/_apis/build/status/lycantropos.shewchuk?branchName=master)](https://dev.azure.com/lycantropos/shewchuk/_build/latest?branchName=master "Azure Pipelines")
+[![](https://dev.azure.com/lycantropos/shewchuk/_apis/build/status/lycantropos.shewchuk?branchName=master)](https://dev.azure.com/lycantropos/shewchuk/_build/latest?definitionId=37&branchName=master "Azure Pipelines")
+[![](https://readthedocs.org/projects/shewchuk/badge/?version=latest)](https://shewchuk.readthedocs.io/en/latest/?badge=latest "Documentation")
 [![](https://codecov.io/gh/lycantropos/shewchuk/branch/master/graph/badge.svg)](https://codecov.io/gh/lycantropos/shewchuk "Codecov")
 [![](https://img.shields.io/github/license/lycantropos/shewchuk.svg)](https://github.com/lycantropos/shewchuk/blob/master/LICENSE "License")
 [![](https://badge.fury.io/py/shewchuk.svg)](https://badge.fury.io/py/shewchuk "PyPI")
