@@ -232,16 +232,17 @@ except ImportError:
                                                          _fourth_x, _fourth_y))
 
 
-    def kind(vertex_x: float,
-             vertex_y: float,
-             first_ray_point_x: float,
-             first_ray_point_y: float,
-             second_ray_point_x: float,
-             second_ray_point_y: float) -> int:
+    def kind(_vertex_x: float,
+             _vertex_y: float,
+             _first_ray_point_x: float,
+             _first_ray_point_y: float,
+             _second_ray_point_x: float,
+             _second_ray_point_y: float) -> int:
         """Computes kind of angle given its endpoints coordinates."""
         return _to_sign(_vectors_cross_product_estimation(
-                vertex_x, vertex_y, first_ray_point_x, first_ray_point_y,
-                -vertex_y, vertex_x, -second_ray_point_y, second_ray_point_x))
+                _vertex_x, _vertex_y, _first_ray_point_x, _first_ray_point_y,
+                -_vertex_y, _vertex_x, -_second_ray_point_y,
+                _second_ray_point_x))
 
 
     def orientation(start_x: float,

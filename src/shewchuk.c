@@ -1817,7 +1817,9 @@ static PyMethodDef _shewchuk_methods[] = {
                "Computes location  of point relative to a circle formed by "
                "three others given their coordinates.")},
     {"kind", kind, METH_VARARGS,
-     PyDoc_STR("Computes kind of angle given its endpoints coordinates.")},
+     PyDoc_STR("kind(vertex_x, vertex_y, first_ray_point_x, first_ray_point_y, "
+               "second_ray_point_x, second_ray_point_y, /)\n--\n\n"
+               "Computes kind of angle given its endpoints coordinates.")},
     {"orientation", orientation, METH_VARARGS,
      PyDoc_STR("Computes orientation of point relative to segment given their "
                "coordinates.")},
