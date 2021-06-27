@@ -1123,11 +1123,6 @@ typedef struct {
   double *components;
 } ExpansionObject;
 
-typedef struct {
-  PyObject_HEAD double head;
-  double tail;
-} QuadrupleObject;
-
 static ExpansionObject *construct_Expansion(PyTypeObject *cls,
                                             double *components, size_t size) {
   ExpansionObject *result = (ExpansionObject *)(cls->tp_alloc(cls, 0));
