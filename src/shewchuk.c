@@ -1821,7 +1821,9 @@ static PyMethodDef _shewchuk_methods[] = {
                "second_ray_point_x, second_ray_point_y, /)\n--\n\n"
                "Computes kind of angle given its endpoints coordinates.")},
     {"orientation", orientation, METH_VARARGS,
-     PyDoc_STR("Computes orientation of point relative to segment given their "
+     PyDoc_STR("orientation(start_x, start_y, end_x, end_y, point_x, point_y, "
+               "/)\n--\n\n"
+               "Computes orientation of point relative to segment given their "
                "coordinates.")},
     {"vectors_cross_product", vectors_cross_product, METH_VARARGS,
      PyDoc_STR("Computes cross product of two vectors given their endpoints "

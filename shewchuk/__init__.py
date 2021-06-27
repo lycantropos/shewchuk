@@ -245,20 +245,20 @@ except ImportError:
                 _second_ray_point_x))
 
 
-    def orientation(start_x: float,
-                    start_y: float,
-                    end_x: float,
-                    end_y: float,
-                    point_x: float,
-                    point_y: float) -> int:
+    def orientation(_start_x: float,
+                    _start_y: float,
+                    _end_x: float,
+                    _end_y: float,
+                    _point_x: float,
+                    _point_y: float) -> int:
         """
         Computes orientation of point relative to segment
         given their coordinates.
         """
-        return _to_sign(_vectors_cross_product_estimation(start_x, start_y,
-                                                          end_x, end_y,
-                                                          start_x, start_y,
-                                                          point_x, point_y))
+        return _to_sign(_vectors_cross_product_estimation(_start_x, _start_y,
+                                                          _end_x, _end_y,
+                                                          _start_x, _start_y,
+                                                          _point_x, _point_y))
 
 
     def vectors_cross_product(first_start_x: float,
