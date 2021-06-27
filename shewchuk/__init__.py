@@ -261,24 +261,24 @@ except ImportError:
                                                           _point_x, _point_y))
 
 
-    def vectors_cross_product(first_start_x: float,
-                              first_start_y: float,
-                              first_end_x: float,
-                              first_end_y: float,
-                              second_start_x: float,
-                              second_start_y: float,
-                              second_end_x: float,
-                              second_end_y: float) -> Expansion:
+    def vectors_cross_product(_first_start_x: float,
+                              _first_start_y: float,
+                              _first_end_x: float,
+                              _first_end_y: float,
+                              _second_start_x: float,
+                              _second_start_y: float,
+                              _second_end_x: float,
+                              _second_end_y: float) -> Expansion:
         """
         Computes cross product of two vectors
         given their endpoints coordinates.
         """
-        return Expansion(*_vectors_cross_product(first_start_x, first_start_y,
-                                                 first_end_x, first_end_y,
-                                                 second_start_x,
-                                                 second_start_y, second_end_x,
-                                                 second_end_y),
-                         _compress=False)
+        return Expansion(
+                *_vectors_cross_product(_first_start_x, _first_start_y,
+                                        _first_end_x, _first_end_y,
+                                        _second_start_x, _second_start_y,
+                                        _second_end_x, _second_end_y),
+                _compress=False)
 
 
     def vectors_dot_product(first_start_x: float,
