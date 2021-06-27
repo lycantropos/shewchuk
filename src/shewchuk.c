@@ -1832,7 +1832,10 @@ static PyMethodDef _shewchuk_methods[] = {
                "Computes cross product of two vectors given their endpoints "
                "coordinates.")},
     {"vectors_dot_product", vectors_dot_product, METH_VARARGS,
-     PyDoc_STR("Computes dot product of two vectors given their endpoints "
+     PyDoc_STR("vectors_dot_product(first_start_x, first_start_y, first_end_x, "
+               "first_end_y, second_start_x, second_start_y, second_end_x, "
+               "second_end_y, /)\n--\n\n"
+               "Computes dot product of two vectors given their endpoints "
                "coordinates.")},
     {NULL, NULL},
 };
