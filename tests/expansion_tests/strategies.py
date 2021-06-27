@@ -12,6 +12,7 @@ negative_integers = strategies.integers(max_value=-1)
 ones = strategies.just(1)
 small_positive_integers = strategies.integers(1, 5)
 small_non_negative_integers = strategies.just(0) | small_positive_integers
+precisions = strategies.none() | strategies.integers(-10, 10)
 finite_floats = finite_floats
 floats_quadruplets = strategies.lists(finite_floats,
                                       min_size=4,
