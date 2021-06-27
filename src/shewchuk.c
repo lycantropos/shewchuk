@@ -1711,7 +1711,7 @@ static PyGetSetDef Expansion_getset[] = {
     {"real", (getter)Expansion_getreal, (setter)NULL,
      "The real part of the expansion.", NULL},
     {"imag", (getter)Expansion_getimag, (setter)NULL,
-     "The imaginary part of the expansion", NULL},
+     "The imaginary part of the expansion.", NULL},
     {NULL} /* Sentinel */
 };
 

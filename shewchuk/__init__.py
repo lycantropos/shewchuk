@@ -25,12 +25,16 @@ except ImportError:
 
     @_Real.register
     class Expansion:
+        """Represents floating point number expansion."""
+
         @property
         def real(self) -> _Real:
+            """The imaginary part of the expansion."""
             return self
 
         @property
         def imag(self) -> _Real:
+            """The real part of the expansion."""
             return 0
 
         __slots__ = '_components',
