@@ -1034,11 +1034,8 @@ size_t adaptive_vectors_cross_product_impl(
       (minuend_x * subtrahend_y_tail + subtrahend_y * minuend_x_tail) -
       (minuend_y * subtrahend_x_tail + subtrahend_x * minuend_y_tail);
   estimation += extra;
-  if ((estimation >= threshold) || (-estimation >= threshold)) {
-    size_t result_size =
-        add_double_eliminating_zeros(4, first_components, extra, result);
-    return result_size;
-  }
+  if ((estimation >= threshold) || (-estimation >= threshold))
+    return add_double_eliminating_zeros(4, first_components, extra, result);
   double minuend_x_subtrahend_y_head, minuend_x_subtrahend_y_tail;
   two_multiply(minuend_x_tail, subtrahend_y, &minuend_x_subtrahend_y_head,
                &minuend_x_subtrahend_y_tail);
