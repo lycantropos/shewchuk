@@ -1812,10 +1812,9 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
 
 static PyMethodDef _shewchuk_methods[] = {
     {"incircle_test", incircle_test, METH_VARARGS,
-     PyDoc_STR("incircle_test(first_x, first_y, second_x, second_y, third_x, third_y, fourth_x, fourth_y, /)\n"
-    "--\n"
-    "\n"
-    "Computes location  of point relative to a circle formed by "
+     PyDoc_STR("incircle_test(first_x, first_y, second_x, second_y, third_x, "
+               "third_y, fourth_x, fourth_y, /)\n--\n\n"
+               "Computes location  of point relative to a circle formed by "
                "three others given their coordinates.")},
     {"kind", kind, METH_VARARGS,
      PyDoc_STR("Computes kind of angle given its endpoints coordinates.")},
