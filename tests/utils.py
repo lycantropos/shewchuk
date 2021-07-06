@@ -25,21 +25,21 @@ def equivalence(left_statement: bool, right_statement: bool) -> bool:
     return left_statement is right_statement
 
 
-def exact_incircle_test(first_x: float,
+def exact_incircle_test(point_x: float,
+                        point_y: float,
+                        first_x: float,
                         first_y: float,
                         second_x: float,
                         second_y: float,
                         third_x: float,
-                        third_y: float,
-                        fourth_x: float,
-                        fourth_y: float) -> int:
-    fourth_x, fourth_y = Fraction(fourth_x), Fraction(fourth_y)
-    first_dx, first_dy = (Fraction(first_x) - fourth_x,
-                          Fraction(first_y) - fourth_y)
-    second_dx, second_dy = (Fraction(second_x) - fourth_x,
-                            Fraction(second_y) - fourth_y)
-    third_dx, third_dy = (Fraction(third_x) - fourth_x,
-                          Fraction(third_y) - fourth_y)
+                        third_y: float) -> int:
+    point_x, point_y = Fraction(point_x), Fraction(point_y)
+    first_dx, first_dy = (Fraction(first_x) - point_x,
+                          Fraction(first_y) - point_y)
+    second_dx, second_dy = (Fraction(second_x) - point_x,
+                            Fraction(second_y) - point_y)
+    third_dx, third_dy = (Fraction(third_x) - point_x,
+                          Fraction(third_y) - point_y)
     return to_sign((first_dx * first_dx + first_dy * first_dy)
                    * (second_dx * third_dy - second_dy * third_dx)
                    - (second_dx * second_dx + second_dy * second_dy)
