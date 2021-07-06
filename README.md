@@ -53,11 +53,11 @@ Usage
 -----
 ```python
 >>> from shewchuk import incircle_test
->>> incircle_test(0, 0, 2, 0, 0, 2, 3, 3) == -1
+>>> incircle_test(3, 3, 0, 0, 2, 0, 0, 2) == -1
 True
->>> incircle_test(0, 0, 2, 0, 2, 2, 0, 2) == 0
+>>> incircle_test(2, 2, 0, 0, 2, 0, 0, 2) == 0
 True
->>> incircle_test(0, 0, 2, 0, 0, 2, 1, 1) == 1
+>>> incircle_test(1, 1, 0, 0, 2, 0, 0, 2) == 1
 True
 >>> from shewchuk import kind
 >>> kind(1, 0, 0, 0, 2, 0) == -1
