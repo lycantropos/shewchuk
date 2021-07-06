@@ -713,18 +713,18 @@ static size_t add_extras(
   return final_size;
 }
 
-double adaptive_incircle_determinant_estimation(double first_x, double first_y,
+double adaptive_incircle_determinant_estimation(double point_x, double point_y,
+                                                double first_x, double first_y,
                                                 double second_x,
                                                 double second_y, double third_x,
-                                                double third_y, double fourth_x,
-                                                double fourth_y,
+                                                double third_y,
                                                 double upper_bound) {
-  double first_dx = first_x - fourth_x;
-  double second_dx = second_x - fourth_x;
-  double third_dx = third_x - fourth_x;
-  double first_dy = first_y - fourth_y;
-  double second_dy = second_y - fourth_y;
-  double third_dy = third_y - fourth_y;
+  double first_dx = first_x - point_x;
+  double second_dx = second_x - point_x;
+  double third_dx = third_x - point_x;
+  double first_dy = first_y - point_y;
+  double second_dy = second_y - point_y;
+  double third_dy = third_y - point_y;
   double second_third_cross_product[4];
   cross_product(second_dx, second_dy, third_dx, third_dy,
                 &second_third_cross_product[3], &second_third_cross_product[2],
@@ -759,12 +759,12 @@ double adaptive_incircle_determinant_estimation(double first_x, double first_y,
       (4.0 + 48.0 * EPSILON) * EPSILON;
   double threshold = first_upper_bound_coefficient * upper_bound;
   if ((result >= threshold) || (-result >= threshold)) return result;
-  double first_dx_tail = two_subtract_tail(first_x, fourth_x, first_dx);
-  double first_dy_tail = two_subtract_tail(first_y, fourth_y, first_dy);
-  double second_dx_tail = two_subtract_tail(second_x, fourth_x, second_dx);
-  double second_dy_tail = two_subtract_tail(second_y, fourth_y, second_dy);
-  double third_dx_tail = two_subtract_tail(third_x, fourth_x, third_dx);
-  double third_dy_tail = two_subtract_tail(third_y, fourth_y, third_dy);
+  double first_dx_tail = two_subtract_tail(first_x, point_x, first_dx);
+  double first_dy_tail = two_subtract_tail(first_y, point_y, first_dy);
+  double second_dx_tail = two_subtract_tail(second_x, point_x, second_dx);
+  double second_dy_tail = two_subtract_tail(second_y, point_y, second_dy);
+  double third_dx_tail = two_subtract_tail(third_x, point_x, third_dx);
+  double third_dy_tail = two_subtract_tail(third_y, point_y, third_dy);
   if (!first_dx_tail && !second_dx_tail && !third_dx_tail && !first_dy_tail &&
       !second_dy_tail && !third_dy_tail)
     return result;
@@ -828,16 +828,16 @@ double adaptive_incircle_determinant_estimation(double first_x, double first_y,
   return final_components[final_size - 1];
 }
 
-double incircle_determinant_estimation(double first_x, double first_y,
+double incircle_determinant_estimation(double point_x, double point_y,
+                                       double first_x, double first_y,
                                        double second_x, double second_y,
-                                       double third_x, double third_y,
-                                       double fourth_x, double fourth_y) {
-  double first_dx = first_x - fourth_x;
-  double second_dx = second_x - fourth_x;
-  double third_dx = third_x - fourth_x;
-  double first_dy = first_y - fourth_y;
-  double second_dy = second_y - fourth_y;
-  double third_dy = third_y - fourth_y;
+                                       double third_x, double third_y) {
+  double first_dx = first_x - point_x;
+  double second_dx = second_x - point_x;
+  double third_dx = third_x - point_x;
+  double first_dy = first_y - point_y;
+  double second_dy = second_y - point_y;
+  double third_dy = third_y - point_y;
   double second_dx_third_dy = second_dx * third_dy;
   double third_dx_second_dy = third_dx * second_dy;
   double first_squared_distance = first_dx * first_dx + first_dy * first_dy;
@@ -863,8 +863,8 @@ double incircle_determinant_estimation(double first_x, double first_y,
   double threshold = upper_bound_coefficient * upper_bound;
   if ((result > threshold) || (-result > threshold)) return result;
   return adaptive_incircle_determinant_estimation(
-      first_x, first_y, second_x, second_y, third_x, third_y, fourth_x,
-      fourth_y, upper_bound);
+      point_x, point_y, first_x, first_y, second_x, second_y, third_x, third_y,
+      upper_bound);
 }
 
 double adaptive_vectors_cross_product_estimation(
@@ -1724,14 +1724,13 @@ static PyTypeObject ExpansionType = {
 };
 
 static PyObject *incircle_test(PyObject *Py_UNUSED(self), PyObject *args) {
-  double first_x, first_y, second_x, second_y, third_x, third_y, fourth_x,
-      fourth_y;
-  if (!PyArg_ParseTuple(args, "dddddddd", &first_x, &first_y, &second_x,
-                        &second_y, &third_x, &third_y, &fourth_x, &fourth_y))
+  double point_x, point_y, first_x, first_y, second_x, second_y, third_x,
+      third_y;
+  if (!PyArg_ParseTuple(args, "dddddddd", &point_x, &point_y, &first_x,
+                        &first_y, &second_x, &second_y, &third_x, &third_y))
     return NULL;
-  double estimation =
-      incircle_determinant_estimation(first_x, first_y, second_x, second_y,
-                                      third_x, third_y, fourth_x, fourth_y);
+  double estimation = incircle_determinant_estimation(
+      point_x, point_y, first_x, first_y, second_x, second_y, third_x, third_y);
   return PyLong_FromLong(to_sign(estimation));
 }
 
@@ -1796,8 +1795,8 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
 
 static PyMethodDef _shewchuk_methods[] = {
     {"incircle_test", incircle_test, METH_VARARGS,
-     PyDoc_STR("incircle_test(first_x, first_y, second_x, second_y, third_x, "
-               "third_y, fourth_x, fourth_y, /)\n--\n\n"
+     PyDoc_STR("incircle_test(point_x, point_y, first_x, first_y, second_x, "
+               "second_y, third_x, third_y, /)\n--\n\n"
                "Computes location  of point relative to a circle formed by "
                "three others given their coordinates.")},
     {"kind", kind, METH_VARARGS,

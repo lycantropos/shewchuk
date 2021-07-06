@@ -214,22 +214,22 @@ except ImportError:
             return int(self.__float__())
 
 
-    def incircle_test(_first_x: float,
+    def incircle_test(_point_x: float,
+                      _point_y: float,
+                      _first_x: float,
                       _first_y: float,
                       _second_x: float,
                       _second_y: float,
                       _third_x: float,
-                      _third_y: float,
-                      _fourth_x: float,
-                      _fourth_y: float) -> int:
+                      _third_y: float) -> int:
         """
         Computes location of point relative to a circle formed by three others
         given their coordinates.
         """
-        return _to_sign(_incircle_determinant_estimation(_first_x, _first_y,
+        return _to_sign(_incircle_determinant_estimation(_point_x, _point_y,
+                                                         _first_x, _first_y,
                                                          _second_x, _second_y,
-                                                         _third_x, _third_y,
-                                                         _fourth_x, _fourth_y))
+                                                         _third_x, _third_y))
 
 
     def kind(_vertex_x: float,
@@ -890,25 +890,25 @@ except ImportError:
 
 
     def _adaptive_incircle_determinant_estimation(
+            point_x: float,
+            point_y: float,
             first_x: float,
             first_y: float,
             second_x: float,
             second_y: float,
             third_x: float,
             third_y: float,
-            fourth_x: float,
-            fourth_y: float,
             upper_bound: float,
             second_upper_bound_coefficient: float
             = (44.0 + 576.0 * _EPSILON) * _EPSILON * _EPSILON,
             result_coefficient: float = (3.0 + 8.0 * _EPSILON) * _EPSILON
     ) -> float:
-        first_dx = first_x - fourth_x
-        second_dx = second_x - fourth_x
-        third_dx = third_x - fourth_x
-        first_dy = first_y - fourth_y
-        second_dy = second_y - fourth_y
-        third_dy = third_y - fourth_y
+        first_dx = first_x - point_x
+        second_dx = second_x - point_x
+        third_dx = third_x - point_x
+        first_dy = first_y - point_y
+        second_dy = second_y - point_y
+        third_dy = third_y - point_y
         first_second_cross_product = _cross_product(first_dx, first_dy,
                                                     second_dx, second_dy)
         second_third_cross_product = _cross_product(second_dx, second_dy,
@@ -929,12 +929,12 @@ except ImportError:
         first_upper_bound_coefficient = (4.0 + 48.0 * _EPSILON) * _EPSILON
         threshold = first_upper_bound_coefficient * upper_bound
         if (result >= threshold) or (-result >= threshold): return result
-        first_dx_tail = _two_subtract_tail(first_x, fourth_x, first_dx)
-        first_dy_tail = _two_subtract_tail(first_y, fourth_y, first_dy)
-        second_dx_tail = _two_subtract_tail(second_x, fourth_x, second_dx)
-        second_dy_tail = _two_subtract_tail(second_y, fourth_y, second_dy)
-        third_dx_tail = _two_subtract_tail(third_x, fourth_x, third_dx)
-        third_dy_tail = _two_subtract_tail(third_y, fourth_y, third_dy)
+        first_dx_tail = _two_subtract_tail(first_x, point_x, first_dx)
+        first_dy_tail = _two_subtract_tail(first_y, point_y, first_dy)
+        second_dx_tail = _two_subtract_tail(second_x, point_x, second_dx)
+        second_dy_tail = _two_subtract_tail(second_y, point_y, second_dy)
+        third_dx_tail = _two_subtract_tail(third_x, point_x, third_dx)
+        third_dy_tail = _two_subtract_tail(third_y, point_y, third_dy)
         if (not first_dx_tail and not second_dx_tail and not third_dx_tail
                 and not first_dy_tail and not second_dy_tail
                 and not third_dy_tail):
@@ -1005,23 +1005,23 @@ except ImportError:
         return final_components[-1]
 
 
-    def _incircle_determinant_estimation(first_x: float,
+    def _incircle_determinant_estimation(point_x: float,
+                                         point_y: float,
+                                         first_x: float,
                                          first_y: float,
                                          second_x: float,
                                          second_y: float,
                                          third_x: float,
                                          third_y: float,
-                                         fourth_x: float,
-                                         fourth_y: float,
                                          upper_bound_coefficient: float
                                          = (10.0 + 96.0 * _EPSILON) * _EPSILON
                                          ) -> float:
-        first_dx = first_x - fourth_x
-        second_dx = second_x - fourth_x
-        third_dx = third_x - fourth_x
-        first_dy = first_y - fourth_y
-        second_dy = second_y - fourth_y
-        third_dy = third_y - fourth_y
+        first_dx = first_x - point_x
+        second_dx = second_x - point_x
+        third_dx = third_x - point_x
+        first_dy = first_y - point_y
+        second_dy = second_y - point_y
+        third_dy = third_y - point_y
         second_dx_third_dy = second_dx * third_dy
         third_dx_second_dy = third_dx * second_dy
         first_squared_distance = first_dx * first_dx + first_dy * first_dy
@@ -1048,8 +1048,8 @@ except ImportError:
                 if (result > threshold) or (-result > threshold)
                 else
                 _adaptive_incircle_determinant_estimation(
-                        first_x, first_y, second_x, second_y, third_x, third_y,
-                        fourth_x, fourth_y, upper_bound))
+                        point_x, point_y, first_x, first_y, second_x, second_y,
+                        third_x, third_y, upper_bound))
 
 
     def _vectors_cross_product_estimation(first_start_x: float,
