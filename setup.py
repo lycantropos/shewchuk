@@ -29,6 +29,7 @@ parameters = dict(
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
             'Programming Language :: Python :: 3.9',
+            'Programming Language :: Python :: 3.10',
             'Programming Language :: Python :: Implementation :: CPython',
             'Programming Language :: Python :: Implementation :: PyPy',
         ],
@@ -37,9 +38,32 @@ parameters = dict(
         python_requires='>=3.6')
 if platform.python_implementation() == 'CPython':
     from glob import glob
-    from setuptools import Extension
+    from typing import Any
 
-    parameters.update(ext_modules=[Extension('_' + shewchuk.__name__,
+    from setuptools import (Command,
+                            Extension)
+    from setuptools.command.build_ext import build_ext
+    from setuptools.command.develop import develop
+
+
+    class Develop(develop):
+        def reinitialize_command(self,
+                                 name: str,
+                                 reinit_subcommands: int = 0,
+                                 **kwargs: Any) -> Command:
+            if name == build_ext.__name__:
+                kwargs.setdefault('debug', 1)
+            result = super().reinitialize_command(name, reinit_subcommands,
+                                                  **kwargs)
+            if name == build_ext.__name__:
+                result.ensure_finalized()
+                for extension in result.extensions:
+                    extension.undef_macros.append(('NDEBUG',))
+            return result
+
+
+    parameters.update(cmdclass={develop.__name__: Develop},
+                      ext_modules=[Extension('_' + shewchuk.__name__,
                                              glob('src/*.c'))],
                       zip_safe=False)
 setup(**parameters)
