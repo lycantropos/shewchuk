@@ -1395,20 +1395,20 @@ static PyObject *Expansion_float(ExpansionObject *self) {
 
 static PyObject *Expansion_floor(ExpansionObject *self,
                                  PyObject *Py_UNUSED(args)) {
-  double value = Expansion_double(self);
-  PyObject *result = PyLong_FromDouble(value);
-  if (value < 0.0) {
-    double integer_part;
-    PyObject *increment = PyLong_FromLong(!!modf(value, &integer_part));
-    if (!increment) {
-      Py_DECREF(result);
-      return NULL;
-    }
-    PyObject *tmp = result;
-    result = PyNumber_Add(result, increment);
-    Py_DECREF(tmp);
-    Py_DECREF(increment);
+  PyObject *result = to_components_integer_part(self->size, self->components);
+  if (!result) return NULL;
+  double fractional_part =
+      to_components_fractional_part(self->size, self->components);
+  assert(fabs(fractional_part) < 1.0);
+  PyObject *fractional_part_floor = PyLong_FromLong(floor(fractional_part));
+  if (!fractional_part_floor) {
+    Py_DECREF(result);
+    return NULL;
   }
+  PyObject *tmp = result;
+  result = PyNumber_InPlaceAdd(result, fractional_part_floor);
+  Py_DECREF(tmp);
+  Py_DECREF(fractional_part_floor);
   return result;
 }
 

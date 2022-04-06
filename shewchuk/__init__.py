@@ -117,7 +117,8 @@ except ImportError:
             return sum(self._components)
 
         def __floor__(self) -> int:
-            return _floor(self.__float__())
+            return (_to_components_integer_part(self._components)
+                    + _floor(_to_components_fractional_part(self._components)))
 
         def __floordiv__(self, other: _Real) -> _Real:
             return self.__float__() // other
@@ -309,6 +310,7 @@ except ImportError:
             if not component_fractional_part:
                 break
             result += component_fractional_part
+        assert abs(result) < 1.0, components
         return result
 
 
