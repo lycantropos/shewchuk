@@ -97,17 +97,8 @@ except ImportError:
             return bool(self._components[-1])
 
         def __ceil__(self) -> int:
-            accumulator = 0.0
-            result = 0
-            for component in reversed(self._components):
-                accumulator += component % 1.0
-                component_integer_part = int(component)
-                if not component_integer_part:
-                    break
-                result += component_integer_part
-            assert abs(accumulator) < 1.0, self
-            result += _ceil(accumulator)
-            return result
+            return (_to_components_integer_part(self._components)
+                    + _ceil(_to_components_fractional_part(self._components)))
 
         def __eq__(self, other: _Union['Expansion', float, int]) -> bool:
             return (self._components == other._components

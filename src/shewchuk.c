@@ -1372,39 +1372,20 @@ static double Expansion_double(ExpansionObject *self) {
 
 static PyObject *Expansion_ceil(ExpansionObject *self,
                                 PyObject *Py_UNUSED(args)) {
-  const size_t size = self->size;
-  double *const components = self->components;
-  double component = components[size - 1];
-  PyObject *result = PyLong_FromDouble(component);
+  PyObject *result = to_components_integer_part(self->size, self->components);
   if (!result) return NULL;
-  double _;
-  double accumulator = modf(component, &_);
-  for (size_t offset = 2; offset <= self->size; ++offset) {
-    component = components[size - offset];
-    accumulator += modf(component, &_);
-    PyObject *component_integer_part = PyLong_FromDouble(component);
-    if (!component_integer_part) {
-      Py_DECREF(result);
-      return NULL;
-    }
-    if (PyObject_Not(component_integer_part)) {
-      Py_DECREF(component_integer_part);
-      break;
-    }
-    PyObject *tmp = result;
-    result = PyNumber_InPlaceAdd(result, component_integer_part);
-    Py_DECREF(tmp);
-    Py_DECREF(component_integer_part);
-    if (!result) return NULL;
-  }
-  assert(fabs(accumulator) < 1.0);
-  PyObject *tmp = PyLong_FromLong(ceil(accumulator));
-  if (!tmp) {
+  double fractional_part =
+      to_components_fractional_part(self->size, self->components);
+  assert(fabs(fractional_part) < 1.0);
+  PyObject *fractional_part_ceil = PyLong_FromLong(ceil(fractional_part));
+  if (!fractional_part_ceil) {
     Py_DECREF(result);
     return NULL;
   }
-  result = PyNumber_InPlaceAdd(result, tmp);
+  PyObject *tmp = result;
+  result = PyNumber_InPlaceAdd(result, fractional_part_ceil);
   Py_DECREF(tmp);
+  Py_DECREF(fractional_part_ceil);
   return result;
 }
 
