@@ -278,7 +278,7 @@ except ImportError:
                     else NotImplemented)
 
         def __trunc__(self) -> int:
-            return int(self.__float__())
+            return _to_components_integer_part(self._components)
 
 
     def _are_components_lesser_than_float(components: _Sequence[float],

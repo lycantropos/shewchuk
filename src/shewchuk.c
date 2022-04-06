@@ -1907,7 +1907,7 @@ static PyObject *Expansion_true_divide(PyObject *self, PyObject *other) {
 
 static PyObject *Expansion_trunc(ExpansionObject *self,
                                  PyObject *Py_UNUSED(args)) {
-  return PyLong_FromDouble(Expansion_double(self));
+  return to_components_integer_part(self->size, self->components);
 }
 
 static PyNumberMethods Expansion_as_number = {
