@@ -26,16 +26,20 @@ static void swap(double **first, double **second) {
   *second = temp;
 }
 
-static int are_components_equal(size_t left_size, double *left,
-                                size_t right_size, double *right) {
+static int are_components_equal(const size_t left_size,
+                                const double *const left,
+                                const size_t right_size,
+                                const double *const right) {
   if (left_size != right_size) return 0;
   for (size_t offset = 1; offset <= left_size; ++offset)
     if (left[left_size - offset] != right[left_size - offset]) return 0;
   return 1;
 }
 
-static int are_components_lesser_than(size_t left_size, double *left,
-                                      size_t right_size, double *right) {
+static int are_components_lesser_than(const size_t left_size,
+                                      const double *const left,
+                                      const size_t right_size,
+                                      const double *const right) {
   size_t min_size = left_size < right_size ? left_size : right_size;
   for (size_t offset = 1; offset <= min_size; ++offset)
     if (left[left_size - offset] < right[right_size - offset])
@@ -107,6 +111,108 @@ static int Integral_to_components(PyObject *integral, size_t *size,
   }
   PyMem_Free(reversed_components);
   return 0;
+}
+
+static double to_components_fractional_part(const size_t size,
+                                            double *const components) {
+  double _;
+  double result = 0.0;
+  for (size_t index = 0; index < size; ++index) {
+    double component_fractional_part = modf(components[index], &_);
+    if (!component_fractional_part) break;
+    result += component_fractional_part;
+  }
+  return result;
+}
+
+static PyObject *to_components_integer_part(const size_t size,
+                                            double *const components) {
+  PyObject *result = PyLong_FromDouble(components[size - 1]);
+  if (!result) return NULL;
+  for (size_t offset = 2; offset <= size; ++offset) {
+    PyObject *component_integer_part =
+        PyLong_FromDouble(components[size - offset]);
+    if (!component_integer_part) {
+      Py_DECREF(result);
+      return NULL;
+    }
+    if (PyObject_Not(component_integer_part)) break;
+    PyObject *tmp = result;
+    result = PyNumber_InPlaceAdd(result, component_integer_part);
+    Py_DECREF(tmp);
+    Py_DECREF(component_integer_part);
+    if (!result) return NULL;
+  }
+  return result;
+}
+
+static int do_components_have_fractional_part(const size_t size,
+                                              double *const components) {
+  double _;
+  return !!modf(components[0], &_);
+}
+
+static int are_components_equal_to_Integral(const size_t size,
+                                            double *const components,
+                                            PyObject *integral) {
+  if (do_components_have_fractional_part(size, components)) return 0;
+  PyObject *components_integer_part =
+      to_components_integer_part(size, components);
+  int result =
+      PyObject_RichCompareBool(components_integer_part, integral, Py_EQ);
+  Py_DECREF(components_integer_part);
+  return result;
+}
+
+static int are_components_lesser_than_Integral(const size_t size,
+                                               double *const components,
+                                               PyObject *integral) {
+  PyObject *components_integer_part =
+      to_components_integer_part(size, components);
+  int components_integer_part_is_lesser_than_integral =
+      PyObject_RichCompareBool(components_integer_part, integral, Py_LT);
+  return components_integer_part_is_lesser_than_integral < 0
+             ? components_integer_part_is_lesser_than_integral
+             : (components_integer_part_is_lesser_than_integral ||
+                (PyObject_RichCompareBool(components_integer_part, integral,
+                                          Py_EQ) &&
+                 to_components_fractional_part(size, components) < 0.0));
+}
+
+static int is_Integral_lesser_than_components(PyObject *integral,
+                                              const size_t size,
+                                              double *const components) {
+  PyObject *components_integer_part =
+      to_components_integer_part(size, components);
+  int components_integer_part_is_greater_than_integral =
+      PyObject_RichCompareBool(components_integer_part, integral, Py_GT);
+  return components_integer_part_is_greater_than_integral < 0
+             ? components_integer_part_is_greater_than_integral
+             : (components_integer_part_is_greater_than_integral ||
+                (PyObject_RichCompareBool(components_integer_part, integral,
+                                          Py_EQ) &&
+                 to_components_fractional_part(size, components) > 0.0));
+}
+
+static int are_components_equal_to_double(const size_t size,
+                                          double *const components,
+                                          double value) {
+  return size == 1 && components[0] == value;
+}
+
+static int are_components_lesser_than_double(const size_t size,
+                                             double *const components,
+                                             double value) {
+  return components[size - 1] < value ||
+         (size > 1 && components[size - 1] == value &&
+          components[size - 2] < 0.0);
+}
+
+static int is_double_lesser_than_components(double value, const size_t size,
+                                            double *const components) {
+  return components[size - 1] > value ||
+         (size > 1 && components[size - 1] == value &&
+          components[size - 2] > 0.0);
 }
 
 static void fast_two_add(double left, double right, double *result_head,
@@ -1605,21 +1711,66 @@ static PyObject *Expansions_richcompare(ExpansionObject *self,
   }
 }
 
-static PyObject *Expansion_PyObject_richcompare(ExpansionObject *self,
+static PyObject *Expansion_Integral_richcompare(ExpansionObject *self,
                                                 PyObject *other, int op) {
-  PyObject *self_float = Expansion_float(self);
-  if (!self_float) return NULL;
-  PyObject *result = PyObject_RichCompare(self_float, other, op);
-  Py_DECREF(self_float);
-  return result;
+  switch (op) {
+    case Py_EQ:
+      return PyBool_FromLong(are_components_equal_to_Integral(
+          self->size, self->components, other));
+    case Py_GE:
+      return PyBool_FromLong(!are_components_lesser_than_Integral(
+          self->size, self->components, other));
+    case Py_GT:
+      return PyBool_FromLong(is_Integral_lesser_than_components(
+          other, self->size, self->components));
+    case Py_LE:
+      return PyBool_FromLong(!is_Integral_lesser_than_components(
+          other, self->size, self->components));
+    case Py_LT:
+      return PyBool_FromLong(are_components_lesser_than_Integral(
+          self->size, self->components, other));
+    case Py_NE:
+      return PyBool_FromLong(!are_components_equal_to_Integral(
+          self->size, self->components, other));
+    default:
+      Py_RETURN_NOTIMPLEMENTED;
+  }
+}
+
+static PyObject *Expansion_double_richcompare(ExpansionObject *self,
+                                              double other, int op) {
+  switch (op) {
+    case Py_EQ:
+      return PyBool_FromLong(
+          are_components_equal_to_double(self->size, self->components, other));
+    case Py_GE:
+      return PyBool_FromLong(!are_components_lesser_than_double(
+          self->size, self->components, other));
+    case Py_GT:
+      return PyBool_FromLong(is_double_lesser_than_components(
+          other, self->size, self->components));
+    case Py_LE:
+      return PyBool_FromLong(!is_double_lesser_than_components(
+          other, self->size, self->components));
+    case Py_LT:
+      return PyBool_FromLong(are_components_lesser_than_double(
+          self->size, self->components, other));
+    case Py_NE:
+      return PyBool_FromLong(
+          !are_components_equal_to_double(self->size, self->components, other));
+    default:
+      Py_RETURN_NOTIMPLEMENTED;
+  }
 }
 
 static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
                                        int op) {
   if (PyObject_TypeCheck(other, &ExpansionType))
     return Expansions_richcompare(self, (ExpansionObject *)other, op);
-  else if (PyObject_IsInstance(other, Real))
-    return Expansion_PyObject_richcompare(self, other, op);
+  else if (PyFloat_Check(other))
+    return Expansion_double_richcompare(self, PyFloat_AS_DOUBLE(other), op);
+  else if (PyObject_IsInstance(other, Integral))
+    return Expansion_Integral_richcompare(self, other, op);
   else
     Py_RETURN_NOTIMPLEMENTED;
 }

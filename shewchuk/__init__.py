@@ -109,12 +109,18 @@ except ImportError:
             result += _ceil(accumulator)
             return result
 
-        def __eq__(self, other: _Real) -> bool:
+        def __eq__(self, other: _Union['Expansion', float, int]) -> bool:
             return (self._components == other._components
                     if isinstance(other, Expansion)
-                    else (self.__float__() == other
-                          if isinstance(other, _Real)
-                          else NotImplemented))
+                    else (len(self._components) == 1
+                          and self._components[0] == other
+                          if isinstance(other, float)
+                          else
+                          (self._components[0] % 1. == 0.
+                           and (_to_components_integer_part(self._components)
+                                == other)
+                           if isinstance(other, _Integral)
+                           else NotImplemented)))
 
         def __float__(self) -> float:
             return sum(self._components)
@@ -125,40 +131,62 @@ except ImportError:
         def __floordiv__(self, other: _Real) -> _Real:
             return self.__float__() // other
 
-        def __ge__(self, other: _Real) -> bool:
+        def __ge__(self, other: _Union['Expansion', float, int]) -> bool:
             return (not _are_components_lesser_than(self._components,
                                                     other._components)
                     if isinstance(other, Expansion)
-                    else (self.__float__() >= other
-                          if isinstance(other, _Real)
-                          else NotImplemented))
+                    else
+                    (not _are_components_lesser_than_float(self._components,
+                                                           other)
+                     if isinstance(other, float)
+                     else
+                     (not _are_components_lesser_than_integral(
+                             self._components, other)
+                      if isinstance(other, _Integral)
+                      else NotImplemented)))
 
-        def __gt__(self, other: _Real) -> bool:
+        def __gt__(self, other: _Union['Expansion', float, int]) -> bool:
             return (_are_components_lesser_than(other._components,
                                                 self._components)
                     if isinstance(other, Expansion)
-                    else (self.__float__() > other
-                          if isinstance(other, _Real)
-                          else NotImplemented))
+                    else
+                    (_is_float_lesser_than_components(other, self._components)
+                     if isinstance(other, float)
+                     else
+                     (_is_integral_lesser_than_components(other,
+                                                          self._components)
+                      if isinstance(other, _Integral)
+                      else NotImplemented)))
 
         def __hash__(self) -> int:
             return hash(self.__float__())
 
-        def __le__(self, other: _Real) -> bool:
+        def __le__(self, other: _Union['Expansion', float, int]) -> bool:
             return (not _are_components_lesser_than(other._components,
                                                     self._components)
                     if isinstance(other, Expansion)
-                    else (self.__float__() <= other
-                          if isinstance(other, _Real)
-                          else NotImplemented))
+                    else
+                    (not _is_float_lesser_than_components(other,
+                                                          self._components)
+                     if isinstance(other, float)
+                     else
+                     (not _is_integral_lesser_than_components(other,
+                                                              self._components)
+                      if isinstance(other, _Integral)
+                      else NotImplemented)))
 
-        def __lt__(self, other: _Real) -> bool:
+        def __lt__(self, other: _Union['Expansion', float, int]) -> bool:
             return (_are_components_lesser_than(self._components,
                                                 other._components)
                     if isinstance(other, Expansion)
-                    else (self.__float__() < other
-                          if isinstance(other, _Real)
-                          else NotImplemented))
+                    else
+                    (_are_components_lesser_than_float(self._components, other)
+                     if isinstance(other, float)
+                     else
+                     (_are_components_lesser_than_integral(self._components,
+                                                           other)
+                      if isinstance(other, _Integral)
+                      else NotImplemented)))
 
         def __mod__(self, other: _Real) -> 'Expansion':
             return (Expansion(*_modulo_components(self._components,
@@ -251,6 +279,56 @@ except ImportError:
 
         def __trunc__(self) -> int:
             return int(self.__float__())
+
+
+    def _are_components_lesser_than_float(components: _Sequence[float],
+                                          value: float) -> bool:
+        return components[-1] < value or (len(components) > 1
+                                          and components[-1] == value
+                                          and components[-2] < 0.)
+
+
+    def _are_components_lesser_than_integral(components: _Sequence[float],
+                                             integral: _Integral) -> bool:
+        components_integer_part = _to_components_integer_part(components);
+        return (components_integer_part < integral
+                or (components_integer_part == integral
+                    and _to_components_fractional_part(components) < 0.))
+
+
+    def _is_float_lesser_than_components(value: float,
+                                         components: _Sequence[float]) -> bool:
+        return value < components[-1] or (len(components) > 1
+                                          and components[-1] == value
+                                          and components[-2] > 0.)
+
+
+    def _is_integral_lesser_than_components(components: _Sequence[float],
+                                            integral: _Integral) -> bool:
+        components_integer_part = _to_components_integer_part(components);
+        return (components_integer_part < integral
+                or (components_integer_part == integral
+                    and _to_components_fractional_part(components) < 0.))
+
+
+    def _to_components_fractional_part(components: _Sequence[float]) -> float:
+        result = 0.
+        for component in components:
+            component_fractional_part = component % 1.
+            if not component_fractional_part:
+                break
+            result += component_fractional_part
+        return result
+
+
+    def _to_components_integer_part(components: _Sequence[float]) -> int:
+        result = 0
+        for component in reversed(components):
+            component_integer_part = int(component)
+            if not component_integer_part:
+                break
+            result += component_integer_part
+        return result
 
 
     def incircle_test(_point_x: float,
