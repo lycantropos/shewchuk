@@ -1387,7 +1387,7 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
       components = (double *)PyMem_Malloc(sizeof(double));
       if (!components) return PyErr_NoMemory();
       double value = PyFloat_AsDouble(argument);
-      if (value == 1.0 && PyErr_Occurred()) return NULL;
+      if (value == -1.0 && PyErr_Occurred()) return NULL;
       components[0] = value;
       size = 1;
     }
