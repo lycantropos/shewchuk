@@ -16,12 +16,14 @@ except ImportError:
     from math import (ceil as _ceil,
                       floor as _floor,
                       modf as _modf)
-    from numbers import Real as _Real
+    from numbers import (Integral as _Integral,
+                         Real as _Real)
     from operator import not_ as _not
     from sys import float_info as _float_info
     from typing import (Optional as _Optional,
                         Sequence as _Sequence,
-                        Tuple as _Tuple)
+                        Tuple as _Tuple,
+                        Union as _Union)
 
 
     @_Real.register
@@ -40,15 +42,41 @@ except ImportError:
 
         __slots__ = '_components',
 
-        def __new__(cls, *args: _Real, _compress: bool = True) -> 'Expansion':
+        def __new__(cls,
+                    *args: _Union['Expansion', float, int],
+                    _compress: bool = True) -> 'Expansion':
             self = super().__new__(cls)
             if len(args) == 1:
                 argument, = args
-                components = (argument._components
-                              if isinstance(argument, Expansion)
-                              else [float(argument)])
+                if isinstance(argument, Expansion):
+                    components = argument._components
+                elif isinstance(argument, float):
+                    components = [argument]
+                elif isinstance(argument, _Integral):
+                    argument = int(argument)
+                    components = []
+                    while argument:
+                        component = float(argument)
+                        components.append(component)
+                        argument -= int(component)
+                else:
+                    raise TypeError('Argument should be of type '
+                                    '{expected!r}, `float` or `int`, '
+                                    'but found: {actual!r}.'
+                                    .format(expected=Expansion,
+                                            actual=type(argument)))
             elif args:
-                components = [float(component) for component in args]
+                try:
+                    invalid_argument = next(argument
+                                            for argument in args
+                                            if not isinstance(argument, float))
+                except StopIteration:
+                    pass
+                else:
+                    raise TypeError('Components should be of type `float`, '
+                                    'but found: {actual!r}.'
+                                    .format(actual=type(invalid_argument)))
+                components = list(args)
                 if _compress and len(components) > 1:
                     components = _compress_components(components)
             else:

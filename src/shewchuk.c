@@ -47,6 +47,68 @@ static int are_components_lesser_than(size_t left_size, double *left,
                                  : left[left_size - right_size - 1] < 0.0);
 }
 
+static int Integral_to_components(PyObject *integral, size_t *size,
+                                  double **components) {
+  if (PyObject_Not(integral)) {
+    *components = (double *)PyMem_Malloc(sizeof(double));
+    if (!*components) return -1;
+    *size = 1;
+    *components[0] = 0.0;
+    return 0;
+  }
+  PyObject *rest = PyNumber_Long(integral);
+  if (!rest) return -1;
+  double component = PyFloat_AsDouble(rest);
+  assert(component >= 1.0);
+  if (component == -1.0 && PyErr_Occurred()) {
+    Py_DECREF(rest);
+    return -1;
+  }
+  int exponent;
+  frexp(component, &exponent);
+  size_t max_components_count = 1 + ((size_t)exponent - 1) / DBL_MANT_DIG;
+  double *reversed_components =
+      (double *)PyMem_Calloc(max_components_count, sizeof(double));
+  size_t result_size = 0;
+  for (;;) {
+    reversed_components[result_size++] = component;
+    assert(result_size <= max_components_count);
+    PyObject *component_integer_part = PyLong_FromDouble(component);
+    PyObject *tmp = rest;
+    rest = PyNumber_InPlaceSubtract(rest, component_integer_part);
+    Py_DECREF(tmp);
+    if (!rest) {
+      PyMem_Free(reversed_components);
+      return -1;
+    }
+    int is_zero = PyObject_Not(rest);
+    if (is_zero < 0) {
+      PyMem_Free(reversed_components);
+      Py_DECREF(rest);
+      return -1;
+    }
+    if (is_zero) break;
+    component = PyFloat_AsDouble(rest);
+    if (component == -1.0 && PyErr_Occurred()) {
+      PyMem_Free(reversed_components);
+      Py_DECREF(rest);
+      return -1;
+    }
+  }
+  Py_DECREF(rest);
+  *components = (double *)PyMem_Calloc(result_size, sizeof(double));
+  if (!*components) {
+    PyMem_Free(reversed_components);
+    return -1;
+  }
+  *size = result_size;
+  for (size_t index = 0; index < result_size; ++index) {
+    (*components)[result_size - 1 - index] = reversed_components[index];
+  }
+  PyMem_Free(reversed_components);
+  return 0;
+}
+
 static void fast_two_add(double left, double right, double *result_head,
                          double *result_tail) {
   double head = left + right;
@@ -1113,6 +1175,7 @@ double vectors_cross_product_impl(double first_start_x, double first_start_y,
       second_start_y, second_end_x, second_end_y, upper_bound, result);
 }
 
+static PyObject *Integral = NULL;
 static PyObject *PyObject_round = NULL;
 static PyObject *Real = NULL;
 
@@ -1367,13 +1430,19 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
       copy_components(expansion_argument->components, expansion_argument->size,
                       components);
       size = expansion_argument->size;
-    } else {
+    } else if (PyFloat_Check(argument)) {
       components = (double *)PyMem_Malloc(sizeof(double));
       if (!components) return PyErr_NoMemory();
-      double value = PyFloat_AsDouble(argument);
-      if (value == -1.0 && PyErr_Occurred()) return NULL;
-      components[0] = value;
+      components[0] = PyFloat_AS_DOUBLE(argument);
       size = 1;
+    } else if (PyObject_IsInstance(argument, Integral)) {
+      if (Integral_to_components(argument, &size, &components) < 0) return NULL;
+    } else {
+      PyErr_Format(
+          PyExc_TypeError,
+          "Argument should be of type %R, `float` or `int`, but found: %R.",
+          &ExpansionType, Py_TYPE(argument));
+      return NULL;
     }
   } else if (size) {
     components = (double *)PyMem_Calloc(size, sizeof(double));
@@ -1384,11 +1453,14 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
         PyMem_Free(components);
         return NULL;
       }
-      double component = components[index] = PyFloat_AsDouble(item);
-      if (component == -1.0 && PyErr_Occurred()) {
+      if (!PyFloat_Check(item)) {
+        PyErr_Format(PyExc_TypeError,
+                     "Components should be of type `float`, but found: %R.",
+                     Py_TYPE(item));
         PyMem_Free(components);
         return NULL;
       }
+      components[index] = PyFloat_AS_DOUBLE(item);
     }
     size = compress_components(size, components);
     if (!PyMem_Resize(components, double, size)) return PyErr_NoMemory();
@@ -1858,12 +1930,21 @@ static int load_PyObject_round() {
   return !PyObject_round ? -1 : 0;
 }
 
-static int load_real() {
+static int load_number_interfaces() {
   PyObject *numbers_module = PyImport_ImportModule("numbers");
   if (!numbers_module) return -1;
   Real = PyObject_GetAttrString(numbers_module, "Real");
+  if (!Real) {
+    Py_DECREF(numbers_module);
+    return -1;
+  }
+  Integral = PyObject_GetAttrString(numbers_module, "Integral");
   Py_DECREF(numbers_module);
-  return !Real ? -1 : 0;
+  if (!Integral) {
+    Py_DECREF(Real);
+    return -1;
+  }
+  return 0;
 }
 
 static int mark_as_real(PyObject *python_type) {
@@ -1897,7 +1978,7 @@ PyMODINIT_FUNC PyInit__shewchuk(void) {
     Py_DECREF(result);
     return NULL;
   }
-  if (load_real() < 0) {
+  if (load_number_interfaces() < 0) {
     Py_DECREF(PyObject_round);
     Py_DECREF(result);
     return NULL;
