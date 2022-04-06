@@ -1203,20 +1203,55 @@ static double Expansion_double(ExpansionObject *self) {
 
 static PyObject *Expansion_ceil(ExpansionObject *self,
                                 PyObject *Py_UNUSED(args)) {
-  double value = Expansion_double(self);
-  PyObject *result = PyLong_FromDouble(value);
-  if (value > 0.0) {
-    double integer_part;
-    PyObject *increment = PyLong_FromLong(!!modf(value, &integer_part));
-    if (!increment) {
+  const size_t size = self->size;
+  double *const components = self->components;
+  double component = components[size - 1];
+  PyObject *result = PyLong_FromDouble(component);
+  if (!result) return NULL;
+  double _;
+  double accumulator = modf(component, &_);
+  for (size_t offset = 2; offset <= self->size; ++offset) {
+    component = components[size - offset];
+    accumulator += modf(component, &_);
+    PyObject *step = PyLong_FromDouble(component);
+    if (!step) {
       Py_DECREF(result);
       return NULL;
     }
+    if (PyObject_Not(step)) {
+      Py_DECREF(step);
+      break;
+    }
     PyObject *tmp = result;
-    result = PyNumber_Add(result, increment);
+    result = PyNumber_InPlaceAdd(result, step);
     Py_DECREF(tmp);
-    Py_DECREF(increment);
+    Py_DECREF(step);
+    if (!result) return NULL;
   }
+  PyObject *accumulator_has_fractional_part =
+      PyLong_FromLong(!!modf(accumulator, &_));
+  if (!accumulator_has_fractional_part) {
+    Py_DECREF(result);
+    return NULL;
+  }
+  PyObject *accumulator_integer_part = PyLong_FromDouble(accumulator);
+  if (!accumulator_integer_part) {
+    Py_DECREF(accumulator_has_fractional_part);
+    Py_DECREF(result);
+    return NULL;
+  }
+  PyObject *accumulator_ceil =
+      PyNumber_Add(accumulator_integer_part, accumulator_has_fractional_part);
+  Py_DECREF(accumulator_integer_part);
+  Py_DECREF(accumulator_has_fractional_part);
+  if (!accumulator_ceil) {
+    Py_DECREF(result);
+    return NULL;
+  }
+  PyObject *tmp = result;
+  result = PyNumber_InPlaceAdd(result, accumulator_ceil);
+  Py_DECREF(tmp);
+  Py_DECREF(accumulator_ceil);
   return result;
 }
 

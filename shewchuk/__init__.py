@@ -13,8 +13,8 @@ except ImportError:
     from functools import reduce as _reduce
     from itertools import (dropwhile as _dropwhile,
                            repeat as _repeat)
-    from math import (ceil as _ceil,
-                      floor as _floor)
+    from math import (floor as _floor,
+                      modf as _modf)
     from numbers import Real as _Real
     from operator import not_ as _not
     from sys import float_info as _float_info
@@ -68,7 +68,18 @@ except ImportError:
             return bool(self._components[-1])
 
         def __ceil__(self) -> int:
-            return _ceil(self.__float__())
+            iterator = reversed(self._components)
+            component = next(iterator)
+            accumulator = _to_fractional_part(component)
+            result = int(component)
+            for component in iterator:
+                accumulator += _to_fractional_part(component)
+                step = int(component)
+                if not step:
+                    break
+                result += step
+            result += bool(accumulator % 1) + int(accumulator)
+            return result
 
         def __eq__(self, other: _Real) -> bool:
             return (self._components == other._components
@@ -709,6 +720,11 @@ except ImportError:
         dy_squared_tail, dy_squared_head = _square(dy)
         return _two_two_add(dx_squared_tail, dx_squared_head, dy_squared_tail,
                             dy_squared_head)
+
+
+    def _to_fractional_part(value: float) -> float:
+        result, _ = _modf(value)
+        return result
 
 
     def _add_extras(final_components: _Sequence[float],
