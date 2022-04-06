@@ -114,7 +114,8 @@ except ImportError:
                            else NotImplemented)))
 
         def __float__(self) -> float:
-            return sum(self._components)
+            assert sum(self._components) == self._components[-1], self
+            return self._components[-1]
 
         def __floor__(self) -> int:
             return (_to_components_integer_part(self._components)

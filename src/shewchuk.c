@@ -1367,7 +1367,9 @@ static void Expansion_dealloc(ExpansionObject *self) {
 }
 
 static double Expansion_double(ExpansionObject *self) {
-  return sum_components(self->size, self->components);
+  assert(sum_components(self->size, self->components) ==
+         self->components[self->size - 1]);
+  return self->components[self->size - 1];
 }
 
 static PyObject *Expansion_ceil(ExpansionObject *self,
