@@ -411,7 +411,7 @@ except ImportError:
                 _compress=False)
 
 
-    _EPSILON = _float_info.epsilon / 2.0
+    _EPSILON = _float_info.epsilon / 2.
 
 
     def _are_components_lesser_than(left: _Sequence[float],
@@ -698,7 +698,7 @@ except ImportError:
 
 
     def _to_sign(value: float) -> int:
-        return 1 if value > 0.0 else (0 if not value else -1)
+        return 1 if value > 0. else (0 if not value else -1)
 
 
     def _two_add(left: float, right: float) -> _Tuple[float, float]:
@@ -849,7 +849,7 @@ except ImportError:
                 _scale_components_eliminating_zeros(
                         second_third_cross_product, first_dx_tail))
             first_buffer_16 = _scale_components_eliminating_zeros(
-                    first_dx_tail_second_third_cross_product, 2.0 * first_dx)
+                    first_dx_tail_second_third_cross_product, 2. * first_dx)
             first_dx_tail_third_squared_length = (
                 _scale_components_eliminating_zeros(third_squared_length,
                                                     first_dx_tail))
@@ -872,7 +872,7 @@ except ImportError:
                 _scale_components_eliminating_zeros(second_third_cross_product,
                                                     first_dy_tail))
             first_buffer_16 = _scale_components_eliminating_zeros(
-                    first_dy_tail_second_third_cross_product, 2.0 * first_dy)
+                    first_dy_tail_second_third_cross_product, 2. * first_dy)
             first_dy_tail_second_squared_length = (
                 _scale_components_eliminating_zeros(second_squared_length,
                                                     first_dy_tail))
@@ -919,8 +919,8 @@ except ImportError:
                         dx_tail_dy_head_tail, dx_tail_dy_head_head,
                         dx_head_dy_tail_tail, dx_head_dy_tail_head)
             else:
-                second_third_cross_product_bodies = [0.0]
-                second_third_cross_product_tails = [0.0]
+                second_third_cross_product_bodies = [0.]
+                second_third_cross_product_tails = [0.]
             if first_dx_tail:
                 first_buffer_16 = _scale_components_eliminating_zeros(
                         first_dx_tail_second_third_cross_product,
@@ -931,7 +931,7 @@ except ImportError:
                             first_dx_tail))
                 first_buffer_32 = _scale_components_eliminating_zeros(
                         first_dx_tail_second_third_cross_product_bodies,
-                        2.0 * first_dx)
+                        2. * first_dx)
                 buffer_48 = _add_components_eliminating_zeros(
                         first_buffer_16, first_buffer_32)
                 final_components = _add_components_eliminating_zeros(
@@ -959,7 +959,7 @@ except ImportError:
                             first_dx_tail))
                 first_buffer_16 = _scale_components_eliminating_zeros(
                         first_dx_tail_second_third_cross_product_tails,
-                        2.0 * first_dx)
+                        2. * first_dx)
                 second_buffer_16 = _scale_components_eliminating_zeros(
                         first_dx_tail_second_third_cross_product_tails,
                         first_dx_tail)
@@ -979,7 +979,7 @@ except ImportError:
                             first_dy_tail))
                 first_buffer_32 = _scale_components_eliminating_zeros(
                         first_dy_tail_second_third_cross_product_bodies,
-                        2.0 * first_dy)
+                        2. * first_dy)
                 buffer_48 = _add_components_eliminating_zeros(
                         first_buffer_16, first_buffer_32)
                 final_components = _add_components_eliminating_zeros(
@@ -992,7 +992,7 @@ except ImportError:
                             second_third_cross_product_tails, first_dy_tail))
                 first_buffer_16 = _scale_components_eliminating_zeros(
                         first_dy_tail_second_third_cross_product_tails,
-                        2.0 * first_dy)
+                        2. * first_dy)
                 second_buffer_16 = _scale_components_eliminating_zeros(
                         first_dy_tail_second_third_cross_product_tails,
                         first_dy_tail)
@@ -1016,8 +1016,8 @@ except ImportError:
             third_y: float,
             upper_bound: float,
             second_upper_bound_coefficient: float
-            = (44.0 + 576.0 * _EPSILON) * _EPSILON * _EPSILON,
-            result_coefficient: float = (3.0 + 8.0 * _EPSILON) * _EPSILON
+            = (44. + 576. * _EPSILON) * _EPSILON * _EPSILON,
+            result_coefficient: float = (3. + 8. * _EPSILON) * _EPSILON
     ) -> float:
         first_dx = first_x - point_x
         second_dx = second_x - point_x
@@ -1042,7 +1042,7 @@ except ImportError:
         first_buffer = _add_components_eliminating_zeros(
                 first_second_sum_components, third_components)
         result = sum(first_buffer)
-        first_upper_bound_coefficient = (4.0 + 48.0 * _EPSILON) * _EPSILON
+        first_upper_bound_coefficient = (4. + 48. * _EPSILON) * _EPSILON
         threshold = first_upper_bound_coefficient * upper_bound
         if (result >= threshold) or (-result >= threshold): return result
         first_dx_tail = _two_subtract_tail(first_x, point_x, first_dx)
@@ -1061,23 +1061,23 @@ except ImportError:
                     * ((second_dx * third_dy_tail + third_dy * second_dx_tail)
                        - (second_dy * third_dx_tail
                           + third_dx * second_dy_tail))
-                    + 2.0 * (first_dx * first_dx_tail
-                             + first_dy * first_dy_tail)
+                    + 2. * (first_dx * first_dx_tail
+                            + first_dy * first_dy_tail)
                     * (second_dx * third_dy - second_dy * third_dx))
                    + ((second_dx * second_dx + second_dy * second_dy)
                       * ((third_dx * first_dy_tail + first_dy * third_dx_tail)
                          - (third_dy * first_dx_tail
                             + first_dx * third_dy_tail))
-                      + 2.0 * (second_dx * second_dx_tail
-                               + second_dy * second_dy_tail)
+                      + 2. * (second_dx * second_dx_tail
+                              + second_dy * second_dy_tail)
                       * (third_dx * first_dy - third_dy * first_dx))
                    + ((third_dx * third_dx + third_dy * third_dy)
                       * ((first_dx * second_dy_tail
                           + second_dy * first_dx_tail)
                          - (first_dy * second_dx_tail
                             + second_dx * first_dy_tail))
-                      + 2.0 * (third_dx * third_dx_tail
-                               + third_dy * third_dy_tail)
+                      + 2. * (third_dx * third_dx_tail
+                              + third_dy * third_dy_tail)
                       * (first_dx * second_dy - first_dy * second_dx)))
         if (result >= threshold) or (-result >= threshold):
             return result
@@ -1130,7 +1130,7 @@ except ImportError:
                                          third_x: float,
                                          third_y: float,
                                          upper_bound_coefficient: float
-                                         = (10.0 + 96.0 * _EPSILON) * _EPSILON
+                                         = (10. + 96. * _EPSILON) * _EPSILON
                                          ) -> float:
         first_dx = first_x - point_x
         second_dx = second_x - point_x
@@ -1177,20 +1177,20 @@ except ImportError:
                                           second_end_x: float,
                                           second_end_y: float,
                                           upper_bound_coefficient: float
-                                          = (3.0 + 16.0 * _EPSILON) * _EPSILON
+                                          = (3. + 16. * _EPSILON) * _EPSILON
                                           ) -> float:
         minuend = ((first_end_x - first_start_x)
                    * (second_end_y - second_start_y))
         subtrahend = ((first_end_y - first_start_y)
                       * (second_end_x - second_start_x))
         result = minuend - subtrahend
-        if minuend > 0.0:
-            if subtrahend <= 0.0:
+        if minuend > 0.:
+            if subtrahend <= 0.:
                 return result
             else:
                 upper_bound = minuend + subtrahend
-        elif minuend < 0.0:
-            if subtrahend >= 0.0:
+        elif minuend < 0.:
+            if subtrahend >= 0.:
                 return result
             else:
                 upper_bound = -minuend - subtrahend
@@ -1217,10 +1217,10 @@ except ImportError:
             second_end_y: float,
             upper_bound: float,
             first_upper_bound_coefficient: float
-            = (2.0 + 12.0 * _EPSILON) * _EPSILON,
+            = (2. + 12. * _EPSILON) * _EPSILON,
             second_upper_bound_coefficient: float
-            = (9.0 + 64.0 * _EPSILON) * _EPSILON * _EPSILON,
-            estimation_coefficient: float = (3.0 + 8.0 * _EPSILON) * _EPSILON
+            = (9. + 64. * _EPSILON) * _EPSILON * _EPSILON,
+            estimation_coefficient: float = (3. + 8. * _EPSILON) * _EPSILON
     ) -> float:
         minuend_x = first_end_x - first_start_x
         minuend_y = first_end_y - first_start_y
@@ -1294,20 +1294,20 @@ except ImportError:
                                second_end_x: float,
                                second_end_y: float,
                                upper_bound_coefficient: float
-                               = (3.0 + 16.0 * _EPSILON) * _EPSILON
+                               = (3. + 16. * _EPSILON) * _EPSILON
                                ) -> _Sequence[float]:
         minuend = ((first_end_x - first_start_x)
                    * (second_end_y - second_start_y))
         subtrahend = ((first_end_y - first_start_y)
                       * (second_end_x - second_start_x))
         estimation = minuend - subtrahend
-        if minuend > 0.0:
-            if subtrahend <= 0.0:
+        if minuend > 0.:
+            if subtrahend <= 0.:
                 return [estimation]
             else:
                 upper_bound = minuend + subtrahend
-        elif minuend < 0.0:
-            if subtrahend >= 0.0:
+        elif minuend < 0.:
+            if subtrahend >= 0.:
                 return [estimation]
             else:
                 upper_bound = -minuend - subtrahend
@@ -1334,12 +1334,12 @@ except ImportError:
                                         second_end_y: float,
                                         upper_bound: float,
                                         first_upper_bound_coefficient: float
-                                        = (2.0 + 12.0 * _EPSILON) * _EPSILON,
+                                        = (2. + 12. * _EPSILON) * _EPSILON,
                                         second_upper_bound_coefficient: float
-                                        = ((9.0 + 64.0 * _EPSILON) * _EPSILON
+                                        = ((9. + 64. * _EPSILON) * _EPSILON
                                            * _EPSILON),
                                         estimation_coefficient: float
-                                        = (3.0 + 8.0 * _EPSILON) * _EPSILON
+                                        = (3. + 8. * _EPSILON) * _EPSILON
                                         ) -> _Sequence[float]:
         minuend_x = first_end_x - first_start_x
         minuend_y = first_end_y - first_start_y
