@@ -13,7 +13,8 @@ except ImportError:
     from functools import reduce as _reduce
     from itertools import (dropwhile as _dropwhile,
                            repeat as _repeat)
-    from math import (floor as _floor,
+    from math import (ceil as _ceil,
+                      floor as _floor,
                       modf as _modf)
     from numbers import Real as _Real
     from operator import not_ as _not
@@ -68,17 +69,16 @@ except ImportError:
             return bool(self._components[-1])
 
         def __ceil__(self) -> int:
-            iterator = reversed(self._components)
-            component = next(iterator)
-            accumulator = _to_fractional_part(component)
-            result = int(component)
-            for component in iterator:
-                accumulator += _to_fractional_part(component)
-                step = int(component)
-                if not step:
+            accumulator = 0.0
+            result = 0
+            for component in reversed(self._components):
+                accumulator += component % 1.0
+                component_integer_part = int(component)
+                if not component_integer_part:
                     break
-                result += step
-            result += bool(accumulator % 1) + int(accumulator)
+                result += component_integer_part
+            assert abs(accumulator) < 1.0, self
+            result += _ceil(accumulator)
             return result
 
         def __eq__(self, other: _Real) -> bool:

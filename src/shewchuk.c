@@ -1213,45 +1213,29 @@ static PyObject *Expansion_ceil(ExpansionObject *self,
   for (size_t offset = 2; offset <= self->size; ++offset) {
     component = components[size - offset];
     accumulator += modf(component, &_);
-    PyObject *step = PyLong_FromDouble(component);
-    if (!step) {
+    PyObject *component_integer_part = PyLong_FromDouble(component);
+    if (!component_integer_part) {
       Py_DECREF(result);
       return NULL;
     }
-    if (PyObject_Not(step)) {
-      Py_DECREF(step);
+    if (PyObject_Not(component_integer_part)) {
+      Py_DECREF(component_integer_part);
       break;
     }
     PyObject *tmp = result;
-    result = PyNumber_InPlaceAdd(result, step);
+    result = PyNumber_InPlaceAdd(result, component_integer_part);
     Py_DECREF(tmp);
-    Py_DECREF(step);
+    Py_DECREF(component_integer_part);
     if (!result) return NULL;
   }
-  PyObject *accumulator_has_fractional_part =
-      PyLong_FromLong(!!modf(accumulator, &_));
-  if (!accumulator_has_fractional_part) {
+  assert(fabs(accumulator) < 1.0);
+  PyObject *tmp = PyLong_FromLong(ceil(accumulator));
+  if (!tmp) {
     Py_DECREF(result);
     return NULL;
   }
-  PyObject *accumulator_integer_part = PyLong_FromDouble(accumulator);
-  if (!accumulator_integer_part) {
-    Py_DECREF(accumulator_has_fractional_part);
-    Py_DECREF(result);
-    return NULL;
-  }
-  PyObject *accumulator_ceil =
-      PyNumber_Add(accumulator_integer_part, accumulator_has_fractional_part);
-  Py_DECREF(accumulator_integer_part);
-  Py_DECREF(accumulator_has_fractional_part);
-  if (!accumulator_ceil) {
-    Py_DECREF(result);
-    return NULL;
-  }
-  PyObject *tmp = result;
-  result = PyNumber_InPlaceAdd(result, accumulator_ceil);
+  result = PyNumber_InPlaceAdd(result, tmp);
   Py_DECREF(tmp);
-  Py_DECREF(accumulator_ceil);
   return result;
 }
 
