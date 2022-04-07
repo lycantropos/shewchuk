@@ -1790,17 +1790,15 @@ static PyObject *Expansion_double_richcompare(ExpansionObject *self,
   }
 }
 
-static int is_PyObject_odd(PyObject* value) {
-    PyObject *one = PyLong_FromLong(1);
-    if (!one)
-      return -1;
-    PyObject *first_bit = PyNumber_And(value, one);
-    Py_DECREF(one);
-    if (!first_bit)
-      return -1;
-    const int result = PyObject_IsTrue(first_bit);
-    Py_DECREF(first_bit);
-    return result;
+static int is_PyObject_odd(PyObject *value) {
+  PyObject *one = PyLong_FromLong(1);
+  if (!one) return -1;
+  PyObject *first_bit = PyNumber_And(value, one);
+  Py_DECREF(one);
+  if (!first_bit) return -1;
+  const int result = PyObject_IsTrue(first_bit);
+  Py_DECREF(first_bit);
+  return result;
 }
 
 static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
