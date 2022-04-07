@@ -1,6 +1,5 @@
 import math
 import sys
-from fractions import Fraction
 from typing import Sequence
 
 from hypothesis import strategies
@@ -32,7 +31,6 @@ non_zero_expansions = expansions.filter(bool)
 non_zero_reals = reals.filter(bool)
 non_zero_reals_or_expansions = non_zero_reals | non_zero_expansions
 reals_or_expansions = reals | expansions
-zero_reals = (strategies.builds(int) | strategies.builds(Fraction)
-              | strategies.builds(float))
+zero_reals = strategies.builds(int) | strategies.builds(float)
 zero_expansions = strategies.builds(Expansion)
 zero_reals_or_expansions = zero_reals | zero_expansions
