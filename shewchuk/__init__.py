@@ -76,7 +76,7 @@ except ImportError:
                     components = _compress_components(components)
             else:
                 components = [0.]
-            self._components = components
+            self._components = tuple(components)
             return self
 
         def __abs__(self) -> 'Expansion':
@@ -148,7 +148,7 @@ except ImportError:
                       else NotImplemented)))
 
         def __hash__(self) -> int:
-            return hash(self.__float__())
+            return hash(self._components)
 
         def __le__(self, other: _Union['Expansion', _Integral, float]) -> bool:
             return (not _are_components_lesser_than(other._components,

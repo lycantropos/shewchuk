@@ -1467,9 +1467,13 @@ static PyObject *Expansion_floor_divide(PyObject *self, PyObject *other) {
 }
 
 static Py_hash_t Expansion_hash(ExpansionObject *self) {
-  PyObject *self_float = Expansion_float(self);
-  Py_hash_t result = PyObject_Hash(self_float);
-  Py_DECREF(self_float);
+  PyObject *components = PyTuple_New(self->size);
+  if (!components) return -1;
+  for (size_t index = 0; index < self->size; ++index)
+    PyTuple_SET_ITEM(components, index,
+                     PyFloat_FromDouble(self->components[index]));
+  Py_hash_t result = PyObject_Hash(components);
+  Py_DECREF(components);
   return result;
 }
 
