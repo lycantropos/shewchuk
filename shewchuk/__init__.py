@@ -184,12 +184,8 @@ except ImportError:
                     else NotImplemented)
 
         def __mul__(self, other: _Real) -> 'Expansion':
-            return (Expansion(
-                    *(_multiply_components_eliminating_zeros(
-                            other._components, self._components)
-                      if len(self._components) < len(other._components)
-                      else _multiply_components_eliminating_zeros(
-                            self._components, other._components)))
+            return (Expansion(*_multiply_components_eliminating_zeros(
+                    self._components, other._components))
                     if isinstance(other, Expansion)
                     else self.__rmul__(other))
 
@@ -230,11 +226,14 @@ except ImportError:
                     else NotImplemented)
 
         def __rmul__(self, other: _Real) -> 'Expansion':
-            return (Expansion(
-                    *_scale_components_eliminating_zeros(self._components,
-                                                         float(other)))
-                    if isinstance(other, _Real)
-                    else NotImplemented)
+            return (Expansion(*_scale_components_eliminating_zeros(
+                    self._components, other))
+                    if isinstance(other, float)
+                    else
+                    (Expansion(*_multiply_components_eliminating_zeros(
+                            self._components, _integral_to_components(other)))
+                     if isinstance(other, _Integral)
+                     else NotImplemented))
 
         def __round__(self, precision: _Optional[int] = None) -> _Real:
             if precision is None:
