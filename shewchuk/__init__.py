@@ -20,7 +20,8 @@ except ImportError:
                          Real as _Real)
     from operator import not_ as _not
     from sys import float_info as _float_info
-    from typing import (Optional as _Optional,
+    from typing import (Any as _Any,
+                        Optional as _Optional,
                         Sequence as _Sequence,
                         Tuple as _Tuple,
                         Union as _Union)
@@ -82,7 +83,8 @@ except ImportError:
         def __abs__(self) -> 'Expansion':
             return +self if self._components[-1] > 0. else -self
 
-        def __add__(self, other: _Real) -> 'Expansion':
+        def __add__(self, other: _Union['Expansion', _Integral, float]
+                    ) -> 'Expansion':
             return (Expansion(*_add_components_eliminating_zeros(
                     self._components, other._components))
                     if isinstance(other, Expansion)
@@ -96,7 +98,7 @@ except ImportError:
                     + _ceil(_components_to_accumulated_fraction(
                             self._components)))
 
-        def __eq__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+        def __eq__(self, other: _Any) -> bool:
             return (self._components == other._components
                     if isinstance(other, Expansion)
                     else
