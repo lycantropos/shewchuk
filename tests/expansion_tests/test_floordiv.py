@@ -16,13 +16,8 @@ from . import strategies
 def test_basic(first: Expansion, second: Union[Real, Expansion]) -> None:
     result = first // second
 
-    assert isinstance(result, float)
+    assert isinstance(result, Expansion)
     assert math.isfinite(result)
-
-
-@given(strategies.non_zero_reals_or_expansions)
-def test_self(expansion: Expansion) -> None:
-    assert expansion // expansion == 1
 
 
 @given(strategies.expansions, strategies.non_zero_reals_or_expansions)
