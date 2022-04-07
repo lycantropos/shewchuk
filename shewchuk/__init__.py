@@ -239,29 +239,36 @@ except ImportError:
                     if isinstance(base, _Real)
                     else NotImplemented)
 
-        def __rsub__(self, other: _Real) -> 'Expansion':
+        def __rsub__(self, other: _Union['Expansion', _Integral, float]
+                     ) -> 'Expansion':
             return (Expansion(*_subtract_from_double_eliminating_zeros(
-                    float(other), self._components))
-                    if isinstance(other, _Real)
-                    else NotImplemented)
+                    other, self._components))
+                    if isinstance(other, float)
+                    else
+                    (Expansion(*_subtract_components_eliminating_zeros(
+                            _integral_to_components(other), self._components))
+                     if isinstance(other, _Integral)
+                     else NotImplemented))
 
         def __rtruediv__(self, other: _Real) -> 'Expansion':
             return (other / float(self)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        def __sub__(self, other: _Real) -> 'Expansion':
+        def __sub__(self, other: _Union['Expansion', _Integral, float]
+                    ) -> 'Expansion':
             return (Expansion(*_subtract_components_eliminating_zeros(
                     self._components, other._components))
                     if isinstance(other, Expansion)
                     else
                     (Expansion(*_subtract_double_eliminating_zeros(
-                            self._components, float(other)))
+                            self._components, other))
                      if isinstance(other, float)
-                     else (Expansion(*_subtract_components_eliminating_zeros(
-                            self._components, _integral_to_components(other)))
-                           if isinstance(other, _Integral)
-                           else NotImplemented)))
+                     else
+                     (Expansion(*_subtract_components_eliminating_zeros(
+                             self._components, _integral_to_components(other)))
+                      if isinstance(other, _Integral)
+                      else NotImplemented)))
 
         def __truediv__(self, other: _Real) -> 'Expansion':
             return (self * (1.0 / float(other))
