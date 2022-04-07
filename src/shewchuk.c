@@ -84,9 +84,9 @@ static int Integral_to_components(PyObject *integral, size_t *size,
   for (;;) {
     reversed_components[result_size++] = component;
     assert(result_size <= max_components_count);
-    PyObject *component_integer_part = PyLong_FromDouble(component);
+    PyObject *component_integer = PyLong_FromDouble(component);
     PyObject *tmp = rest;
-    rest = PyNumber_InPlaceSubtract(rest, component_integer_part);
+    rest = PyNumber_InPlaceSubtract(rest, component_integer);
     Py_DECREF(tmp);
     if (!rest) {
       PyMem_Free(reversed_components);
@@ -121,10 +121,9 @@ static int Integral_to_components(PyObject *integral, size_t *size,
   return 0;
 }
 
-static int to_components_fractional_parts(const size_t size,
-                                          double *const components,
-                                          size_t *result_size,
-                                          double **result_components) {
+static int components_to_fractions(const size_t size, double *const components,
+                                   size_t *result_size,
+                                   double **result_components) {
   *result_components = PyMem_Calloc(size, sizeof(double));
   if (!*result_components) {
     PyErr_NoMemory();
@@ -144,44 +143,43 @@ static int to_components_fractional_parts(const size_t size,
   return 0;
 }
 
-static double to_accumulated_components_fractional_part(
-    const size_t size, double *const components) {
+static double components_to_accumulated_fraction(const size_t size,
+                                                 double *const components) {
   double _;
   double result = 0.0;
   size_t index;
   for (index = 0; index < size; ++index) {
-    double component_fractional_part = modf(components[index], &_);
-    if (!component_fractional_part) break;
-    result += component_fractional_part;
+    double component_fraction = modf(components[index], &_);
+    if (!component_fraction) break;
+    result += component_fraction;
   }
   assert(result == 0.0 && index == 0 ||
          result == modf(components[index - 1], &_));
   return result;
 }
 
-static PyObject *to_components_integer_part(const size_t size,
-                                            double *const components) {
+static PyObject *components_to_integer(const size_t size,
+                                       double *const components) {
   PyObject *result = PyLong_FromDouble(components[size - 1]);
   if (!result) return NULL;
   for (size_t offset = 2; offset <= size; ++offset) {
-    PyObject *component_integer_part =
-        PyLong_FromDouble(components[size - offset]);
-    if (!component_integer_part) {
+    PyObject *component_integer = PyLong_FromDouble(components[size - offset]);
+    if (!component_integer) {
       Py_DECREF(result);
       return NULL;
     }
-    if (PyObject_Not(component_integer_part)) break;
+    if (PyObject_Not(component_integer)) break;
     PyObject *tmp = result;
-    result = PyNumber_InPlaceAdd(result, component_integer_part);
+    result = PyNumber_InPlaceAdd(result, component_integer);
     Py_DECREF(tmp);
-    Py_DECREF(component_integer_part);
+    Py_DECREF(component_integer);
     if (!result) return NULL;
   }
   return result;
 }
 
-static int do_components_have_fractional_part(const size_t size,
-                                              double *const components) {
+static int do_components_have_fraction(const size_t size,
+                                       double *const components) {
   double _;
   return !!modf(components[0], &_);
 }
@@ -189,45 +187,37 @@ static int do_components_have_fractional_part(const size_t size,
 static int are_components_equal_to_Integral(const size_t size,
                                             double *const components,
                                             PyObject *integral) {
-  if (do_components_have_fractional_part(size, components)) return 0;
-  PyObject *components_integer_part =
-      to_components_integer_part(size, components);
-  int result =
-      PyObject_RichCompareBool(components_integer_part, integral, Py_EQ);
-  Py_DECREF(components_integer_part);
+  if (do_components_have_fraction(size, components)) return 0;
+  PyObject *integer = components_to_integer(size, components);
+  int result = PyObject_RichCompareBool(integer, integral, Py_EQ);
+  Py_DECREF(integer);
   return result;
 }
 
 static int are_components_lesser_than_Integral(const size_t size,
                                                double *const components,
                                                PyObject *integral) {
-  PyObject *components_integer_part =
-      to_components_integer_part(size, components);
-  int components_integer_part_is_lesser_than_integral =
-      PyObject_RichCompareBool(components_integer_part, integral, Py_LT);
-  return components_integer_part_is_lesser_than_integral < 0
-             ? components_integer_part_is_lesser_than_integral
-             : (components_integer_part_is_lesser_than_integral ||
-                (PyObject_RichCompareBool(components_integer_part, integral,
-                                          Py_EQ) &&
-                 to_accumulated_components_fractional_part(size, components) <
-                     0.0));
+  PyObject *integer = components_to_integer(size, components);
+  int integer_is_lesser_than_integral =
+      PyObject_RichCompareBool(integer, integral, Py_LT);
+  return integer_is_lesser_than_integral < 0
+             ? integer_is_lesser_than_integral
+             : (integer_is_lesser_than_integral ||
+                (PyObject_RichCompareBool(integer, integral, Py_EQ) &&
+                 components_to_accumulated_fraction(size, components) < 0.0));
 }
 
 static int is_Integral_lesser_than_components(PyObject *integral,
                                               const size_t size,
                                               double *const components) {
-  PyObject *components_integer_part =
-      to_components_integer_part(size, components);
-  int components_integer_part_is_greater_than_integral =
-      PyObject_RichCompareBool(components_integer_part, integral, Py_GT);
-  return components_integer_part_is_greater_than_integral < 0
-             ? components_integer_part_is_greater_than_integral
-             : (components_integer_part_is_greater_than_integral ||
-                (PyObject_RichCompareBool(components_integer_part, integral,
-                                          Py_EQ) &&
-                 to_accumulated_components_fractional_part(size, components) >
-                     0.0));
+  PyObject *integer = components_to_integer(size, components);
+  int integer_is_greater_than_integral =
+      PyObject_RichCompareBool(integer, integral, Py_GT);
+  return integer_is_greater_than_integral < 0
+             ? integer_is_greater_than_integral
+             : (integer_is_greater_than_integral ||
+                (PyObject_RichCompareBool(integer, integral, Py_EQ) &&
+                 components_to_accumulated_fraction(size, components) > 0.0));
 }
 
 static int are_components_equal_to_double(const size_t size,
@@ -1419,20 +1409,20 @@ static double Expansion_double(ExpansionObject *self) {
 
 static PyObject *Expansion_ceil(ExpansionObject *self,
                                 PyObject *Py_UNUSED(args)) {
-  PyObject *result = to_components_integer_part(self->size, self->components);
+  PyObject *result = components_to_integer(self->size, self->components);
   if (!result) return NULL;
-  double fractional_part =
-      to_accumulated_components_fractional_part(self->size, self->components);
-  assert(fabs(fractional_part) < 1.0);
-  PyObject *fractional_part_ceil = PyLong_FromLong(ceil(fractional_part));
-  if (!fractional_part_ceil) {
+  double fraction =
+      components_to_accumulated_fraction(self->size, self->components);
+  assert(fabs(fraction) < 1.0);
+  PyObject *fraction_ceil = PyLong_FromLong(ceil(fraction));
+  if (!fraction_ceil) {
     Py_DECREF(result);
     return NULL;
   }
   PyObject *tmp = result;
-  result = PyNumber_InPlaceAdd(result, fractional_part_ceil);
+  result = PyNumber_InPlaceAdd(result, fraction_ceil);
   Py_DECREF(tmp);
-  Py_DECREF(fractional_part_ceil);
+  Py_DECREF(fraction_ceil);
   return result;
 }
 
@@ -1442,20 +1432,20 @@ static PyObject *Expansion_float(ExpansionObject *self) {
 
 static PyObject *Expansion_floor(ExpansionObject *self,
                                  PyObject *Py_UNUSED(args)) {
-  PyObject *result = to_components_integer_part(self->size, self->components);
+  PyObject *result = components_to_integer(self->size, self->components);
   if (!result) return NULL;
-  double fractional_part =
-      to_accumulated_components_fractional_part(self->size, self->components);
-  assert(fabs(fractional_part) < 1.0);
-  PyObject *fractional_part_floor = PyLong_FromLong(floor(fractional_part));
-  if (!fractional_part_floor) {
+  double fraction =
+      components_to_accumulated_fraction(self->size, self->components);
+  assert(fabs(fraction) < 1.0);
+  PyObject *fraction_floor = PyLong_FromLong(floor(fraction));
+  if (!fraction_floor) {
     Py_DECREF(result);
     return NULL;
   }
   PyObject *tmp = result;
-  result = PyNumber_InPlaceAdd(result, fractional_part_floor);
+  result = PyNumber_InPlaceAdd(result, fraction_floor);
   Py_DECREF(tmp);
-  Py_DECREF(fractional_part_floor);
+  Py_DECREF(fraction_floor);
   return result;
 }
 
@@ -1804,24 +1794,23 @@ static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
 }
 
 static PyObject *Expansion_round_plain(ExpansionObject *self) {
-  PyObject *result = to_components_integer_part(self->size, self->components);
+  PyObject *result = components_to_integer(self->size, self->components);
   if (!result) return NULL;
-  size_t fractional_parts_size;
-  double *fractional_parts_components;
-  if (to_components_fractional_parts(self->size, self->components,
-                                     &fractional_parts_size,
-                                     &fractional_parts_components) < 0) {
+  size_t fractions_size;
+  double *fractions_components;
+  if (components_to_fractions(self->size, self->components, &fractions_size,
+                              &fractions_components) < 0) {
     Py_DECREF(result);
     return NULL;
   }
-  if (are_components_equal_to_double(fractional_parts_size,
-                                     fractional_parts_components, 0.5) ||
-      are_components_equal_to_double(fractional_parts_size,
-                                     fractional_parts_components, -0.5)) {
-    double fractional_part =
-        to_accumulated_components_fractional_part(self->size, self->components);
-    if ((fractional_part > 0.0 && Py_SIZE(result) < 0) ||
-        (fractional_part < 0.0 && Py_SIZE(result) > 0)) {
+  if (are_components_equal_to_double(fractions_size, fractions_components,
+                                     0.5) ||
+      are_components_equal_to_double(fractions_size, fractions_components,
+                                     -0.5)) {
+    double fraction =
+        components_to_accumulated_fraction(self->size, self->components);
+    if ((fraction > 0.0 && Py_SIZE(result) < 0) ||
+        (fraction < 0.0 && Py_SIZE(result) > 0)) {
       PyObject *sign = PyLong_FromLong(Py_SIZE(result) > 0 ? 1 : -1);
       if (!sign) {
         Py_DECREF(result);
@@ -1860,15 +1849,15 @@ static PyObject *Expansion_round_plain(ExpansionObject *self) {
       Py_DECREF(tmp);
       Py_DECREF(sign);
     }
-  } else if (are_components_lesser_than_double(
-                 fractional_parts_size, fractional_parts_components, -0.5) ||
-             is_double_lesser_than_components(0.5, fractional_parts_size,
-                                              fractional_parts_components)) {
-    PyObject *sign = PyLong_FromLong(
-        is_double_lesser_than_components(0.0, fractional_parts_size,
-                                         fractional_parts_components)
-            ? 1
-            : -1);
+  } else if (are_components_lesser_than_double(fractions_size,
+                                               fractions_components, -0.5) ||
+             is_double_lesser_than_components(0.5, fractions_size,
+                                              fractions_components)) {
+    PyObject *sign =
+        PyLong_FromLong(is_double_lesser_than_components(0.0, fractions_size,
+                                                         fractions_components)
+                            ? 1
+                            : -1);
     if (!sign) {
       Py_DECREF(result);
       return NULL;
@@ -2046,7 +2035,17 @@ static PyObject *Expansion_true_divide(PyObject *self, PyObject *other) {
 
 static PyObject *Expansion_trunc(ExpansionObject *self,
                                  PyObject *Py_UNUSED(args)) {
-  return to_components_integer_part(self->size, self->components);
+  PyObject *result = components_to_integer(self->size, self->components);
+  if (!result) return NULL;
+  double fraction =
+      components_to_accumulated_fraction(self->size, self->components);
+  if ((fraction < 0.0 && Py_SIZE(result) > 0) ||
+      (fraction > 0.0 && Py_SIZE(result) < 0)) {
+    PyObject *sign = PyLong_FromLong(Py_SIZE(result) > 0 ? 1 : -1);
+    result = PyNumber_InPlaceSubtract(result, sign);
+    Py_DECREF(sign);
+  }
+  return result;
 }
 
 static PyNumberMethods Expansion_as_number = {

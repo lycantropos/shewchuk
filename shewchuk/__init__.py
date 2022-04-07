@@ -92,29 +92,30 @@ except ImportError:
             return bool(self._components[-1])
 
         def __ceil__(self) -> int:
-            return (_to_components_integer_part(self._components)
-                    + _ceil(_to_components_fractional_part(self._components)))
+            return (_components_to_integer(self._components)
+                    + _ceil(_components_to_accumulated_fraction(
+                            self._components)))
 
         def __eq__(self, other: _Union['Expansion', _Integral, float]) -> bool:
             return (self._components == other._components
                     if isinstance(other, Expansion)
-                    else (len(self._components) == 1
-                          and self._components[0] == other
-                          if isinstance(other, float)
-                          else
-                          (self._components[0] % 1. == 0.
-                           and (_to_components_integer_part(self._components)
-                                == other)
-                           if isinstance(other, _Integral)
-                           else NotImplemented)))
+                    else
+                    (_are_components_equal_to_float(self._components, other)
+                     if isinstance(other, float)
+                     else
+                     (_to_fraction(self._components[0]) == 0.
+                      and _components_to_integer(self._components) == other
+                      if isinstance(other, _Integral)
+                      else NotImplemented)))
 
         def __float__(self) -> float:
             assert sum(self._components) == self._components[-1], self
             return self._components[-1]
 
         def __floor__(self) -> int:
-            return (_to_components_integer_part(self._components)
-                    + _floor(_to_components_fractional_part(self._components)))
+            return (_components_to_integer(self._components)
+                    + _floor(_components_to_accumulated_fraction(
+                            self._components)))
 
         def __floordiv__(self, other: _Real) -> _Real:
             return self.__float__() // other
@@ -236,14 +237,29 @@ except ImportError:
                     else NotImplemented)
 
         def __round__(self, precision: _Optional[int] = None) -> _Real:
-            return (
-                sum(round(component) for component in self._components)
-                if precision is None
-                else Expansion(*_compress_components(
-                        [round(component, precision)
-                         for component in self._components]
-                ))
-            )
+            if precision is None:
+                result = _components_to_integer(self._components)
+                fractions = _components_to_fractions(self._components)
+                fraction_sign = (
+                    -1
+                    if _are_components_lesser_than_float(fractions, 0)
+                    else 1
+                )
+                if _are_components_equal_to_float(fractions,
+                                                  0.5 * fraction_sign):
+                    sign = _to_sign(result)
+                    if sign != fraction_sign:
+                        result -= sign
+                    if result & 1:
+                        result += sign
+                elif (_is_float_lesser_than_components(0.5, fractions)
+                      or _are_components_lesser_than_float(fractions, -0.5)):
+                    result += fraction_sign
+                return result
+            else:
+                rounded_components = [round(component, precision)
+                                      for component in self._components]
+                return Expansion(*_compress_components(rounded_components))
 
         def __rpow__(self, base: _Real) -> _Real:
             return (base ** self.__float__()
@@ -286,7 +302,19 @@ except ImportError:
                     else NotImplemented)
 
         def __trunc__(self) -> int:
-            return _to_components_integer_part(self._components)
+            integer = _components_to_integer(self._components)
+            integer_sign = _to_sign(integer)
+            fraction_sign = _to_sign(_components_to_accumulated_fraction(
+                    self._components))
+            return (integer - integer_sign
+                    if (integer_sign and fraction_sign
+                        and fraction_sign != integer_sign)
+                    else integer)
+
+
+    def _are_components_equal_to_float(components: _Sequence[float],
+                                       value: float) -> bool:
+        return len(components) == 1 and components[0] == value
 
 
     def _are_components_lesser_than_float(components: _Sequence[float],
@@ -298,13 +326,15 @@ except ImportError:
 
     def _are_components_lesser_than_integral(components: _Sequence[float],
                                              integral: _Integral) -> bool:
-        components_integer_part = _to_components_integer_part(components);
+        components_integer_part = _components_to_integer(components);
         return (components_integer_part < integral
                 or (components_integer_part == integral
-                    and _to_components_fractional_part(components) < 0.))
+                    and _components_to_accumulated_fraction(components) < 0.))
 
 
     def _integral_to_components(value: _Integral) -> _Sequence[float]:
+        if not value:
+            return [0.]
         value = int(value)
         result = []
         while value:
@@ -321,18 +351,20 @@ except ImportError:
                                           and components[-2] > 0.)
 
 
-    def _is_integral_lesser_than_components(components: _Sequence[float],
-                                            integral: _Integral) -> bool:
-        components_integer_part = _to_components_integer_part(components);
-        return (components_integer_part < integral
-                or (components_integer_part == integral
-                    and _to_components_fractional_part(components) < 0.))
+    def _is_integral_lesser_than_components(value: _Integral,
+                                            components: _Sequence[float]
+                                            ) -> bool:
+        integer = _components_to_integer(components);
+        return (value < integer
+                or (value == integer
+                    and _components_to_accumulated_fraction(components) > 0.))
 
 
-    def _to_components_fractional_part(components: _Sequence[float]) -> float:
+    def _components_to_accumulated_fraction(components: _Sequence[float]
+                                            ) -> float:
         result = 0.
         for component in components:
-            component_fractional_part = component % 1.
+            component_fractional_part = _to_fraction(component)
             if not component_fractional_part:
                 break
             result += component_fractional_part
@@ -340,7 +372,18 @@ except ImportError:
         return result
 
 
-    def _to_components_integer_part(components: _Sequence[float]) -> int:
+    def _components_to_fractions(components: _Sequence[float]
+                                 ) -> _Sequence[float]:
+        result = []
+        for component in components:
+            component_fractional_part = _to_fraction(component)
+            if not component_fractional_part:
+                break
+            result.append(component_fractional_part)
+        return result or [0.]
+
+
+    def _components_to_integer(components: _Sequence[float]) -> int:
         result = 0
         for component in reversed(components):
             component_integer_part = int(component)
@@ -847,7 +890,7 @@ except ImportError:
                             dy_squared_head)
 
 
-    def _to_fractional_part(value: float) -> float:
+    def _to_fraction(value: float) -> float:
         result, _ = _modf(value)
         return result
 
