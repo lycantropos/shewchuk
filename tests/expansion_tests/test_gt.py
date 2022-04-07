@@ -25,8 +25,7 @@ def test_asymmetry(first: Expansion, second: Union[Real, Expansion]) -> None:
 def test_transitivity(first: Expansion,
                       second: Expansion,
                       third: Expansion) -> None:
-    assert implication(first > second > third,
-                       first > third)
+    assert implication(first > second > third, first > third)
 
 
 @given(strategies.expansions, strategies.reals_or_expansions)
