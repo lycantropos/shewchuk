@@ -1,12 +1,12 @@
 import math
-import sys
 from typing import Sequence
 
 from hypothesis import strategies
 
 from shewchuk import Expansion
 from tests.strategies import finite_floats
-from tests.utils import pack
+from tests.utils import (MAX_VALUE,
+                         pack)
 
 negative_integers = strategies.integers(max_value=-1)
 ones = strategies.just(1)
@@ -14,9 +14,7 @@ small_positive_integers = strategies.integers(1, 5)
 small_non_negative_integers = strategies.just(0) | small_positive_integers
 precisions = strategies.none() | strategies.integers(-10, 10)
 finite_floats = finite_floats
-MAX_FLOAT_REPRESENTABLE_INTEGER = int(sys.float_info.max)
-integers = strategies.integers(-MAX_FLOAT_REPRESENTABLE_INTEGER,
-                               MAX_FLOAT_REPRESENTABLE_INTEGER)
+integers = strategies.integers(-MAX_VALUE, MAX_VALUE)
 reals = integers | finite_floats
 
 

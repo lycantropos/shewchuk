@@ -17,6 +17,9 @@ Domain = TypeVar('Domain')
 Range = TypeVar('Range')
 
 
+MAX_VALUE = 10 ** 100
+
+
 def apply(function: Callable[..., Range], args: Tuple[Domain, ...]) -> Range:
     return function(*args)
 

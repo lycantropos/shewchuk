@@ -1,6 +1,7 @@
 from hypothesis import strategies
 
-MAX_VALUE = 10 ** 50
+from tests.utils import MAX_VALUE
+
 finite_floats = strategies.floats(-float(MAX_VALUE), float(MAX_VALUE),
                                   allow_infinity=False,
                                   allow_nan=False)
