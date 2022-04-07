@@ -1781,6 +1781,19 @@ static PyObject *Expansion_double_richcompare(ExpansionObject *self,
   }
 }
 
+static int is_PyObject_odd(PyObject* value) {
+    PyObject *one = PyLong_FromLong(1);
+    if (!one)
+      return -1;
+    PyObject *first_bit = PyNumber_And(value, one);
+    Py_DECREF(one);
+    if (!first_bit)
+      return -1;
+    const int result = PyObject_IsTrue(first_bit);
+    Py_DECREF(first_bit);
+    return result;
+}
+
 static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
                                        int op) {
   if (PyObject_TypeCheck(other, &ExpansionType))
@@ -1821,24 +1834,12 @@ static PyObject *Expansion_round_plain(ExpansionObject *self) {
       Py_DECREF(tmp);
       Py_DECREF(sign);
     }
-    PyObject *one = PyLong_FromLong(1);
-    if (!one) {
+    const int is_truncation_odd = is_PyObject_odd(result);
+    if (is_truncation_odd < 0) {
       Py_DECREF(result);
       return NULL;
     }
-    PyObject *first_bit = PyNumber_And(result, one);
-    Py_DECREF(one);
-    if (!first_bit) {
-      Py_DECREF(result);
-      return NULL;
-    }
-    const int is_truncated_expansion_odd = PyObject_IsTrue(first_bit);
-    Py_DECREF(first_bit);
-    if (is_truncated_expansion_odd < 0) {
-      Py_DECREF(result);
-      return NULL;
-    }
-    if (is_truncated_expansion_odd) {
+    if (is_truncation_odd) {
       PyObject *sign = PyLong_FromLong(Py_SIZE(result) > 0 ? 1 : -1);
       if (!sign) {
         Py_DECREF(result);
