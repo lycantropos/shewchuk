@@ -231,7 +231,7 @@ except ImportError:
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        def __rmul__(self, other: _Real) -> 'Expansion':
+        def __rmul__(self, other: _Union[_Integral, float]) -> 'Expansion':
             return (Expansion(*_scale_components_eliminating_zeros(
                     self._components, other))
                     if isinstance(other, float)
