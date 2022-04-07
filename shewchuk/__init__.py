@@ -53,12 +53,7 @@ except ImportError:
                 elif isinstance(argument, float):
                     components = [argument]
                 elif isinstance(argument, _Integral):
-                    argument = int(argument)
-                    components = []
-                    while argument:
-                        component = float(argument)
-                        components.append(component)
-                        argument -= int(component)
+                    components = _integral_to_components(argument)
                 else:
                     raise TypeError('Argument should be of type '
                                     '{expected!r}, `float` or `int`, '
@@ -262,8 +257,11 @@ except ImportError:
                     else
                     (Expansion(*_subtract_double_eliminating_zeros(
                             self._components, float(other)))
-                     if isinstance(other, _Real)
-                     else NotImplemented))
+                     if isinstance(other, float)
+                     else (Expansion(*_subtract_components_eliminating_zeros(
+                            self._components, _integral_to_components(other)))
+                           if isinstance(other, _Integral)
+                           else NotImplemented)))
 
         def __truediv__(self, other: _Real) -> 'Expansion':
             return (self * (1.0 / float(other))
@@ -287,6 +285,16 @@ except ImportError:
         return (components_integer_part < integral
                 or (components_integer_part == integral
                     and _to_components_fractional_part(components) < 0.))
+
+
+    def _integral_to_components(value: _Integral) -> _Sequence[float]:
+        value = int(value)
+        result = []
+        while value:
+            component = float(value)
+            result.append(component)
+            value -= int(component)
+        return result
 
 
     def _is_float_lesser_than_components(value: float,

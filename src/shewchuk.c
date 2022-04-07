@@ -55,7 +55,10 @@ static int Integral_to_components(PyObject *integral, size_t *size,
                                   double **components) {
   if (PyObject_Not(integral)) {
     *components = (double *)PyMem_Malloc(sizeof(double));
-    if (!*components) return -1;
+    if (!*components) {
+      PyErr_NoMemory();
+      return -1;
+    }
     *size = 1;
     *components[0] = 0.0;
     return 0;
@@ -73,6 +76,10 @@ static int Integral_to_components(PyObject *integral, size_t *size,
   size_t max_components_count = 1 + ((size_t)exponent - 1) / DBL_MANT_DIG;
   double *reversed_components =
       (double *)PyMem_Calloc(max_components_count, sizeof(double));
+  if (!reversed_components) {
+    PyErr_NoMemory();
+    return -1;
+  }
   size_t result_size = 0;
   for (;;) {
     reversed_components[result_size++] = component;
@@ -103,6 +110,7 @@ static int Integral_to_components(PyObject *integral, size_t *size,
   *components = (double *)PyMem_Calloc(result_size, sizeof(double));
   if (!*components) {
     PyMem_Free(reversed_components);
+    PyErr_NoMemory();
     return -1;
   }
   *size = result_size;
@@ -1793,7 +1801,7 @@ static ExpansionObject *Expansions_subtract(ExpansionObject *self,
   result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(&ExpansionType, result_components, result_size);
+  return construct_Expansion(Py_TYPE(self), result_components, result_size);
 }
 
 static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
@@ -1805,7 +1813,7 @@ static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
   result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(&ExpansionType, result_components, result_size);
+  return construct_Expansion(Py_TYPE(self), result_components, result_size);
 }
 
 static ExpansionObject *double_Expansion_subtract(double self,
@@ -1828,22 +1836,31 @@ static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
     else if (PyFloat_Check(other))
       return (PyObject *)Expansion_double_subtract((ExpansionObject *)self,
                                                    PyFloat_AS_DOUBLE(other));
-    else if (PyObject_IsInstance(other, Real)) {
-      double other_value = PyFloat_AsDouble(other);
-      return other_value == -1.0 && PyErr_Occurred()
-                 ? NULL
-                 : (PyObject *)Expansion_double_subtract(
-                       (ExpansionObject *)self, other_value);
+    else if (PyObject_IsInstance(other, Integral)) {
+      double *other_components;
+      size_t other_size;
+      if (Integral_to_components(other, &other_size, &other_components) < 0)
+        return NULL;
+      ExpansionObject *other_expansion =
+          construct_Expansion(Py_TYPE(self), other_components, other_size);
+      PyObject *result = (PyObject *)Expansions_subtract(
+          (ExpansionObject *)self, other_expansion);
+      Py_DECREF(other_expansion);
+      return result;
     }
   } else if (PyFloat_Check(self))
     return (PyObject *)double_Expansion_subtract(PyFloat_AS_DOUBLE(self),
                                                  (ExpansionObject *)other);
-  else if (PyObject_IsInstance(self, Real)) {
-    double value = PyFloat_AsDouble(self);
-    return value == -1.0 && PyErr_Occurred()
-               ? NULL
-               : (PyObject *)double_Expansion_subtract(
-                     value, (ExpansionObject *)other);
+  else if (PyObject_IsInstance(self, Integral)) {
+    double *components;
+    size_t size;
+    if (Integral_to_components(self, &size, &components) < 0) return NULL;
+    ExpansionObject *expansion =
+        construct_Expansion(Py_TYPE(other), components, size);
+    PyObject *result =
+        (PyObject *)Expansions_subtract(expansion, (ExpansionObject *)other);
+    Py_DECREF(expansion);
+    return result;
   }
   Py_RETURN_NOTIMPLEMENTED;
 }
