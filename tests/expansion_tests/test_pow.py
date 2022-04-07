@@ -20,11 +20,6 @@ def test_left_absorbing_element(base: Expansion, exponent: int) -> None:
     assert base ** exponent == base
 
 
-@given(strategies.expansions, strategies.ones)
-def test_right_neutral_element(base: Expansion, exponent: int) -> None:
-    assert base ** exponent == base
-
-
 @skip_reference_counter_test
 @given(strategies.expansions, strategies.small_non_negative_integers)
 def test_reference_counter(base: Expansion, exponent: int) -> None:
