@@ -256,9 +256,8 @@ except ImportError:
                     result += fraction_sign
                 return result
             else:
-                rounded_components = [round(component, precision)
-                                      for component in self._components]
-                return Expansion(*_compress_components(rounded_components))
+                return Expansion(*[round(component, precision)
+                                   for component in self._components])
 
         def __rpow__(self, base: _Real) -> _Real:
             return (base ** self.__float__()
