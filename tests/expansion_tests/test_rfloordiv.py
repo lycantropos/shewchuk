@@ -8,7 +8,7 @@ from . import strategies
 
 
 @given(strategies.reals, strategies.non_zero_expansions)
-def test_connection_with_truediv(first: Real, second: Expansion) -> None:
+def test_connection_with_floordiv(first: Real, second: Expansion) -> None:
     result = first // second
 
     assert result == first // float(second)
