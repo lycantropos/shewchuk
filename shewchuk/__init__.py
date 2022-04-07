@@ -236,7 +236,14 @@ except ImportError:
                     else NotImplemented)
 
         def __round__(self, precision: _Optional[int] = None) -> _Real:
-            return round(self.__float__(), precision)
+            return (
+                sum(round(component) for component in self._components)
+                if precision is None
+                else Expansion(*_compress_components(
+                        [round(component, precision)
+                         for component in self._components]
+                ))
+            )
 
         def __rpow__(self, base: _Real) -> _Real:
             return (base ** self.__float__()

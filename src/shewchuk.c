@@ -121,15 +121,41 @@ static int Integral_to_components(PyObject *integral, size_t *size,
   return 0;
 }
 
-static double to_components_fractional_part(const size_t size,
-                                            double *const components) {
+static int to_components_fractional_parts(const size_t size,
+                                          double *const components,
+                                          size_t *result_size,
+                                          double **result_components) {
+  *result_components = PyMem_Calloc(size, sizeof(double));
+  if (!*result_components) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  double _;
+  size_t index;
+  for (index = 0; index < size; ++index)
+    (*result_components)[index] = modf(components[index], &_);
+  for (; index > 1 && !(*result_components)[index - 1]; --index) {
+  }
+  *result_size = index;
+  if (!PyMem_Resize(*result_components, double, *result_size)) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  return 0;
+}
+
+static double to_accumulated_components_fractional_part(
+    const size_t size, double *const components) {
   double _;
   double result = 0.0;
-  for (size_t index = 0; index < size; ++index) {
+  size_t index;
+  for (index = 0; index < size; ++index) {
     double component_fractional_part = modf(components[index], &_);
     if (!component_fractional_part) break;
     result += component_fractional_part;
   }
+  assert(result == 0.0 && index == 0 ||
+         result == modf(components[index - 1], &_));
   return result;
 }
 
@@ -184,7 +210,8 @@ static int are_components_lesser_than_Integral(const size_t size,
              : (components_integer_part_is_lesser_than_integral ||
                 (PyObject_RichCompareBool(components_integer_part, integral,
                                           Py_EQ) &&
-                 to_components_fractional_part(size, components) < 0.0));
+                 to_accumulated_components_fractional_part(size, components) <
+                     0.0));
 }
 
 static int is_Integral_lesser_than_components(PyObject *integral,
@@ -199,7 +226,8 @@ static int is_Integral_lesser_than_components(PyObject *integral,
              : (components_integer_part_is_greater_than_integral ||
                 (PyObject_RichCompareBool(components_integer_part, integral,
                                           Py_EQ) &&
-                 to_components_fractional_part(size, components) > 0.0));
+                 to_accumulated_components_fractional_part(size, components) >
+                     0.0));
 }
 
 static int are_components_equal_to_double(const size_t size,
@@ -218,8 +246,8 @@ static int are_components_lesser_than_double(const size_t size,
 
 static int is_double_lesser_than_components(double value, const size_t size,
                                             double *const components) {
-  return components[size - 1] > value ||
-         (size > 1 && components[size - 1] == value &&
+  return value < components[size - 1] ||
+         (size > 1 && value == components[size - 1] &&
           components[size - 2] > 0.0);
 }
 
@@ -1290,7 +1318,7 @@ double vectors_cross_product_impl(double first_start_x, double first_start_y,
 }
 
 static PyObject *Integral = NULL;
-static PyObject *PyObject_round = NULL;
+static PyObject *PyFloat_round = NULL;
 static PyObject *Real = NULL;
 
 typedef struct {
@@ -1394,7 +1422,7 @@ static PyObject *Expansion_ceil(ExpansionObject *self,
   PyObject *result = to_components_integer_part(self->size, self->components);
   if (!result) return NULL;
   double fractional_part =
-      to_components_fractional_part(self->size, self->components);
+      to_accumulated_components_fractional_part(self->size, self->components);
   assert(fabs(fractional_part) < 1.0);
   PyObject *fractional_part_ceil = PyLong_FromLong(ceil(fractional_part));
   if (!fractional_part_ceil) {
@@ -1417,7 +1445,7 @@ static PyObject *Expansion_floor(ExpansionObject *self,
   PyObject *result = to_components_integer_part(self->size, self->components);
   if (!result) return NULL;
   double fractional_part =
-      to_components_fractional_part(self->size, self->components);
+      to_accumulated_components_fractional_part(self->size, self->components);
   assert(fabs(fractional_part) < 1.0);
   PyObject *fractional_part_floor = PyLong_FromLong(floor(fractional_part));
   if (!fractional_part_floor) {
@@ -1775,28 +1803,130 @@ static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
     Py_RETURN_NOTIMPLEMENTED;
 }
 
-static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
-  PyObject *self_float = Expansion_float(self);
-  if (!self_float) return NULL;
-  Py_ssize_t size = PyTuple_Size(args);
-  if (size < 0) {
-    Py_DECREF(self_float);
+static PyObject *Expansion_round_plain(ExpansionObject *self) {
+  PyObject *result = to_components_integer_part(self->size, self->components);
+  if (!result) return NULL;
+  size_t fractional_parts_size;
+  double *fractional_parts_components;
+  if (to_components_fractional_parts(self->size, self->components,
+                                     &fractional_parts_size,
+                                     &fractional_parts_components) < 0) {
+    Py_DECREF(result);
     return NULL;
   }
-  PyObject *full_args = PyTuple_New(size + 1);
-  if (!full_args) {
-    Py_DECREF(self_float);
-    return NULL;
+  if (are_components_equal_to_double(fractional_parts_size,
+                                     fractional_parts_components, 0.5) ||
+      are_components_equal_to_double(fractional_parts_size,
+                                     fractional_parts_components, -0.5)) {
+    double fractional_part =
+        to_accumulated_components_fractional_part(self->size, self->components);
+    if ((fractional_part > 0.0 && Py_SIZE(result) < 0) ||
+        (fractional_part < 0.0 && Py_SIZE(result) > 0)) {
+      PyObject *sign = PyLong_FromLong(Py_SIZE(result) > 0 ? 1 : -1);
+      if (!sign) {
+        Py_DECREF(result);
+        return NULL;
+      }
+      PyObject *tmp = result;
+      result = PyNumber_InPlaceSubtract(result, sign);
+      Py_DECREF(tmp);
+      Py_DECREF(sign);
+    }
+    PyObject *one = PyLong_FromLong(1);
+    if (!one) {
+      Py_DECREF(result);
+      return NULL;
+    }
+    PyObject *first_bit = PyNumber_And(result, one);
+    Py_DECREF(one);
+    if (!first_bit) {
+      Py_DECREF(result);
+      return NULL;
+    }
+    const int is_truncated_expansion_odd = PyObject_IsTrue(first_bit);
+    Py_DECREF(first_bit);
+    if (is_truncated_expansion_odd < 0) {
+      Py_DECREF(result);
+      return NULL;
+    }
+    if (is_truncated_expansion_odd) {
+      PyObject *sign = PyLong_FromLong(Py_SIZE(result) > 0 ? 1 : -1);
+      if (!sign) {
+        Py_DECREF(result);
+        return NULL;
+      }
+      PyObject *tmp = result;
+      result = PyNumber_InPlaceAdd(result, sign);
+      Py_DECREF(tmp);
+      Py_DECREF(sign);
+    }
+  } else if (are_components_lesser_than_double(
+                 fractional_parts_size, fractional_parts_components, -0.5) ||
+             is_double_lesser_than_components(0.5, fractional_parts_size,
+                                              fractional_parts_components)) {
+    PyObject *sign = PyLong_FromLong(
+        is_double_lesser_than_components(0.0, fractional_parts_size,
+                                         fractional_parts_components)
+            ? 1
+            : -1);
+    if (!sign) {
+      Py_DECREF(result);
+      return NULL;
+    }
+    PyObject *tmp = result;
+    result = PyNumber_InPlaceAdd(result, sign);
+    Py_DECREF(tmp);
+    Py_DECREF(sign);
   }
-  PyTuple_SET_ITEM(full_args, 0, self_float);
-  for (Py_ssize_t index = 0; index < size; ++index) {
-    PyObject *argument = PyTuple_GET_ITEM(args, index);
-    Py_INCREF(argument);
-    PyTuple_SET_ITEM(full_args, index + 1, argument);
-  }
-  PyObject *result = PyObject_CallObject(PyObject_round, full_args);
-  Py_DECREF(full_args);
   return result;
+}
+
+static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
+  PyObject *precision = NULL;
+  if (!PyArg_ParseTuple(args, "|O", &precision)) return NULL;
+  if (!precision) return Expansion_round_plain(self);
+  const size_t size = self->size;
+  double *const components = self->components;
+  size_t rounded_components_size = size;
+  double *rounded_components =
+      (double *)PyMem_Calloc(rounded_components_size, sizeof(double));
+  if (!rounded_components) {
+    Py_DECREF(precision);
+    return PyErr_NoMemory();
+  }
+  PyObject *round_args = PyTuple_New(2);
+  if (!round_args) {
+    Py_DECREF(precision);
+    PyMem_Free(rounded_components);
+    return NULL;
+  }
+  Py_INCREF(precision);
+  PyTuple_SET_ITEM(round_args, 1, precision);
+  for (size_t index = 0; index < self->size; ++index) {
+    PyObject *component = PyFloat_FromDouble(components[index]);
+    if (!component) {
+      Py_DECREF(round_args);
+      PyMem_Free(rounded_components);
+      return NULL;
+    }
+    PyTuple_SET_ITEM(round_args, 0, component);
+    PyObject *rounded_component =
+        PyObject_CallObject(PyFloat_round, round_args);
+    if (!rounded_component) {
+      Py_DECREF(round_args);
+      PyMem_Free(rounded_components);
+      return NULL;
+    }
+    rounded_components[index] = PyFloat_AS_DOUBLE(rounded_component);
+    Py_DECREF(rounded_component);
+  }
+  Py_DECREF(round_args);
+  rounded_components_size =
+      compress_components(rounded_components_size, rounded_components);
+  if (!PyMem_Resize(rounded_components, double, rounded_components_size))
+    return PyErr_NoMemory();
+  return (PyObject *)construct_Expansion(
+      &ExpansionType, rounded_components_size, rounded_components);
 }
 
 static ExpansionObject *Expansions_subtract(ExpansionObject *self,
@@ -2082,12 +2212,9 @@ static PyModuleDef _shewchuk_module = {
     .m_size = -1,
 };
 
-static int load_PyObject_round() {
-  PyObject *builtins_module = PyImport_ImportModule("builtins");
-  if (!builtins_module) return -1;
-  PyObject_round = PyObject_GetAttrString(builtins_module, "round");
-  Py_DECREF(builtins_module);
-  return !PyObject_round ? -1 : 0;
+static int load_PyFloat_round() {
+  PyFloat_round = PyDict_GetItemString(PyFloat_Type.tp_dict, "__round__");
+  return !PyFloat_round ? -1 : 0;
 }
 
 static int load_number_interfaces() {
@@ -2134,17 +2261,17 @@ PyMODINIT_FUNC PyInit__shewchuk(void) {
     Py_DECREF(result);
     return NULL;
   }
-  if (load_PyObject_round() < 0) {
+  if (load_PyFloat_round() < 0) {
     Py_DECREF(result);
     return NULL;
   }
   if (load_number_interfaces() < 0) {
-    Py_DECREF(PyObject_round);
+    Py_DECREF(PyFloat_round);
     Py_DECREF(result);
     return NULL;
   }
   if (mark_as_real((PyObject *)&ExpansionType) < 0) {
-    Py_DECREF(PyObject_round);
+    Py_DECREF(PyFloat_round);
     Py_DECREF(Real);
     Py_DECREF(result);
     return NULL;
