@@ -70,7 +70,7 @@ static int Integral_to_components(PyObject *integral, size_t *size,
     Py_DECREF(rest);
     return -1;
   }
-  assert(abs(component) >= 1.0);
+  assert(component >= 1.0 || component <= -1.0);
   int exponent;
   frexp(component, &exponent);
   size_t max_components_count = 1 + ((size_t)exponent - 1) / DBL_MANT_DIG;
