@@ -43,7 +43,7 @@ except ImportError:
         __slots__ = '_components',
 
         def __new__(cls,
-                    *args: _Union['Expansion', float, int],
+                    *args: _Union['Expansion', _Integral, float],
                     _compress: bool = True) -> 'Expansion':
             self = super().__new__(cls)
             if len(args) == 1:
@@ -95,7 +95,7 @@ except ImportError:
             return (_to_components_integer_part(self._components)
                     + _ceil(_to_components_fractional_part(self._components)))
 
-        def __eq__(self, other: _Union['Expansion', float, int]) -> bool:
+        def __eq__(self, other: _Union['Expansion', _Integral, float]) -> bool:
             return (self._components == other._components
                     if isinstance(other, Expansion)
                     else (len(self._components) == 1
@@ -119,7 +119,7 @@ except ImportError:
         def __floordiv__(self, other: _Real) -> _Real:
             return self.__float__() // other
 
-        def __ge__(self, other: _Union['Expansion', float, int]) -> bool:
+        def __ge__(self, other: _Union['Expansion', _Integral, float]) -> bool:
             return (not _are_components_lesser_than(self._components,
                                                     other._components)
                     if isinstance(other, Expansion)
@@ -133,7 +133,7 @@ except ImportError:
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
-        def __gt__(self, other: _Union['Expansion', float, int]) -> bool:
+        def __gt__(self, other: _Union['Expansion', _Integral, float]) -> bool:
             return (_are_components_lesser_than(other._components,
                                                 self._components)
                     if isinstance(other, Expansion)
@@ -149,7 +149,7 @@ except ImportError:
         def __hash__(self) -> int:
             return hash(self.__float__())
 
-        def __le__(self, other: _Union['Expansion', float, int]) -> bool:
+        def __le__(self, other: _Union['Expansion', _Integral, float]) -> bool:
             return (not _are_components_lesser_than(other._components,
                                                     self._components)
                     if isinstance(other, Expansion)
@@ -163,7 +163,7 @@ except ImportError:
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
-        def __lt__(self, other: _Union['Expansion', float, int]) -> bool:
+        def __lt__(self, other: _Union['Expansion', _Integral, float]) -> bool:
             return (_are_components_lesser_than(self._components,
                                                 other._components)
                     if isinstance(other, Expansion)
@@ -239,8 +239,7 @@ except ImportError:
                     if isinstance(base, _Real)
                     else NotImplemented)
 
-        def __rsub__(self, other: _Union['Expansion', _Integral, float]
-                     ) -> 'Expansion':
+        def __rsub__(self, other: _Union[_Integral, float]) -> 'Expansion':
             return (Expansion(*_subtract_from_double_eliminating_zeros(
                     other, self._components))
                     if isinstance(other, float)
@@ -271,7 +270,7 @@ except ImportError:
                       else NotImplemented)))
 
         def __truediv__(self, other: _Real) -> 'Expansion':
-            return (self * (1.0 / float(other))
+            return (self * (1 / other)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
