@@ -1449,14 +1449,44 @@ static PyObject *Expansion_floor(ExpansionObject *self,
   return result;
 }
 
+static ExpansionObject *Expansion_PyObject_floor_divide(ExpansionObject *self,
+                                                        PyObject *other) {
+  size_t result_size = self->size;
+  double *result_components = PyMem_Calloc(result_size, sizeof(double));
+  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
+  for (size_t index = 0; index < self->size; ++index) {
+    PyObject *component = PyFloat_FromDouble(self->components[index]);
+    if (!component) {
+      PyMem_Free(result_components);
+      return NULL;
+    }
+    PyObject *result_component = PyNumber_FloorDivide(component, other);
+    Py_DECREF(component);
+    if (!result_component) {
+      PyMem_Free(result_components);
+      return NULL;
+    }
+    result_components[index] = PyFloat_AsDouble(result_component);
+    Py_DECREF(result_component);
+  }
+  result_size = compress_components(result_size, result_components);
+  if (!PyMem_Resize(result_components, double, result_size))
+    return (ExpansionObject *)PyErr_NoMemory();
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
 static PyObject *Expansion_floor_divide(PyObject *self, PyObject *other) {
   if (PyObject_TypeCheck(self, &ExpansionType)) {
-    PyObject *self_float = Expansion_float((ExpansionObject *)self);
-    if (!self_float) return NULL;
-    PyObject *result = PyNumber_FloorDivide(self_float, other);
-    Py_DECREF(self_float);
-    return result;
-  } else if (PyObject_IsInstance(self, Real)) {
+    if (PyObject_TypeCheck(other, &ExpansionType)) {
+      PyObject *other_float = Expansion_float((ExpansionObject *)other);
+      PyObject *result = (PyObject *)Expansion_PyObject_floor_divide(
+          (ExpansionObject *)self, other_float);
+      Py_DECREF(other_float);
+      return result;
+    } else if (PyFloat_Check(other) || PyObject_IsInstance(other, Integral))
+      return (PyObject *)Expansion_PyObject_floor_divide(
+          (ExpansionObject *)self, other);
+  } else if (PyFloat_Check(self) || PyObject_IsInstance(self, Integral)) {
     PyObject *other_float = Expansion_float((ExpansionObject *)other);
     if (!other_float) return NULL;
     PyObject *result = PyNumber_FloorDivide(self, other_float);

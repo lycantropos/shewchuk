@@ -119,8 +119,12 @@ except ImportError:
                     + _floor(_components_to_accumulated_fraction(
                             self._components)))
 
-        def __floordiv__(self, other: _Real) -> _Real:
-            return self.__float__() // other
+        def __floordiv__(self, other: _Union['Expansion', _Integral, float]
+                         ) -> 'Expansion':
+            return (Expansion(*[float(component // other)
+                                for component in self._components])
+                    if isinstance(other, (Expansion, _Integral, float))
+                    else NotImplemented)
 
         def __ge__(self, other: _Union['Expansion', _Integral, float]) -> bool:
             return (not _are_components_lesser_than(self._components,
@@ -217,9 +221,9 @@ except ImportError:
             return (type(self).__qualname__
                     + '({})'.format(', '.join(map(str, self._components))))
 
-        def __rfloordiv__(self, other: _Real) -> _Real:
+        def __rfloordiv__(self, other: _Union[_Integral, float]) -> _Real:
             return (other // float(self)
-                    if isinstance(other, _Real)
+                    if isinstance(other, (_Integral, float))
                     else NotImplemented)
 
         def __rmod__(self, other: _Real) -> _Real:
