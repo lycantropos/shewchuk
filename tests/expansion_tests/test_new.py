@@ -33,6 +33,13 @@ def test_float_argument(value: float) -> None:
     assert result == value
 
 
+@given(strategies.integers)
+def test_integer_argument(value: int) -> None:
+    result = Expansion(value)
+
+    assert result == value
+
+
 @given(strategies.finite_floats_sequences)
 def test_determinism(components: Sequence[float]) -> None:
     result = Expansion(*components)

@@ -1,4 +1,5 @@
 import math
+import sys
 from fractions import Fraction
 from typing import Sequence
 
@@ -14,7 +15,10 @@ small_positive_integers = strategies.integers(1, 5)
 small_non_negative_integers = strategies.just(0) | small_positive_integers
 precisions = strategies.none() | strategies.integers(-10, 10)
 finite_floats = finite_floats
-reals = strategies.integers() | finite_floats
+MAX_FLOAT_REPRESENTABLE_INTEGER = int(sys.float_info.max)
+integers = strategies.integers(-MAX_FLOAT_REPRESENTABLE_INTEGER,
+                               MAX_FLOAT_REPRESENTABLE_INTEGER)
+reals = integers | finite_floats
 
 
 def is_floats_sequence_sum_finite(values: Sequence[float]) -> bool:
