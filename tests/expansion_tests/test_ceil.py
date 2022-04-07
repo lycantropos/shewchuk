@@ -18,3 +18,4 @@ def test_value(expansion: Expansion) -> None:
     result = math.ceil(expansion)
 
     assert result >= expansion
+    assert result < expansion + 1
