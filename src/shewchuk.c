@@ -66,11 +66,11 @@ static int Integral_to_components(PyObject *integral, size_t *size,
   PyObject *rest = PyNumber_Long(integral);
   if (!rest) return -1;
   double component = PyFloat_AsDouble(rest);
-  assert(component >= 1.0);
   if (component == -1.0 && PyErr_Occurred()) {
     Py_DECREF(rest);
     return -1;
   }
+  assert(abs(component) >= 1.0);
   int exponent;
   frexp(component, &exponent);
   size_t max_components_count = 1 + ((size_t)exponent - 1) / DBL_MANT_DIG;
