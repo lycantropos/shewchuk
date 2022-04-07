@@ -204,11 +204,15 @@ except ImportError:
                     modulo: _Optional[_Real] = None) -> _Real:
             return pow(self.__float__(), exponent, modulo)
 
-        def __radd__(self, other: _Real) -> 'Expansion':
+        def __radd__(self, other: _Union[_Integral, float]) -> 'Expansion':
             return (Expansion(*_add_float_eliminating_zeros(self._components,
-                                                            float(other)))
-                    if isinstance(other, _Real)
-                    else NotImplemented)
+                                                            other))
+                    if isinstance(other, float)
+                    else
+                    (Expansion(*_add_components_eliminating_zeros(
+                            self._components, _integral_to_components(other)))
+                     if isinstance(other, _Integral)
+                     else NotImplemented))
 
         def __repr__(self) -> str:
             return (type(self).__qualname__

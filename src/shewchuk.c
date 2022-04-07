@@ -1345,22 +1345,31 @@ static PyObject *Expansion_add(PyObject *self, PyObject *other) {
     else if (PyFloat_Check(other))
       return (PyObject *)Expansion_double_add((ExpansionObject *)self,
                                               PyFloat_AS_DOUBLE(other));
-    else if (PyObject_IsInstance(other, Real)) {
-      double other_value = PyFloat_AsDouble(other);
-      return other_value == -1.0 && PyErr_Occurred()
-                 ? NULL
-                 : (PyObject *)Expansion_double_add((ExpansionObject *)self,
-                                                    other_value);
+    else if (PyObject_IsInstance(other, Integral)) {
+      double *other_components;
+      size_t other_size;
+      if (Integral_to_components(other, &other_size, &other_components) < 0)
+        return NULL;
+      ExpansionObject *other_expansion =
+          construct_Expansion(&ExpansionType, other_size, other_components);
+      PyObject *result =
+          (PyObject *)Expansions_add((ExpansionObject *)self, other_expansion);
+      Py_DECREF(other_expansion);
+      return result;
     }
   } else if (PyFloat_Check(self))
     return (PyObject *)Expansion_double_add((ExpansionObject *)other,
                                             PyFloat_AS_DOUBLE(self));
-  else if (PyObject_IsInstance(self, Real)) {
-    double value = PyFloat_AsDouble(self);
-    return value == -1.0 && PyErr_Occurred()
-               ? NULL
-               : (PyObject *)Expansion_double_add((ExpansionObject *)other,
-                                                  value);
+  else if (PyObject_IsInstance(self, Integral)) {
+    double *components;
+    size_t size;
+    if (Integral_to_components(self, &size, &components) < 0) return NULL;
+    ExpansionObject *expansion =
+        construct_Expansion(&ExpansionType, size, components);
+    PyObject *result =
+        (PyObject *)Expansions_add(expansion, (ExpansionObject *)other);
+    Py_DECREF(expansion);
+    return result;
   }
   Py_RETURN_NOTIMPLEMENTED;
 }
