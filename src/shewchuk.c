@@ -1602,22 +1602,6 @@ static ExpansionObject *Expansion_absolute(ExpansionObject *self) {
                                                 : Expansion_positive(self);
 }
 
-static PyObject *Expansion_power(PyObject *self, PyObject *exponent,
-                                 PyObject *modulo) {
-  if (PyObject_TypeCheck(self, &ExpansionType)) {
-    PyObject *self_float = Expansion_float((ExpansionObject *)self);
-    PyObject *result = PyNumber_Power(self_float, exponent, modulo);
-    Py_DECREF(self_float);
-    return result;
-  } else if (PyObject_TypeCheck(exponent, &ExpansionType)) {
-    PyObject *exponent_float = Expansion_float((ExpansionObject *)self);
-    PyObject *result = PyNumber_Power(self, exponent_float, modulo);
-    Py_DECREF(exponent_float);
-    return result;
-  }
-  Py_RETURN_NOTIMPLEMENTED;
-}
-
 static PyObject *Expansion_repr(ExpansionObject *self) {
   PyObject *result;
   if (self->size > 1) {
@@ -2004,7 +1988,6 @@ static PyNumberMethods Expansion_as_number = {
     .nb_multiply = Expansion_multiply,
     .nb_negative = (unaryfunc)Expansion_negative,
     .nb_positive = (unaryfunc)Expansion_positive,
-    .nb_power = Expansion_power,
     .nb_subtract = Expansion_subtract,
     .nb_true_divide = Expansion_true_divide,
 };

@@ -190,11 +190,6 @@ except ImportError:
         def __pos__(self) -> 'Expansion':
             return self
 
-        def __pow__(self,
-                    exponent: _Real,
-                    modulo: _Optional[_Real] = None) -> _Real:
-            return pow(self.__float__(), exponent, modulo)
-
         def __radd__(self, other: _Union[_Integral, float]) -> 'Expansion':
             return (Expansion(*_add_float_eliminating_zeros(self._components,
                                                             other))
@@ -242,11 +237,6 @@ except ImportError:
             else:
                 return Expansion(*[round(component, precision)
                                    for component in self._components])
-
-        def __rpow__(self, base: _Real) -> _Real:
-            return (base ** self.__float__()
-                    if isinstance(base, _Real)
-                    else NotImplemented)
 
         def __rsub__(self, other: _Union[_Integral, float]) -> 'Expansion':
             return (Expansion(*_subtract_from_double_eliminating_zeros(
