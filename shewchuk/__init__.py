@@ -184,9 +184,8 @@ except ImportError:
                       else NotImplemented)))
 
         def __mod__(self, other: _Real) -> 'Expansion':
-            return (Expansion(*_modulo_components(self._components,
-                                                  float(other)))
-                    if isinstance(other, _Real)
+            return (self - self // other * other
+                    if isinstance(other, (Expansion, _Integral, float))
                     else NotImplemented)
 
         def __mul__(self, other: _Real) -> 'Expansion':
@@ -226,9 +225,9 @@ except ImportError:
                     if isinstance(other, (_Integral, float))
                     else NotImplemented)
 
-        def __rmod__(self, other: _Real) -> _Real:
-            return (other % float(self)
-                    if isinstance(other, _Real)
+        def __rmod__(self, other: _Union[_Integral, float]) -> 'Expansion':
+            return (other - other // self * self
+                    if isinstance(other, (_Integral, float))
                     else NotImplemented)
 
         def __rmul__(self, other: _Union[_Integral, float]) -> 'Expansion':
@@ -599,33 +598,6 @@ except ImportError:
             result[top] = cursor
             top += 1
         return result[:top]
-
-
-    def _floor_divide_components(components: _Sequence[float],
-                                 value: float) -> _Sequence[float]:
-        result = [None] * len(components)
-        iterator = reversed(components)
-        result[-1] = next(iterator) // value
-        for offset, component in enumerate(iterator,
-                                           start=2):
-            candidate = component // value
-            if not candidate:
-                result = result[1 - offset:]
-                break
-            result[-offset] = candidate
-        result = _compress_components_single(result)
-        result[-1] //= value
-        return result
-
-
-    def _modulo_components(components: _Sequence[float],
-                           value: float) -> _Sequence[float]:
-        iterator = iter(components)
-        result = [next(iterator) % value]
-        for component in iterator:
-            result = _add_float_eliminating_zeros(result, component % value)
-        result[-1] %= value
-        return result
 
 
     def _fast_two_add(left: float, right: float) -> _Tuple[float, float]:

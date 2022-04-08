@@ -1678,22 +1678,14 @@ static ExpansionObject *Expansion_double_remainder(ExpansionObject *self,
 }
 
 static PyObject *Expansion_remainder(PyObject *self, PyObject *other) {
-  if (PyObject_TypeCheck(self, &ExpansionType)) {
-    if (PyObject_IsInstance(other, Real)) {
-      double other_value = PyFloat_AsDouble(other);
-      return other_value == -1.0 && PyErr_Occurred()
-                 ? NULL
-                 : (PyObject *)Expansion_double_remainder(
-                       (ExpansionObject *)self, other_value);
-    }
-  } else if (PyObject_IsInstance(self, Real)) {
-    PyObject *other_float = Expansion_float((ExpansionObject *)other);
-    if (!other_float) return NULL;
-    PyObject *result = PyNumber_Remainder(self, other_float);
-    Py_DECREF(other_float);
-    return result;
-  }
-  Py_RETURN_NOTIMPLEMENTED;
+  PyObject *quotient = PyNumber_FloorDivide(self, other);
+  if (!quotient) return NULL;
+  PyObject *whole = PyNumber_Multiply(quotient, other);
+  Py_DECREF(quotient);
+  if (!whole) return NULL;
+  PyObject *result = PyNumber_Subtract(self, whole);
+  Py_DECREF(whole);
+  return result;
 }
 
 static PyObject *Expansion_power(PyObject *self, PyObject *exponent,
