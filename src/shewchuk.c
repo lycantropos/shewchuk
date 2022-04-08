@@ -188,35 +188,37 @@ static int are_components_equal_to_Integral(const size_t size,
                                             double *const components,
                                             PyObject *integral) {
   if (do_components_have_fraction(size, components)) return 0;
-  PyObject *integer = components_to_integer(size, components);
-  int result = PyObject_RichCompareBool(integer, integral, Py_EQ);
-  Py_DECREF(integer);
+  PyObject *components_integer = components_to_integer(size, components);
+  int result = PyObject_RichCompareBool(components_integer, integral, Py_EQ);
+  Py_DECREF(components_integer);
   return result;
 }
 
 static int are_components_lesser_than_Integral(const size_t size,
                                                double *const components,
                                                PyObject *integral) {
-  PyObject *integer = components_to_integer(size, components);
-  int integer_is_lesser_than_integral =
-      PyObject_RichCompareBool(integer, integral, Py_LT);
-  return integer_is_lesser_than_integral < 0
-             ? integer_is_lesser_than_integral
-             : (integer_is_lesser_than_integral ||
-                (PyObject_RichCompareBool(integer, integral, Py_EQ) &&
+  PyObject *components_integer = components_to_integer(size, components);
+  int components_integer_is_lesser_than_integral =
+      PyObject_RichCompareBool(components_integer, integral, Py_LT);
+  return components_integer_is_lesser_than_integral < 0
+             ? components_integer_is_lesser_than_integral
+             : (components_integer_is_lesser_than_integral ||
+                (PyObject_RichCompareBool(components_integer, integral,
+                                          Py_EQ) &&
                  components_to_accumulated_fraction(size, components) < 0.0));
 }
 
 static int is_Integral_lesser_than_components(PyObject *integral,
                                               const size_t size,
                                               double *const components) {
-  PyObject *integer = components_to_integer(size, components);
-  int integer_is_greater_than_integral =
-      PyObject_RichCompareBool(integer, integral, Py_GT);
-  return integer_is_greater_than_integral < 0
-             ? integer_is_greater_than_integral
-             : (integer_is_greater_than_integral ||
-                (PyObject_RichCompareBool(integer, integral, Py_EQ) &&
+  PyObject *components_integer = components_to_integer(size, components);
+  int components_integer_is_greater_than_integral =
+      PyObject_RichCompareBool(components_integer, integral, Py_GT);
+  return components_integer_is_greater_than_integral < 0
+             ? components_integer_is_greater_than_integral
+             : (components_integer_is_greater_than_integral ||
+                (PyObject_RichCompareBool(components_integer, integral,
+                                          Py_EQ) &&
                  components_to_accumulated_fraction(size, components) > 0.0));
 }
 

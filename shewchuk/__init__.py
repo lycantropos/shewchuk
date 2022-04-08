@@ -329,9 +329,9 @@ except ImportError:
 
     def _are_components_lesser_than_integral(components: _Sequence[float],
                                              integral: _Integral) -> bool:
-        components_integer_part = _components_to_integer(components);
-        return (components_integer_part < integral
-                or (components_integer_part == integral
+        components_integer = _components_to_integer(components);
+        return (components_integer < integral
+                or (components_integer == integral
                     and _components_to_accumulated_fraction(components) < 0.))
 
 
@@ -357,9 +357,9 @@ except ImportError:
     def _is_integral_lesser_than_components(value: _Integral,
                                             components: _Sequence[float]
                                             ) -> bool:
-        integer = _components_to_integer(components);
-        return (value < integer
-                or (value == integer
+        components_integer = _components_to_integer(components);
+        return (value < components_integer
+                or (value == components_integer
                     and _components_to_accumulated_fraction(components) > 0.))
 
 
@@ -367,10 +367,10 @@ except ImportError:
                                             ) -> float:
         result = 0.
         for component in components:
-            component_fractional_part = _to_fraction(component)
-            if not component_fractional_part:
+            component_fraction = _to_fraction(component)
+            if not component_fraction:
                 break
-            result += component_fractional_part
+            result += component_fraction
         assert abs(result) < 1.0, components
         return result
 
@@ -379,20 +379,20 @@ except ImportError:
                                  ) -> _Sequence[float]:
         result = []
         for component in components:
-            component_fractional_part = _to_fraction(component)
-            if not component_fractional_part:
+            component_fraction = _to_fraction(component)
+            if not component_fraction:
                 break
-            result.append(component_fractional_part)
+            result.append(component_fraction)
         return result or [0.]
 
 
     def _components_to_integer(components: _Sequence[float]) -> int:
         result = 0
         for component in reversed(components):
-            component_integer_part = int(component)
-            if not component_integer_part:
+            component_integer = int(component)
+            if not component_integer:
                 break
-            result += component_integer_part
+            result += component_integer
         return result
 
 
