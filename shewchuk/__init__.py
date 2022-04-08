@@ -119,13 +119,6 @@ except ImportError:
                     + _floor(_components_to_accumulated_fraction(
                             self._components)))
 
-        def __floordiv__(self, other: _Union['Expansion', _Integral, float]
-                         ) -> 'Expansion':
-            return (Expansion(*[float(component // other)
-                                for component in self._components])
-                    if isinstance(other, (Expansion, _Integral, float))
-                    else NotImplemented)
-
         def __ge__(self, other: _Union['Expansion', _Integral, float]) -> bool:
             return (not _are_components_lesser_than(self._components,
                                                     other._components)
@@ -183,12 +176,8 @@ except ImportError:
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
-        def __mod__(self, other: _Real) -> 'Expansion':
-            return (self - self // other * other
-                    if isinstance(other, (Expansion, _Integral, float))
-                    else NotImplemented)
-
-        def __mul__(self, other: _Real) -> 'Expansion':
+        def __mul__(self, other: _Union['Expansion', _Integral, float]
+                    ) -> 'Expansion':
             return (Expansion(*_multiply_components_eliminating_zeros(
                     self._components, other._components))
                     if isinstance(other, Expansion)
@@ -219,16 +208,6 @@ except ImportError:
         def __repr__(self) -> str:
             return (type(self).__qualname__
                     + '({})'.format(', '.join(map(str, self._components))))
-
-        def __rfloordiv__(self, other: _Union[_Integral, float]) -> _Real:
-            return (other // float(self)
-                    if isinstance(other, (_Integral, float))
-                    else NotImplemented)
-
-        def __rmod__(self, other: _Union[_Integral, float]) -> 'Expansion':
-            return (other - other // self * self
-                    if isinstance(other, (_Integral, float))
-                    else NotImplemented)
 
         def __rmul__(self, other: _Union[_Integral, float]) -> 'Expansion':
             return (Expansion(*_scale_components_eliminating_zeros(

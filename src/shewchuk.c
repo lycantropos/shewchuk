@@ -10,16 +10,6 @@
 
 static int to_sign(double value) { return value > 0.0 ? 1 : (!value ? 0 : -1); }
 
-static double double_remainder(double dividend, double divisor) {
-  double result = fmod(dividend, divisor);
-  // ensure the remainder has the same sign as the denominator
-  if (result) {
-    if ((divisor < 0) != (result < 0)) result += divisor;
-  } else
-    result = copysign(0.0, divisor);
-  return result;
-}
-
 static void swap(double **first, double **second) {
   double *temp = *first;
   *first = *second;
@@ -1451,53 +1441,6 @@ static PyObject *Expansion_floor(ExpansionObject *self,
   return result;
 }
 
-static ExpansionObject *Expansion_PyObject_floor_divide(ExpansionObject *self,
-                                                        PyObject *other) {
-  size_t result_size = self->size;
-  double *result_components = PyMem_Calloc(result_size, sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  for (size_t index = 0; index < self->size; ++index) {
-    PyObject *component = PyFloat_FromDouble(self->components[index]);
-    if (!component) {
-      PyMem_Free(result_components);
-      return NULL;
-    }
-    PyObject *result_component = PyNumber_FloorDivide(component, other);
-    Py_DECREF(component);
-    if (!result_component) {
-      PyMem_Free(result_components);
-      return NULL;
-    }
-    result_components[index] = PyFloat_AsDouble(result_component);
-    Py_DECREF(result_component);
-  }
-  result_size = compress_components(result_size, result_components);
-  if (!PyMem_Resize(result_components, double, result_size))
-    return (ExpansionObject *)PyErr_NoMemory();
-  return construct_Expansion(&ExpansionType, result_size, result_components);
-}
-
-static PyObject *Expansion_floor_divide(PyObject *self, PyObject *other) {
-  if (PyObject_TypeCheck(self, &ExpansionType)) {
-    if (PyObject_TypeCheck(other, &ExpansionType)) {
-      PyObject *other_float = Expansion_float((ExpansionObject *)other);
-      PyObject *result = (PyObject *)Expansion_PyObject_floor_divide(
-          (ExpansionObject *)self, other_float);
-      Py_DECREF(other_float);
-      return result;
-    } else if (PyFloat_Check(other) || PyObject_IsInstance(other, Integral))
-      return (PyObject *)Expansion_PyObject_floor_divide(
-          (ExpansionObject *)self, other);
-  } else if (PyFloat_Check(self) || PyObject_IsInstance(self, Integral)) {
-    PyObject *other_float = Expansion_float((ExpansionObject *)other);
-    if (!other_float) return NULL;
-    PyObject *result = PyNumber_FloorDivide(self, other_float);
-    Py_DECREF(other_float);
-    return result;
-  }
-  Py_RETURN_NOTIMPLEMENTED;
-}
-
 static Py_hash_t Expansion_hash(ExpansionObject *self) {
   PyObject *components = PyTuple_New(self->size);
   if (!components) return -1;
@@ -1657,37 +1600,6 @@ static ExpansionObject *Expansion_positive(ExpansionObject *self) {
 static ExpansionObject *Expansion_absolute(ExpansionObject *self) {
   return self->components[self->size - 1] < 0.0 ? Expansion_negative(self)
                                                 : Expansion_positive(self);
-}
-
-static ExpansionObject *Expansion_double_remainder(ExpansionObject *self,
-                                                   double other) {
-  if (!other) {
-    PyErr_SetString(PyExc_ZeroDivisionError, "Zero divisor.");
-    return NULL;
-  }
-  double *result_components = PyMem_Calloc(self->size, sizeof(double));
-  size_t result_size;
-  result_components[0] = double_remainder(self->components[0], other);
-  result_size = 1;
-  for (size_t index = 1; index < self->size; ++index)
-    result_size = add_double_eliminating_zeros(
-        result_size, result_components,
-        double_remainder(self->components[index], other), result_components);
-  result_components[result_size - 1] =
-      double_remainder(result_components[result_size - 1], other);
-  result_size = compress_components_single(result_size, result_components);
-  return construct_Expansion(&ExpansionType, result_size, result_components);
-}
-
-static PyObject *Expansion_remainder(PyObject *self, PyObject *other) {
-  PyObject *quotient = PyNumber_FloorDivide(self, other);
-  if (!quotient) return NULL;
-  PyObject *whole = PyNumber_Multiply(quotient, other);
-  Py_DECREF(quotient);
-  if (!whole) return NULL;
-  PyObject *result = PyNumber_Subtract(self, whole);
-  Py_DECREF(whole);
-  return result;
 }
 
 static PyObject *Expansion_power(PyObject *self, PyObject *exponent,
@@ -2089,12 +2001,10 @@ static PyNumberMethods Expansion_as_number = {
     .nb_add = Expansion_add,
     .nb_bool = (inquiry)Expansion_bool,
     .nb_float = (unaryfunc)Expansion_float,
-    .nb_floor_divide = Expansion_floor_divide,
     .nb_multiply = Expansion_multiply,
     .nb_negative = (unaryfunc)Expansion_negative,
     .nb_positive = (unaryfunc)Expansion_positive,
     .nb_power = Expansion_power,
-    .nb_remainder = Expansion_remainder,
     .nb_subtract = Expansion_subtract,
     .nb_true_divide = Expansion_true_divide,
 };
