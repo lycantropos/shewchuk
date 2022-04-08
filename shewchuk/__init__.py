@@ -3,12 +3,12 @@
 __version__ = '4.0.0'
 
 try:
-    from _shewchuk import (Expansion,
-                           incircle_test,
-                           kind,
-                           orientation,
-                           vectors_cross_product,
-                           vectors_dot_product)
+    from ._shewchuk import (Expansion,
+                            incircle_test,
+                            kind,
+                            orientation,
+                            vectors_cross_product,
+                            vectors_dot_product)
 except ImportError:
     from functools import reduce as _reduce
     from itertools import (dropwhile as _dropwhile,
