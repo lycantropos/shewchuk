@@ -8,9 +8,6 @@ from tests.strategies import finite_floats
 from tests.utils import (MAX_VALUE,
                          pack)
 
-negative_integers = strategies.integers(max_value=-1)
-small_positive_integers = strategies.integers(1, 5)
-small_non_negative_integers = strategies.just(0) | small_positive_integers
 precisions = strategies.none() | strategies.integers(-10, 10)
 finite_floats = finite_floats
 integers = strategies.integers(-MAX_VALUE, MAX_VALUE)
