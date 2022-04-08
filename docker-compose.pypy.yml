@@ -7,7 +7,7 @@ services:
       args:
         - IMAGE_NAME=${PYPY_IMAGE_NAME}
         - IMAGE_VERSION=${PYPY_IMAGE_VERSION}
-    image: lycantropos/shewchuk-pypy:4.0.0
+    image: lycantropos/shewchuk-pypy:5.0.0-alpha
     volumes:
       - ./pytest.ini:/opt/shewchuk/pytest.ini
       - ./README.md:/opt/shewchuk/README.md
