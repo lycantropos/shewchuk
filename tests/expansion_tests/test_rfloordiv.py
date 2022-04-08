@@ -14,6 +14,13 @@ def test_connection_with_floordiv(first: Real, second: Expansion) -> None:
     assert result == first // float(second)
 
 
+@given(strategies.reals, strategies.non_zero_expansions)
+def test_connection_with_rmod(first: Real, second: Expansion) -> None:
+    result = first // second
+
+    assert result * second + first % second == first
+
+
 @given(strategies.reals, strategies.zero_expansions)
 def test_zero_divisor(first: Real, second: Expansion) -> None:
     with pytest.raises(ZeroDivisionError):
