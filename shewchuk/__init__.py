@@ -21,8 +21,7 @@ except ImportError:
     from operator import not_ as _not
     from sys import float_info as _float_info
     from typing import (Sequence as _Sequence,
-                        Tuple as _Tuple,
-                        Union as _Union)
+                        Tuple as _Tuple)
 
 
     @_Real.register
@@ -41,7 +40,7 @@ except ImportError:
 
         __slots__ = '_components',
 
-        def __new__(cls, *args, _compress=True) -> 'Expansion':
+        def __new__(cls, *args, _compress=True):
             self = super().__new__(cls)
             if len(args) == 1:
                 argument, = args
@@ -76,11 +75,10 @@ except ImportError:
             self._components = tuple(components)
             return self
 
-        def __abs__(self) -> 'Expansion':
+        def __abs__(self):
             return +self if self._components[-1] > 0. else -self
 
-        def __add__(self, other: _Union['Expansion', _Integral, float]
-                    ) -> 'Expansion':
+        def __add__(self, other):
             return (Expansion(*_add_components_eliminating_zeros(
                     self._components, other._components))
                     if isinstance(other, Expansion)
