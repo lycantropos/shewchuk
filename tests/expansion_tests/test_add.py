@@ -1,17 +1,16 @@
 import sys
-from numbers import Real
-from typing import Union
 
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import (is_expansion_valid,
+from tests.utils import (RightOperand,
+                         is_expansion_valid,
                          skip_reference_counter_test)
 from . import strategies
 
 
 @given(strategies.expansions, strategies.reals_or_expansions)
-def test_basic(first: Expansion, second: Union[Real, Expansion]) -> None:
+def test_basic(first: Expansion, second: RightOperand) -> None:
     result = first + second
 
     assert isinstance(result, Expansion)
@@ -24,8 +23,7 @@ def test_commutativity(first: Expansion, second: Expansion) -> None:
 
 
 @given(strategies.expansions, strategies.zero_reals_or_expansions)
-def test_neutral_element(first: Expansion,
-                         second: Union[Real, Expansion]) -> None:
+def test_neutral_element(first: Expansion, second: RightOperand) -> None:
     assert first + second == first == second + first
 
 

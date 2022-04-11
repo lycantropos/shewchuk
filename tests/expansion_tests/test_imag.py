@@ -12,14 +12,14 @@ from . import strategies
 def test_basic(expansion: Expansion) -> None:
     result = expansion.imag
 
-    assert isinstance(result, Real)
+    assert isinstance(result, int)
 
 
 @given(strategies.expansions)
 def test_zeroness(expansion: Expansion) -> None:
     result = expansion.imag
 
-    assert not result
+    assert result == 0
 
 
 @skip_reference_counter_test

@@ -1,11 +1,10 @@
 import sys
-from numbers import Real
-from typing import Union
 
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import (equivalence,
+from tests.utils import (RightOperand,
+                         equivalence,
                          skip_reference_counter_test)
 from . import strategies
 
@@ -39,8 +38,7 @@ def test_evenness(expansion: Expansion) -> None:
 
 
 @given(strategies.expansions, strategies.reals_or_expansions)
-def test_triangle_inequality(first: Expansion,
-                             second: Union[Real, Expansion]) -> None:
+def test_triangle_inequality(first: Expansion, second: RightOperand) -> None:
     result = abs(first + second)
 
     assert result <= abs(first) + abs(second)

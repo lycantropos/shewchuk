@@ -1,10 +1,13 @@
 import platform
 from fractions import Fraction
 from functools import partial
-from typing import (Callable,
+from numbers import Integral
+from typing import (Any,
+                    Callable,
                     Iterable,
                     Tuple,
-                    TypeVar)
+                    TypeVar,
+                    Union)
 
 import pytest
 from hypothesis.strategies import SearchStrategy as Strategy
@@ -12,10 +15,11 @@ from hypothesis.strategies import SearchStrategy as Strategy
 import shewchuk
 from shewchuk import Expansion
 
+LeftOperand = Union[Integral, float]
+RightOperand = Union[Expansion, Integral, float]
 Strategy = Strategy
 Domain = TypeVar('Domain')
 Range = TypeVar('Range')
-
 
 MAX_VALUE = 10 ** 50
 
@@ -36,13 +40,13 @@ def exact_incircle_test(point_x: float,
                         second_y: float,
                         third_x: float,
                         third_y: float) -> int:
-    point_x, point_y = Fraction(point_x), Fraction(point_y)
-    first_dx, first_dy = (Fraction(first_x) - point_x,
-                          Fraction(first_y) - point_y)
-    second_dx, second_dy = (Fraction(second_x) - point_x,
-                            Fraction(second_y) - point_y)
-    third_dx, third_dy = (Fraction(third_x) - point_x,
-                          Fraction(third_y) - point_y)
+    exact_point_x, exact_point_y = Fraction(point_x), Fraction(point_y)
+    first_dx, first_dy = (Fraction(first_x) - exact_point_x,
+                          Fraction(first_y) - exact_point_y)
+    second_dx, second_dy = (Fraction(second_x) - exact_point_x,
+                            Fraction(second_y) - exact_point_y)
+    third_dx, third_dy = (Fraction(third_x) - exact_point_x,
+                          Fraction(third_y) - exact_point_y)
     return to_sign((first_dx * first_dx + first_dy * first_dy)
                    * (second_dx * third_dy - second_dy * third_dx)
                    - (second_dx * second_dx + second_dy * second_dy)
@@ -94,5 +98,5 @@ skip_reference_counter_test = pytest.mark.skipif(
                'is not based on reference counting.')
 
 
-def to_sign(value: Domain) -> int:
+def to_sign(value: Any) -> int:
     return 1 if value > 0 else (0 if not value else -1)

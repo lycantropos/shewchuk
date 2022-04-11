@@ -1,19 +1,18 @@
 import sys
-from numbers import Real
-from typing import Union
 
 import pytest
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import (equivalence,
+from tests.utils import (RightOperand,
+                         equivalence,
                          is_expansion_valid,
                          skip_reference_counter_test)
 from . import strategies
 
 
 @given(strategies.expansions, strategies.non_zero_reals_or_expansions)
-def test_basic(first: Expansion, second: Union[Real, Expansion]) -> None:
+def test_basic(first: Expansion, second: RightOperand) -> None:
     result = first / second
 
     assert isinstance(result, Expansion)
@@ -27,8 +26,8 @@ def test_commutative_case(first: Expansion, second: Expansion) -> None:
 
 
 @given(strategies.zero_expansions, strategies.non_zero_reals_or_expansions)
-def test_left_absorbing_element(first: Expansion,
-                                second: Union[Real, Expansion]) -> None:
+def test_left_absorbing_element(first: Expansion, second: RightOperand
+                                ) -> None:
     assert first / second == first
 
 
@@ -47,7 +46,6 @@ def test_reference_counter(first: Expansion, second: Expansion) -> None:
 
 
 @given(strategies.expansions, strategies.zero_reals_or_expansions)
-def test_zero_divisor(first: Expansion,
-                      second: Union[Real, Expansion]) -> None:
+def test_zero_divisor(first: Expansion, second: RightOperand) -> None:
     with pytest.raises(ZeroDivisionError):
         first / second

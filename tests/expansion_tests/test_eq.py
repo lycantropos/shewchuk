@@ -1,10 +1,10 @@
 import sys
-from numbers import Real
 
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import (equivalence,
+from tests.utils import (RightOperand,
+                         equivalence,
                          implication,
                          skip_reference_counter_test)
 from . import strategies
@@ -21,14 +21,14 @@ def test_symmetry(first: Expansion, second: Expansion) -> None:
 
 
 @given(strategies.expansions, strategies.expansions, strategies.expansions)
-def test_transitivity(first: Expansion,
-                      second: Expansion,
-                      third: Expansion) -> None:
+def test_transitivity(first: Expansion, second: Expansion, third: Expansion
+                      ) -> None:
     assert implication(first == second and second == third, first == third)
 
 
 @given(strategies.expansions, strategies.reals)
-def test_connection_with_inequality(first: Expansion, second: Real) -> None:
+def test_connection_with_inequality(first: Expansion, second: RightOperand
+                                    ) -> None:
     assert equivalence(not first == second, first != second)
 
 

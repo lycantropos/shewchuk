@@ -1,11 +1,10 @@
 import sys
-from numbers import Real
-from typing import Union
 
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import (equivalence,
+from tests.utils import (RightOperand,
+                         equivalence,
                          implication,
                          skip_reference_counter_test)
 from . import strategies
@@ -17,19 +16,18 @@ def test_irreflexivity(expansion: Expansion) -> None:
 
 
 @given(strategies.expansions, strategies.reals_or_expansions)
-def test_asymmetry(first: Expansion, second: Union[Real, Expansion]) -> None:
+def test_asymmetry(first: Expansion, second: RightOperand) -> None:
     assert implication(first > second, not second > first)
 
 
 @given(strategies.expansions, strategies.expansions, strategies.expansions)
-def test_transitivity(first: Expansion,
-                      second: Expansion,
-                      third: Expansion) -> None:
+def test_transitivity(first: Expansion, second: Expansion, third: Expansion
+                      ) -> None:
     assert implication(first > second > third, first > third)
 
 
 @given(strategies.expansions, strategies.reals_or_expansions)
-def test_equivalents(first: Expansion, second: Union[Real, Expansion]) -> None:
+def test_equivalents(first: Expansion, second: RightOperand) -> None:
     result = first > second
 
     assert equivalence(result, second < first)
