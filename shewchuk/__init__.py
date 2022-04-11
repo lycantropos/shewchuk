@@ -32,20 +32,18 @@ except ImportError:
         """Represents floating point number expansion."""
 
         @property
-        def real(self) -> _Real:
+        def real(self):
             """The imaginary part of the expansion."""
             return self
 
         @property
-        def imag(self) -> _Real:
+        def imag(self):
             """The real part of the expansion."""
             return 0
 
         __slots__ = '_components',
 
-        def __new__(cls,
-                    *args: _Union['Expansion', _Integral, float],
-                    _compress: bool = True) -> 'Expansion':
+        def __new__(cls, *args, _compress=True) -> 'Expansion':
             self = super().__new__(cls)
             if len(args) == 1:
                 argument, = args
@@ -90,15 +88,15 @@ except ImportError:
                     if isinstance(other, Expansion)
                     else self.__radd__(other))
 
-        def __bool__(self) -> bool:
+        def __bool__(self):
             return bool(self._components[-1])
 
-        def __ceil__(self) -> int:
+        def __ceil__(self):
             return (_components_to_integer(self._components)
                     + _ceil(_components_to_accumulated_fraction(
                             self._components)))
 
-        def __eq__(self, other: _Any) -> bool:
+        def __eq__(self, other):
             return (self._components == other._components
                     if isinstance(other, Expansion)
                     else
@@ -110,16 +108,16 @@ except ImportError:
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
-        def __float__(self) -> float:
+        def __float__(self):
             assert sum(self._components) == self._components[-1], self
             return self._components[-1]
 
-        def __floor__(self) -> int:
+        def __floor__(self):
             return (_components_to_integer(self._components)
                     + _floor(_components_to_accumulated_fraction(
                             self._components)))
 
-        def __ge__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+        def __ge__(self, other):
             return (not _are_components_lesser_than(self._components,
                                                     other._components)
                     if isinstance(other, Expansion)
@@ -133,7 +131,7 @@ except ImportError:
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
-        def __gt__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+        def __gt__(self, other):
             return (_are_components_lesser_than(other._components,
                                                 self._components)
                     if isinstance(other, Expansion)
@@ -146,10 +144,10 @@ except ImportError:
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
-        def __hash__(self) -> int:
+        def __hash__(self):
             return hash(self._components)
 
-        def __le__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+        def __le__(self, other):
             return (not _are_components_lesser_than(other._components,
                                                     self._components)
                     if isinstance(other, Expansion)
@@ -163,7 +161,7 @@ except ImportError:
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
-        def __lt__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+        def __lt__(self, other):
             return (_are_components_lesser_than(self._components,
                                                 other._components)
                     if isinstance(other, Expansion)
@@ -176,21 +174,20 @@ except ImportError:
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
-        def __mul__(self, other: _Union['Expansion', _Integral, float]
-                    ) -> 'Expansion':
+        def __mul__(self, other):
             return (Expansion(*_multiply_components_eliminating_zeros(
                     self._components, other._components))
                     if isinstance(other, Expansion)
                     else self.__rmul__(other))
 
-        def __neg__(self) -> 'Expansion':
+        def __neg__(self):
             return Expansion(*[-component for component in self._components],
                              _compress=False)
 
-        def __pos__(self) -> 'Expansion':
+        def __pos__(self):
             return self
 
-        def __radd__(self, other: _Union[_Integral, float]) -> 'Expansion':
+        def __radd__(self, other):
             return (Expansion(*_add_float_eliminating_zeros(self._components,
                                                             other))
                     if isinstance(other, float)
@@ -200,11 +197,11 @@ except ImportError:
                      if isinstance(other, _Integral)
                      else NotImplemented))
 
-        def __repr__(self) -> str:
+        def __repr__(self):
             return (type(self).__qualname__
                     + '({})'.format(', '.join(map(str, self._components))))
 
-        def __rmul__(self, other: _Union[_Integral, float]) -> 'Expansion':
+        def __rmul__(self, other):
             return (Expansion(*_scale_components_eliminating_zeros(
                     self._components, other))
                     if isinstance(other, float)
@@ -214,7 +211,7 @@ except ImportError:
                      if isinstance(other, _Integral)
                      else NotImplemented))
 
-        def __round__(self, precision: _Optional[int] = None) -> _Real:
+        def __round__(self, precision=None):
             if precision is None:
                 result = _components_to_integer(self._components)
                 fractions = _components_to_fractions(self._components)
@@ -238,7 +235,7 @@ except ImportError:
                 return Expansion(*[round(component, precision)
                                    for component in self._components])
 
-        def __rsub__(self, other: _Union[_Integral, float]) -> 'Expansion':
+        def __rsub__(self, other):
             return (Expansion(*_subtract_from_double_eliminating_zeros(
                     other, self._components))
                     if isinstance(other, float)
@@ -248,13 +245,12 @@ except ImportError:
                      if isinstance(other, _Integral)
                      else NotImplemented))
 
-        def __rtruediv__(self, other: _Real) -> 'Expansion':
+        def __rtruediv__(self, other):
             return (other / float(self)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        def __sub__(self, other: _Union['Expansion', _Integral, float]
-                    ) -> 'Expansion':
+        def __sub__(self, other):
             return (Expansion(*_subtract_components_eliminating_zeros(
                     self._components, other._components))
                     if isinstance(other, Expansion)
@@ -268,12 +264,12 @@ except ImportError:
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
-        def __truediv__(self, other: _Real) -> 'Expansion':
+        def __truediv__(self, other):
             return (self * (1 / other)
                     if isinstance(other, _Real)
                     else NotImplemented)
 
-        def __trunc__(self) -> int:
+        def __trunc__(self):
             integer = _components_to_integer(self._components)
             integer_sign = _to_sign(integer)
             fraction_sign = _to_sign(_components_to_accumulated_fraction(
@@ -365,14 +361,8 @@ except ImportError:
         return result
 
 
-    def incircle_test(_point_x: float,
-                      _point_y: float,
-                      _first_x: float,
-                      _first_y: float,
-                      _second_x: float,
-                      _second_y: float,
-                      _third_x: float,
-                      _third_y: float) -> int:
+    def incircle_test(_point_x, _point_y, _first_x, _first_y,
+                      _second_x, _second_y, _third_x, _third_y):
         """
         Computes location of point relative to a circle formed by three others
         given their coordinates.
@@ -383,12 +373,8 @@ except ImportError:
                                                          _third_x, _third_y))
 
 
-    def kind(_vertex_x: float,
-             _vertex_y: float,
-             _first_ray_point_x: float,
-             _first_ray_point_y: float,
-             _second_ray_point_x: float,
-             _second_ray_point_y: float) -> int:
+    def kind(_vertex_x, _vertex_y, _first_ray_point_x, _first_ray_point_y,
+             _second_ray_point_x, _second_ray_point_y):
         """Computes kind of angle given its endpoints coordinates."""
         return _to_sign(_vectors_cross_product_estimation(
                 _vertex_x, _vertex_y, _first_ray_point_x, _first_ray_point_y,
@@ -396,12 +382,7 @@ except ImportError:
                 _second_ray_point_x))
 
 
-    def orientation(_start_x: float,
-                    _start_y: float,
-                    _end_x: float,
-                    _end_y: float,
-                    _point_x: float,
-                    _point_y: float) -> int:
+    def orientation(_start_x, _start_y, _end_x, _end_y, _point_x, _point_y):
         """
         Computes orientation of point relative to segment
         given their coordinates.
@@ -412,14 +393,10 @@ except ImportError:
                                                           _point_x, _point_y))
 
 
-    def vectors_cross_product(_first_start_x: float,
-                              _first_start_y: float,
-                              _first_end_x: float,
-                              _first_end_y: float,
-                              _second_start_x: float,
-                              _second_start_y: float,
-                              _second_end_x: float,
-                              _second_end_y: float) -> Expansion:
+    def vectors_cross_product(_first_start_x, _first_start_y,
+                              _first_end_x, _first_end_y,
+                              _second_start_x, _second_start_y,
+                              _second_end_x, _second_end_y):
         """
         Computes cross product of two vectors
         given their endpoints coordinates.
@@ -432,14 +409,10 @@ except ImportError:
                 _compress=False)
 
 
-    def vectors_dot_product(_first_start_x: float,
-                            _first_start_y: float,
-                            _first_end_x: float,
-                            _first_end_y: float,
-                            _second_start_x: float,
-                            _second_start_y: float,
-                            _second_end_x: float,
-                            _second_end_y: float) -> Expansion:
+    def vectors_dot_product(_first_start_x, _first_start_y,
+                            _first_end_x, _first_end_y,
+                            _second_start_x, _second_start_y,
+                            _second_end_x, _second_end_y):
         """
         Computes dot product of two vectors given their endpoints coordinates.
         """
