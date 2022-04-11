@@ -20,9 +20,7 @@ except ImportError:
                          Real as _Real)
     from operator import not_ as _not
     from sys import float_info as _float_info
-    from typing import (Any as _Any,
-                        Optional as _Optional,
-                        Sequence as _Sequence,
+    from typing import (Sequence as _Sequence,
                         Tuple as _Tuple,
                         Union as _Union)
 
