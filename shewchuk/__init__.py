@@ -177,7 +177,7 @@ except ImportError:
                     else self.__rmul__(other))
 
         def __neg__(self):
-            return Expansion(*[-component for component in self._components],
+            return Expansion(*_negate_components(self._components),
                              _compress=False)
 
         def __pos__(self):
@@ -355,6 +355,10 @@ except ImportError:
                 break
             result += component_integer
         return result
+
+
+    def _negate_components(components: _Sequence[float]) -> _Sequence[float]:
+        return [-component for component in components]
 
 
     def incircle_test(_point_x, _point_y, _first_x, _first_y,

@@ -41,6 +41,13 @@ static int are_components_lesser_than(const size_t left_size,
                                  : left[left_size - right_size - 1] < 0.0);
 }
 
+static size_t negate_components(size_t size, double *components,
+                                double *result_components) {
+  for (size_t index = 0; index < size; ++index)
+    result_components[index] = -components[index];
+  return size;
+}
+
 static int Integral_to_components(PyObject *integral, size_t *size,
                                   double **components) {
   if (PyObject_Not(integral)) {
@@ -1592,9 +1599,9 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
 static ExpansionObject *Expansion_negative(ExpansionObject *self) {
   double *result_components =
       (double *)PyMem_Malloc(self->size * sizeof(double));
-  for (size_t index = 0; index < self->size; ++index)
-    result_components[index] = -self->components[index];
-  return construct_Expansion(&ExpansionType, self->size, result_components);
+  size_t result_size =
+      negate_components(self->size, self->components, result_components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
 static ExpansionObject *Expansion_positive(ExpansionObject *self) {
