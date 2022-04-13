@@ -1499,41 +1499,34 @@ static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
   return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
-static PyObject *Expansion_multiply(PyObject *self, PyObject *other) {
-  if (PyObject_TypeCheck(self, &ExpansionType)) {
-    if (PyObject_TypeCheck(other, &ExpansionType))
-      return (PyObject *)Expansions_multiply((ExpansionObject *)self,
-                                             (ExpansionObject *)other);
-    else if (PyFloat_Check(other))
-      return (PyObject *)Expansion_double_multiply((ExpansionObject *)self,
-                                                   PyFloat_AS_DOUBLE(other));
-    else if (PyObject_IsInstance(other, Integral)) {
-      double *other_components;
-      size_t other_size;
-      if (Integral_to_components(other, &other_size, &other_components) < 0)
-        return NULL;
-      ExpansionObject *other_expansion =
-          construct_Expansion(&ExpansionType, other_size, other_components);
-      PyObject *result = (PyObject *)Expansions_multiply(
-          (ExpansionObject *)self, other_expansion);
-      Py_DECREF(other_expansion);
-      return result;
-    }
-  } else if (PyFloat_Check(self))
-    return (PyObject *)Expansion_double_multiply((ExpansionObject *)other,
-                                                 PyFloat_AS_DOUBLE(self));
-  else if (PyObject_IsInstance(self, Integral)) {
-    double *components;
-    size_t size;
-    if (Integral_to_components(self, &size, &components) < 0) return NULL;
-    ExpansionObject *expansion =
-        construct_Expansion(&ExpansionType, size, components);
-    PyObject *result =
-        (PyObject *)Expansions_multiply(expansion, (ExpansionObject *)other);
-    Py_DECREF(expansion);
+static PyObject *Expansion_PyObject_multiply(ExpansionObject *self,
+                                             PyObject *other) {
+  if (PyFloat_Check(other))
+    return (PyObject *)Expansion_double_multiply(self,
+                                                 PyFloat_AS_DOUBLE(other));
+  else if (PyObject_IsInstance(other, Integral)) {
+    double *other_components;
+    size_t other_size;
+    if (Integral_to_components(other, &other_size, &other_components) < 0)
+      return NULL;
+    ExpansionObject *other_expansion =
+        construct_Expansion(&ExpansionType, other_size, other_components);
+    PyObject *result = (PyObject *)Expansions_multiply(self, other_expansion);
+    Py_DECREF(other_expansion);
     return result;
   }
   Py_RETURN_NOTIMPLEMENTED;
+}
+
+static PyObject *Expansion_multiply(PyObject *self, PyObject *other) {
+  if (PyObject_TypeCheck(self, &ExpansionType))
+    return PyObject_TypeCheck(other, &ExpansionType)
+               ? (PyObject *)Expansions_multiply((ExpansionObject *)self,
+                                                 (ExpansionObject *)other)
+
+               : Expansion_PyObject_multiply((ExpansionObject *)self, other);
+  else
+    return Expansion_PyObject_multiply((ExpansionObject *)other, self);
 }
 
 static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
