@@ -305,7 +305,7 @@ except ImportError:
             component = float(value)
             result.append(component)
             value -= int(component)
-        return result
+        return result[::-1]
 
 
     def _is_float_lesser_than_components(value: float,
