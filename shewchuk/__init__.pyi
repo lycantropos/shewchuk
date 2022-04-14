@@ -4,6 +4,8 @@ from typing import (Any as _Any,
                     Union as _Union,
                     overload as _overload)
 
+__version__: str = ...
+
 
 class Expansion:
     @property
