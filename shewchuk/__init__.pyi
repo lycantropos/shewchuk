@@ -92,7 +92,7 @@ class Expansion:
     def __rsub__(self, other: _Union[_Integral, float]) -> 'Expansion':
         ...
 
-    def __rtruediv__(self, other: _Union[_Integral, float]) -> float:
+    def __rtruediv__(self, other: _Union[_Integral, float]) -> 'Expansion':
         ...
 
     def __sub__(self, other: _Union['Expansion', _Integral, float]
