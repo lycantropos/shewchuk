@@ -10,6 +10,25 @@
 
 static int to_sign(double value) { return value > 0.0 ? 1 : (!value ? 0 : -1); }
 
+const static size_t BIT_LENGTHS_TABLE[32] = {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4,
+                                             4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
+                                             5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
+
+size_t bit_length(const size_t value) {
+  size_t result = 0;
+  size_t step = value;
+  while (step >= 32) {
+    result += 6;
+    step >>= 6;
+  }
+  result += BIT_LENGTHS_TABLE[step];
+  return result;
+}
+
+size_t ceil_log2(const size_t value) {
+  return bit_length(value) + !(value & (value - 1));
+}
+
 static void swap(double **first, double **second) {
   double *temp = *first;
   *first = *second;
@@ -610,6 +629,101 @@ static size_t subtract_components_eliminating_zeros(size_t minuend_size,
   }
   if (!!accumulator || !result_size) result[result_size++] = accumulator;
   return result_size;
+}
+
+static int invert_components(const size_t size, double *const components,
+                             size_t *result_size, double **result_components) {
+  size_t iterations_count = 6 + ceil_log2(size);
+  size_t max_result_size = 2 * size * iterations_count * (iterations_count + 1);
+  double *step_components =
+      (double *)PyMem_Malloc(max_result_size * sizeof(double));
+  if (!step_components) return -1;
+  step_components[0] = 1.0 / components[size - 1];
+  size_t step_size = 1;
+  double *negated_components = (double *)PyMem_Malloc(size * sizeof(double));
+  if (!negated_components) {
+    PyMem_Free(step_components);
+    return -1;
+  }
+  size_t negated_size = negate_components(size, components, negated_components);
+  double *tmp_components =
+      (double *)PyMem_Malloc(max_result_size * sizeof(double));
+  if (!tmp_components) {
+    PyMem_Free(negated_components);
+    PyMem_Free(step_components);
+    return -1;
+  }
+  double *other_tmp_components =
+      (double *)PyMem_Malloc(max_result_size * sizeof(double));
+  if (!other_tmp_components) {
+    PyMem_Free(tmp_components);
+    PyMem_Free(negated_components);
+    PyMem_Free(step_components);
+    return -1;
+  }
+  for (size_t _ = 0; _ < iterations_count; ++_) {
+    size_t tmp_size = multiply_components_eliminating_zeros(
+        step_size, step_components, negated_size, negated_components,
+        tmp_components);
+    if (tmp_size == 0) {
+      PyMem_Free(other_tmp_components);
+      PyMem_Free(tmp_components);
+      PyMem_Free(negated_components);
+      PyMem_Free(step_components);
+      return -1;
+    }
+    size_t other_tmp_size = add_double_eliminating_zeros(
+        tmp_size, tmp_components, 2.0, other_tmp_components);
+    swap(&step_components, &tmp_components);
+    step_size = multiply_components_eliminating_zeros(
+        step_size, tmp_components, other_tmp_size, other_tmp_components,
+        step_components);
+    if (step_size == 0) {
+      PyMem_Free(other_tmp_components);
+      PyMem_Free(tmp_components);
+      PyMem_Free(negated_components);
+      PyMem_Free(step_components);
+      return -1;
+    }
+  }
+  PyMem_Free(other_tmp_components);
+  PyMem_Free(tmp_components);
+  PyMem_Free(negated_components);
+  step_size = compress_components(step_size, step_components);
+  if (!step_size) return 0;
+  if (!PyMem_Resize(step_components, double, step_size)) {
+    PyErr_NoMemory();
+    return 0;
+  }
+  *result_size = step_size;
+  *result_components = step_components;
+  return 0;
+}
+
+static int divide_components(size_t dividend_size, double *dividend,
+                             size_t divisor_size, double *divisor,
+                             size_t *result_size, double **result) {
+  double *divisor_reciprocal;
+  size_t divisor_reciprocal_size;
+  if (invert_components(divisor_size, divisor, &divisor_reciprocal_size,
+                        &divisor_reciprocal) < 0)
+    return -1;
+  *result = (double *)PyMem_Malloc(
+      (2 * divisor_reciprocal_size * dividend_size) * sizeof(double));
+  if (!*result) {
+    PyMem_Free(divisor_reciprocal);
+    PyErr_NoMemory();
+    return -1;
+  }
+  *result_size = multiply_components_eliminating_zeros(
+      divisor_reciprocal_size, divisor_reciprocal, dividend_size, dividend,
+      *result);
+  PyMem_Free(divisor_reciprocal);
+  if (!*result_size) {
+    PyMem_Free(*result);
+    return -1;
+  }
+  return 0;
 }
 
 static void cross_product(double first_dx, double first_dy, double second_dx,
@@ -1959,43 +2073,120 @@ static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
   Py_RETURN_NOTIMPLEMENTED;
 }
 
-static PyObject *PyObject_Expansion_true_divide(PyObject *self,
-                                                ExpansionObject *other) {
+static ExpansionObject *Expansions_true_divide(ExpansionObject *self,
+                                               ExpansionObject *other) {
   if (!Expansion_bool(other)) {
     PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
     return NULL;
   }
-  PyObject *other_float = Expansion_float(other);
-  if (!other_float) return NULL;
-  PyObject *result = PyNumber_TrueDivide(self, other_float);
-  Py_DECREF(other_float);
-  return result;
+  double *result_components;
+  size_t result_size;
+  if (divide_components(self->size, self->components, other->size,
+                        other->components, &result_size,
+                        &result_components) < 0)
+    return NULL;
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
+static ExpansionObject *Expansion_Integral_true_divide(ExpansionObject *self,
+                                                       PyObject *other) {
+  if (PyObject_Not(other)) {
+    PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
+    return NULL;
+  }
+  double *other_components;
+  size_t other_size;
+  if (Integral_to_components(other, &other_size, &other_components) < 0)
+    return NULL;
+  size_t result_size;
+  double *result_components;
+  if (divide_components(self->size, self->components, other_size,
+                        other_components, &result_size,
+                        &result_components) < 0) {
+    PyMem_Free(other_components);
+    return NULL;
+  }
+  PyMem_Free(other_components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
+static ExpansionObject *Integral_Expansion_true_divide(PyObject *self,
+                                                       ExpansionObject *other) {
+  if (!Expansion_bool(other)) {
+    PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
+    return NULL;
+  }
+  double *components;
+  size_t size;
+  if (Integral_to_components(self, &size, &components) < 0) return NULL;
+  size_t result_size;
+  double *result_components;
+  if (divide_components(size, components, other->size, other->components,
+                        &result_size, &result_components) < 0) {
+    PyMem_Free(components);
+    return NULL;
+  }
+  PyMem_Free(components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
+static ExpansionObject *Expansion_double_true_divide(ExpansionObject *self,
+                                                     double other) {
+  if (!other) {
+    PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
+    return NULL;
+  }
+  double *other_components = (double *)PyMem_Malloc(sizeof(double));
+  if (!other_components) return (ExpansionObject *)PyErr_NoMemory();
+  other_components[0] = other;
+  double *result_components;
+  size_t result_size;
+  if (divide_components(self->size, self->components, 1, other_components,
+                        &result_size, &result_components) < 0) {
+    PyMem_Free(other_components);
+    return NULL;
+  }
+  PyMem_Free(other_components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
+static ExpansionObject *double_Expansion_true_divide(double self,
+                                                     ExpansionObject *other) {
+  if (!Expansion_bool(other)) {
+    PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
+    return NULL;
+  }
+  double *components = (double *)PyMem_Malloc(sizeof(double));
+  if (!components) return (ExpansionObject *)PyErr_NoMemory();
+  components[0] = self;
+  double *result_components;
+  size_t result_size;
+  if (divide_components(1, components, other->size, other->components,
+                        &result_size, &result_components) < 0) {
+    PyMem_Free(components);
+    return NULL;
+  }
+  PyMem_Free(components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
 static PyObject *Expansion_true_divide(PyObject *self, PyObject *other) {
   if (PyObject_TypeCheck(self, &ExpansionType)) {
-    if (PyFloat_Check(other)) {
-      double other_value = PyFloat_AS_DOUBLE(other);
-      if (!other_value) {
-        PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
-        return NULL;
-      }
-      return (PyObject *)Expansion_double_multiply((ExpansionObject *)self,
-                                                   1.0 / other_value);
-    } else if (PyObject_TypeCheck(other, &ExpansionType) ||
-               PyObject_IsInstance(other, Real)) {
-      double other_value = PyFloat_AsDouble(other);
-      if (other_value == -1.0 && PyErr_Occurred())
-        return NULL;
-      else if (!other_value) {
-        PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
-        return NULL;
-      }
-      return (PyObject *)Expansion_double_multiply((ExpansionObject *)self,
-                                                   1.0 / other_value);
-    }
-  } else if (PyFloat_Check(self) || PyObject_IsInstance(self, Real))
-    return PyObject_Expansion_true_divide(self, (ExpansionObject *)other);
+    if (PyObject_TypeCheck(other, &ExpansionType))
+      return (PyObject *)Expansions_true_divide((ExpansionObject *)self,
+                                                (ExpansionObject *)other);
+    else if (PyFloat_Check(other))
+      return (PyObject *)Expansion_double_true_divide((ExpansionObject *)self,
+                                                      PyFloat_AS_DOUBLE(other));
+    else if (PyObject_IsInstance(other, Integral))
+      return (PyObject *)Expansion_Integral_true_divide((ExpansionObject *)self,
+                                                        other);
+  } else if (PyFloat_Check(self))
+    return (PyObject *)double_Expansion_true_divide(PyFloat_AS_DOUBLE(self),
+                                                    (ExpansionObject *)other);
+  else if (PyObject_IsInstance(self, Integral))
+    return (PyObject *)Integral_Expansion_true_divide(self,
+                                                      (ExpansionObject *)other);
   Py_RETURN_NOTIMPLEMENTED;
 }
 

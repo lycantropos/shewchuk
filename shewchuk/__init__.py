@@ -242,8 +242,8 @@ except ImportError:
                      else NotImplemented))
 
         def __rtruediv__(self, other):
-            return (other / float(self)
-                    if isinstance(other, _Real)
+            return (other * Expansion(*_invert_components(self._components))
+                    if isinstance(other, (_Integral, float))
                     else NotImplemented)
 
         def __sub__(self, other):
@@ -261,9 +261,12 @@ except ImportError:
                       else NotImplemented)))
 
         def __truediv__(self, other):
-            return (self * (1 / other)
-                    if isinstance(other, _Real)
-                    else NotImplemented)
+            return (Expansion(*_divide_components(self._components,
+                                                  other._components))
+                    if isinstance(other, Expansion)
+                    else (self / Expansion(other)
+                          if isinstance(other, (_Integral, float))
+                          else NotImplemented))
 
         def __trunc__(self):
             integer = _components_to_integer(self._components)
@@ -296,6 +299,13 @@ except ImportError:
                     and _components_to_accumulated_fraction(components) < 0.))
 
 
+    def _divide_components(dividend: _Sequence[float],
+                           divisor: _Sequence[float]) -> _Sequence[float]:
+        return _multiply_components_eliminating_zeros(
+                dividend, _invert_components(divisor)
+        )
+
+
     def _integral_to_components(value: _Integral) -> _Sequence[float]:
         if not value:
             return [0.]
@@ -306,6 +316,27 @@ except ImportError:
             result.append(component)
             value -= int(component)
         return result[::-1]
+
+
+    def _invert_components(components: _Sequence[float]) -> _Sequence[float]:
+        result = [1. / components[-1]]
+        negated_components = _negate_components(components)
+        iterations_count = 6 + _ceil_log2(len(components))
+        for _ in range(iterations_count):
+            result = _multiply_components_eliminating_zeros(
+                    result,
+                    _add_float_eliminating_zeros(
+                            _multiply_components_eliminating_zeros(
+                                    result,
+                                    negated_components
+                            ),
+                            2.)
+            )
+        return result
+
+
+    def _ceil_log2(number: int) -> int:
+        return number.bit_length() - (not (number & (number - 1)))
 
 
     def _is_float_lesser_than_components(value: float,
