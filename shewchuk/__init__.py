@@ -321,8 +321,7 @@ except ImportError:
     def _invert_components(components: _Sequence[float]) -> _Sequence[float]:
         result = [1. / components[-1]]
         negated_components = _negate_components(components)
-        iterations_count = 6 + _ceil_log2(len(components))
-        for _ in range(iterations_count):
+        for _ in _repeat(None, 6 + _ceil_log2(len(components))):
             result = _multiply_components_eliminating_zeros(
                     result,
                     _add_float_eliminating_zeros(
