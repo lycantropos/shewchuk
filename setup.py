@@ -35,7 +35,8 @@ parameters = dict(
         ],
         url=project_base_url,
         download_url=project_base_url + 'archive/master.zip',
-        python_requires='>=3.6')
+        python_requires='>=3.6'
+)
 if platform.python_implementation() == 'CPython':
     from glob import glob
 
