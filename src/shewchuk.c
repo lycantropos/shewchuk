@@ -554,19 +554,28 @@ static size_t multiply_components_eliminating_zeros(size_t left_size,
                                                     size_t right_size,
                                                     double *right,
                                                     double *result) {
-  size_t result_size =
-      scale_components_eliminating_zeros(left_size, left, right[0], result);
-  double *step = (double *)PyMem_Malloc(2 * left_size * sizeof(double));
-  if (!step) {
+  double *next_components =
+      (double *)PyMem_Malloc(2 * left_size * (right_size - 1) * sizeof(double));
+  if (!next_components) {
     PyErr_NoMemory();
     return 0;
   }
+  double *step = (double *)PyMem_Malloc(2 * left_size * sizeof(double));
+  if (!step) {
+    PyMem_Free(next_components);
+    PyErr_NoMemory();
+    return 0;
+  }
+  size_t result_size =
+      scale_components_eliminating_zeros(left_size, left, right[0], result);
   for (size_t index = 1; index < right_size; ++index) {
     size_t step_size =
         scale_components_eliminating_zeros(left_size, left, right[index], step);
-    result_size = add_components_eliminating_zeros(result_size, result,
+    copy_components(result, result_size, next_components);
+    result_size = add_components_eliminating_zeros(result_size, next_components,
                                                    step_size, step, result);
   }
+  PyMem_Free(next_components);
   PyMem_Free(step);
   return result_size;
 }
