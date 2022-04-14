@@ -1,4 +1,5 @@
 from numbers import (Integral as _Integral,
+                     Rational as _Rational,
                      Real as _Real)
 from typing import (Any as _Any,
                     Union as _Union,
@@ -17,7 +18,7 @@ class Expansion:
         ...
 
     @_overload
-    def __new__(cls, value: _Union['Expansion', _Integral, float]
+    def __new__(cls, value: _Union['Expansion', _Rational, float]
                 ) -> 'Expansion':
         ...
 

@@ -16,7 +16,8 @@ except ImportError:
     from math import (ceil as _ceil,
                       floor as _floor,
                       modf as _modf)
-    from numbers import (Integral as _Integral,
+    from numbers import (Rational as _Rational,
+                         Integral as _Integral,
                          Real as _Real)
     from operator import not_ as _not
     from sys import float_info as _float_info
@@ -48,11 +49,13 @@ except ImportError:
                     components = argument._components
                 elif isinstance(argument, float):
                     components = [argument]
-                elif isinstance(argument, _Integral):
-                    components = _integral_to_components(argument)
+                elif isinstance(argument, int):
+                    components = _int_to_components(argument)
+                elif isinstance(argument, _Rational):
+                    components = _rational_to_components(argument)
                 else:
                     raise TypeError('Argument should be of type '
-                                    '{expected!r}, `float` or `int`, '
+                                    '{expected!r}, `Rational` or `float`, '
                                     'but found: {actual!r}.'
                                     .format(expected=Expansion,
                                             actual=type(argument)))
@@ -189,7 +192,7 @@ except ImportError:
                     if isinstance(other, float)
                     else
                     (Expansion(*_add_components_eliminating_zeros(
-                            self._components, _integral_to_components(other)))
+                            self._components, _int_to_components(other)))
                      if isinstance(other, _Integral)
                      else NotImplemented))
 
@@ -203,7 +206,7 @@ except ImportError:
                     if isinstance(other, float)
                     else
                     (Expansion(*_multiply_components_eliminating_zeros(
-                            self._components, _integral_to_components(other)))
+                            self._components, _int_to_components(other)))
                      if isinstance(other, _Integral)
                      else NotImplemented))
 
@@ -237,7 +240,7 @@ except ImportError:
                     if isinstance(other, float)
                     else
                     (Expansion(*_subtract_components_eliminating_zeros(
-                            _integral_to_components(other), self._components))
+                            _int_to_components(other), self._components))
                      if isinstance(other, _Integral)
                      else NotImplemented))
 
@@ -256,7 +259,7 @@ except ImportError:
                      if isinstance(other, float)
                      else
                      (Expansion(*_subtract_components_eliminating_zeros(
-                             self._components, _integral_to_components(other)))
+                             self._components, _int_to_components(other)))
                       if isinstance(other, _Integral)
                       else NotImplemented)))
 
@@ -277,6 +280,11 @@ except ImportError:
                     if (integer_sign and fraction_sign
                         and fraction_sign != integer_sign)
                     else integer)
+
+
+    def _rational_to_components(value: _Rational) -> _Sequence[float]:
+        return _divide_components(_int_to_components(value.numerator),
+                                  _int_to_components(value.denominator))
 
 
     def _are_components_equal_to_float(components: _Sequence[float],
@@ -306,10 +314,9 @@ except ImportError:
         )
 
 
-    def _integral_to_components(value: _Integral) -> _Sequence[float]:
+    def _int_to_components(value: int) -> _Sequence[float]:
         if not value:
             return [0.]
-        value = int(value)
         result = []
         while value:
             component = float(value)
