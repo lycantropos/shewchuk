@@ -2340,7 +2340,7 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
                                          result_components);
 }
 
-static PyMethodDef _shewchuk_methods[] = {
+static PyMethodDef module_methods[] = {
     {"incircle_test", incircle_test, METH_VARARGS,
      PyDoc_STR("incircle_test(point_x, point_y, first_x, first_y, second_x, "
                "second_y, third_x, third_y, /)\n--\n\n"
@@ -2370,10 +2370,10 @@ static PyMethodDef _shewchuk_methods[] = {
     {NULL, NULL},
 };
 
-static PyModuleDef _shewchuk_module = {
+static PyModuleDef module = {
     PyModuleDef_HEAD_INIT,
     .m_doc = PyDoc_STR("Robust floating point operations."),
-    .m_methods = _shewchuk_methods,
+    .m_methods = module_methods,
     .m_name = "shewchuk",
     .m_size = -1,
 };
@@ -2416,10 +2416,10 @@ static int mark_as_real(PyObject *python_type) {
   return 0;
 }
 
-PyMODINIT_FUNC PyInit__shewchuk(void) {
+PyMODINIT_FUNC PyInit__c(void) {
   PyObject *result;
   if (PyType_Ready(&ExpansionType) < 0) return NULL;
-  result = PyModule_Create(&_shewchuk_module);
+  result = PyModule_Create(&module);
   if (result == NULL) return NULL;
   Py_INCREF(&ExpansionType);
   if (PyModule_AddObject(result, "Expansion", (PyObject *)&ExpansionType) < 0) {
