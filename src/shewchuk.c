@@ -533,16 +533,22 @@ static size_t add_components_eliminating_zeros(size_t left_size, double *left,
 static size_t multiply_components_eliminating_zeros(size_t left_size,
                                                     double *left,
                                                     size_t right_size,
-                                                    double *right, double *step,
+                                                    double *right,
                                                     double *result) {
   size_t result_size =
       scale_components_eliminating_zeros(left_size, left, right[0], result);
+  double *step = (double *)PyMem_Malloc(2 * left_size * sizeof(double));
+  if (!step) {
+    PyErr_NoMemory();
+    return 0;
+  }
   for (size_t index = 1; index < right_size; ++index) {
     size_t step_size =
         scale_components_eliminating_zeros(left_size, left, right[index], step);
     result_size = add_components_eliminating_zeros(result_size, result,
                                                    step_size, step, result);
   }
+  PyMem_Free(step);
   return result_size;
 }
 
@@ -1482,16 +1488,13 @@ static ExpansionObject *Expansions_multiply(ExpansionObject *self,
   double *result_components =
       (double *)PyMem_Malloc(2 * self->size * other->size * sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  double *step_components =
-      (double *)PyMem_Malloc(2 * self->size * sizeof(double));
-  if (!step_components) {
-    PyMem_Free(result_components);
-    return (ExpansionObject *)PyErr_NoMemory();
-  }
   size_t result_size = multiply_components_eliminating_zeros(
       self->size, self->components, other->size, other->components,
-      step_components, result_components);
-  PyMem_Free(step_components);
+      result_components);
+  if (!result_size) {
+    PyMem_Free(result_components);
+    return NULL;
+  }
   result_size = compress_components(result_size, result_components);
   if (!result_size) {
     PyMem_Free(result_components);
