@@ -533,15 +533,15 @@ static size_t add_components_eliminating_zeros(size_t left_size, double *left,
       if (!!tail) result[result_size++] = tail;
     }
   }
-  for (; left_index < left_size; ++left_index) {
+  while (left_index < left_size) {
     two_add(accumulator, left_component, &head, &tail);
-    left_component = left[left_index];
+    left_component = left[++left_index];
     accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
-  for (; right_index < right_size; ++right_index) {
+  while (right_index < right_size) {
     two_add(accumulator, right_component, &head, &tail);
-    right_component = right[right_index];
+    right_component = right[++right_index];
     accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
