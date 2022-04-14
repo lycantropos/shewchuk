@@ -31,6 +31,11 @@ def test_left_absorbing_element(first: Expansion, second: RightOperand
     assert first / second == first
 
 
+@given(strategies.expansions, strategies.ones)
+def test_right_neutral_element(first: Expansion, second: RightOperand) -> None:
+    assert first / second == first
+
+
 @skip_reference_counter_test
 @given(strategies.expansions, strategies.non_zero_expansions)
 def test_reference_counter(first: Expansion, second: Expansion) -> None:

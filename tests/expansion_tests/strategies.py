@@ -28,3 +28,5 @@ reals_or_expansions = reals | expansions
 zero_reals = strategies.builds(int) | strategies.builds(float)
 zero_expansions = strategies.builds(Expansion)
 zero_reals_or_expansions = zero_reals | zero_expansions
+ones = strategies.just(1) | strategies.just(1.0)
+ones |= strategies.builds(Expansion, ones)
