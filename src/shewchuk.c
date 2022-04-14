@@ -21,8 +21,8 @@ static int are_components_equal(const size_t left_size,
                                 const size_t right_size,
                                 const double *const right) {
   if (left_size != right_size) return 0;
-  for (size_t offset = 1; offset <= left_size; ++offset)
-    if (left[left_size - offset] != right[left_size - offset]) return 0;
+  for (size_t index = 0; index < left_size; ++index)
+    if (left[index] != right[index]) return 0;
   return 1;
 }
 
@@ -390,6 +390,10 @@ static void copy_components(double *source, size_t size, double *destination) {
 static size_t compress_components(size_t size, double *components) {
   const size_t original_size = size;
   double *next_components = (double *)PyMem_Malloc(size * sizeof(double));
+  if (!next_components) {
+    PyErr_NoMemory();
+    return 0;
+  }
   copy_components(components, size, next_components);
   for (size_t step = 0; step < original_size; ++step) {
     const size_t next_size = compress_components_single(size, next_components);
@@ -510,15 +514,15 @@ static size_t add_components_eliminating_zeros(size_t left_size, double *left,
       if (!!tail) result[result_size++] = tail;
     }
   }
-  while (left_index < left_size) {
+  for (; left_index < left_size; ++left_index) {
     two_add(accumulator, left_component, &head, &tail);
-    left_component = left[++left_index];
+    left_component = left[left_index];
     accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
-  while (right_index < right_size) {
+  for (; right_index < right_size; ++right_index) {
     two_add(accumulator, right_component, &head, &tail);
-    right_component = right[++right_index];
+    right_component = right[right_index];
     accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
@@ -1337,6 +1341,10 @@ static ExpansionObject *Expansions_add(ExpansionObject *self,
       self->size, self->components, other->size, other->components,
       result_components);
   result_size = compress_components(result_size, result_components);
+  if (!result_size) {
+    PyMem_Free(result_components);
+    return NULL;
+  }
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_size, result_components);
@@ -1350,6 +1358,10 @@ static ExpansionObject *Expansion_double_add(ExpansionObject *self,
   size_t result_size = add_double_eliminating_zeros(
       self->size, self->components, other, result_components);
   result_size = compress_components(result_size, result_components);
+  if (!result_size) {
+    PyMem_Free(result_components);
+    return NULL;
+  }
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_size, result_components);
@@ -1481,6 +1493,10 @@ static ExpansionObject *Expansions_multiply(ExpansionObject *self,
       step_components, result_components);
   PyMem_Free(step_components);
   result_size = compress_components(result_size, result_components);
+  if (!result_size) {
+    PyMem_Free(result_components);
+    return NULL;
+  }
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_size, result_components);
@@ -1494,6 +1510,10 @@ static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
   size_t result_size = scale_components_eliminating_zeros(
       self->size, self->components, other, result_components);
   result_size = compress_components(result_size, result_components);
+  if (!result_size) {
+    PyMem_Free(result_components);
+    return NULL;
+  }
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_size, result_components);
@@ -1579,6 +1599,7 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
       components[index] = PyFloat_AS_DOUBLE(item);
     }
     size = compress_components(size, components);
+    if (!size) return NULL;
     if (!PyMem_Resize(components, double, size)) return PyErr_NoMemory();
   } else {
     components = (double *)PyMem_Malloc(sizeof(double));
@@ -1813,17 +1834,17 @@ static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
   if (!precision) return Expansion_round_plain(self);
   const size_t size = self->size;
   double *const components = self->components;
-  size_t rounded_components_size = size;
-  double *rounded_components =
-      (double *)PyMem_Malloc(rounded_components_size * sizeof(double));
-  if (!rounded_components) {
+  size_t result_size = size;
+  double *result_components =
+      (double *)PyMem_Malloc(result_size * sizeof(double));
+  if (!result_components) {
     Py_DECREF(precision);
     return PyErr_NoMemory();
   }
   PyObject *round_args = PyTuple_New(2);
   if (!round_args) {
     Py_DECREF(precision);
-    PyMem_Free(rounded_components);
+    PyMem_Free(result_components);
     return NULL;
   }
   Py_INCREF(precision);
@@ -1832,7 +1853,7 @@ static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
     PyObject *component = PyFloat_FromDouble(components[index]);
     if (!component) {
       Py_DECREF(round_args);
-      PyMem_Free(rounded_components);
+      PyMem_Free(result_components);
       return NULL;
     }
     PyTuple_SET_ITEM(round_args, 0, component);
@@ -1840,19 +1861,22 @@ static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
         PyObject_CallObject(PyFloat_round, round_args);
     if (!rounded_component) {
       Py_DECREF(round_args);
-      PyMem_Free(rounded_components);
+      PyMem_Free(result_components);
       return NULL;
     }
-    rounded_components[index] = PyFloat_AS_DOUBLE(rounded_component);
+    result_components[index] = PyFloat_AS_DOUBLE(rounded_component);
     Py_DECREF(rounded_component);
   }
   Py_DECREF(round_args);
-  rounded_components_size =
-      compress_components(rounded_components_size, rounded_components);
-  if (!PyMem_Resize(rounded_components, double, rounded_components_size))
+  result_size = compress_components(result_size, result_components);
+  if (!result_size) {
+    PyMem_Free(result_components);
+    return NULL;
+  }
+  if (!PyMem_Resize(result_components, double, result_size))
     return PyErr_NoMemory();
-  return (PyObject *)construct_Expansion(
-      &ExpansionType, rounded_components_size, rounded_components);
+  return (PyObject *)construct_Expansion(&ExpansionType, result_size,
+                                         result_components);
 }
 
 static ExpansionObject *Expansions_subtract(ExpansionObject *self,
