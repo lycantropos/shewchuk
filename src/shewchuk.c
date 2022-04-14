@@ -732,6 +732,8 @@ static int divide_components(size_t dividend_size, double *dividend,
     PyMem_Free(*result);
     return -1;
   }
+  *result_size = compress_components(*result_size, *result);
+  if (!PyMem_Resize(*result, double, *result_size)) return -1;
   return 0;
 }
 
