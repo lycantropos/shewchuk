@@ -492,8 +492,10 @@ static size_t subtract_from_double_eliminating_zeros(double minuend,
   return result_size;
 }
 
-static size_t add_components_eliminating_zeros(size_t left_size, double *left,
-                                               size_t right_size, double *right,
+static size_t add_components_eliminating_zeros(const size_t left_size,
+                                               const double *const left,
+                                               const size_t right_size,
+                                               const double *const right,
                                                double *result) {
   size_t left_index = 0, right_index = 0;
   double left_component = left[left_index];
@@ -533,15 +535,13 @@ static size_t add_components_eliminating_zeros(size_t left_size, double *left,
       if (!!tail) result[result_size++] = tail;
     }
   }
-  while (left_index < left_size) {
-    two_add(accumulator, left_component, &head, &tail);
-    left_component = left[++left_index];
+  for (; left_index < left_size; ++left_index) {
+    two_add(accumulator, left[left_index], &head, &tail);
     accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
-  while (right_index < right_size) {
-    two_add(accumulator, right_component, &head, &tail);
-    right_component = right[++right_index];
+  for (; right_index < right_size; ++right_index) {
+    two_add(accumulator, right[right_index], &head, &tail);
     accumulator = head;
     if (!!tail) result[result_size++] = tail;
   }
