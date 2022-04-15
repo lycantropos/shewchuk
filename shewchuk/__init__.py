@@ -75,7 +75,7 @@ except ImportError:
                     components = _compress_components(components)
             else:
                 components = [0.]
-            self._components = tuple(components)
+            self._components = components
             return self
 
         def __abs__(self):
@@ -102,10 +102,11 @@ except ImportError:
                     (_are_components_equal_to_float(self._components, other)
                      if isinstance(other, float)
                      else
-                     (_to_fraction(self._components[0]) == 0.
-                      and _components_to_integer(self._components) == other
-                      if isinstance(other, _Integral)
-                      else NotImplemented)))
+                     (_are_components_equal_to_int(self._components, other)
+                      if isinstance(other, int)
+                      else (self._components == _rational_to_components(other)
+                            if isinstance(other, _Rational)
+                            else NotImplemented))))
 
         def __float__(self):
             assert sum(self._components) == self._components[-1], self
@@ -125,10 +126,14 @@ except ImportError:
                                                            other)
                      if isinstance(other, float)
                      else
-                     (not _are_components_lesser_than_integral(
-                             self._components, other)
-                      if isinstance(other, _Integral)
-                      else NotImplemented)))
+                     (not _are_components_lesser_than_int(self._components,
+                                                          other)
+                      if isinstance(other, int)
+                      else
+                      (not _are_components_lesser_than_rational(
+                              self._components, other)
+                       if isinstance(other, _Rational)
+                       else NotImplemented))))
 
         def __gt__(self, other):
             return (_are_components_lesser_than(other._components,
@@ -138,10 +143,13 @@ except ImportError:
                     (_is_float_lesser_than_components(other, self._components)
                      if isinstance(other, float)
                      else
-                     (_is_integral_lesser_than_components(other,
-                                                          self._components)
-                      if isinstance(other, _Integral)
-                      else NotImplemented)))
+                     (_is_int_lesser_than_components(other, self._components)
+                      if isinstance(other, int)
+                      else
+                      (_is_rational_lesser_than_components(other,
+                                                           self._components)
+                       if isinstance(other, _Rational)
+                       else NotImplemented))))
 
         def __hash__(self):
             return hash(self._components)
@@ -155,10 +163,14 @@ except ImportError:
                                                           self._components)
                      if isinstance(other, float)
                      else
-                     (not _is_integral_lesser_than_components(other,
-                                                              self._components)
-                      if isinstance(other, _Integral)
-                      else NotImplemented)))
+                     (not _is_int_lesser_than_components(other,
+                                                         self._components)
+                      if isinstance(other, int)
+                      else
+                      (not _is_rational_lesser_than_components(
+                              other, self._components)
+                       if isinstance(other, _Rational)
+                       else NotImplemented))))
 
         def __lt__(self, other):
             return (_are_components_lesser_than(self._components,
@@ -168,10 +180,14 @@ except ImportError:
                     (_are_components_lesser_than_float(self._components, other)
                      if isinstance(other, float)
                      else
-                     (_are_components_lesser_than_integral(self._components,
-                                                           other)
-                      if isinstance(other, _Integral)
-                      else NotImplemented)))
+                     (_are_components_lesser_than_int(self._components,
+                                                      other)
+                      if isinstance(other, int)
+                      else
+                      (_are_components_lesser_than_rational(self._components,
+                                                            other)
+                       if isinstance(other, _Rational)
+                       else NotImplemented))))
 
         def __mul__(self, other):
             return (Expansion(*_multiply_components_eliminating_zeros(
@@ -292,6 +308,19 @@ except ImportError:
         return len(components) == 1 and components[0] == value
 
 
+    def _are_components_equal_to_int(components: _Sequence[float], value: int
+                                     ) -> bool:
+        return (_to_fraction(components[0]) == 0.
+                and _components_to_integer(components) == value)
+
+
+    def _are_components_equal_to_rational(components: _Sequence[float],
+                                          value: _Rational) -> bool:
+        return (_are_components_equal_to_int(components, value.numerator)
+                if value.denominator == 1
+                else components == _rational_to_components(value))
+
+
     def _are_components_lesser_than_float(components: _Sequence[float],
                                           value: float) -> bool:
         return components[-1] < value or (len(components) > 1
@@ -299,12 +328,21 @@ except ImportError:
                                           and components[-2] < 0.)
 
 
-    def _are_components_lesser_than_integral(components: _Sequence[float],
-                                             integral: _Integral) -> bool:
-        components_integer = _components_to_integer(components);
-        return (components_integer < integral
-                or (components_integer == integral
+    def _are_components_lesser_than_int(components: _Sequence[float],
+                                        value: int) -> bool:
+        components_integer = _components_to_integer(components)
+        return (components_integer < value
+                or (components_integer == value
                     and _components_to_accumulated_fraction(components) < 0.))
+
+
+    def _are_components_lesser_than_rational(components: _Sequence[float],
+                                             value: _Rational) -> bool:
+        return (_are_components_lesser_than_int(components, value.numerator)
+                if value.denominator == 1
+                else
+                _are_components_lesser_than(components,
+                                            _rational_to_components(value)))
 
 
     def _divide_components(dividend: _Sequence[float],
@@ -352,13 +390,22 @@ except ImportError:
                                           and components[-2] > 0.)
 
 
-    def _is_integral_lesser_than_components(value: _Integral,
-                                            components: _Sequence[float]
-                                            ) -> bool:
+    def _is_int_lesser_than_components(value: int, components: _Sequence[float]
+                                       ) -> bool:
         components_integer = _components_to_integer(components);
         return (value < components_integer
                 or (value == components_integer
                     and _components_to_accumulated_fraction(components) > 0.))
+
+
+    def _is_rational_lesser_than_components(value: _Rational,
+                                            components: _Sequence[float]
+                                            ) -> bool:
+        return (_is_int_lesser_than_components(value.numerator, components)
+                if value.denominator == 1
+                else
+                _are_components_lesser_than(_rational_to_components(value),
+                                            components))
 
 
     def _components_to_accumulated_fraction(components: _Sequence[float]

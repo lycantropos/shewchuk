@@ -40,7 +40,7 @@ class Expansion:
         ...
 
     @_overload
-    def __eq__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+    def __eq__(self, other: _Union['Expansion', _Rational, float]) -> bool:
         ...
 
     @_overload
@@ -53,19 +53,19 @@ class Expansion:
     def __floor__(self) -> int:
         ...
 
-    def __ge__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+    def __ge__(self, other: _Union['Expansion', _Rational, float]) -> bool:
         ...
 
-    def __gt__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+    def __gt__(self, other: _Union['Expansion', _Rational, float]) -> bool:
         ...
 
     def __hash__(self) -> int:
         ...
 
-    def __le__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+    def __le__(self, other: _Union['Expansion', _Rational, float]) -> bool:
         ...
 
-    def __lt__(self, other: _Union['Expansion', _Integral, float]) -> bool:
+    def __lt__(self, other: _Union['Expansion', _Rational, float]) -> bool:
         ...
 
     def __mul__(self, other: _Union['Expansion', _Integral, float]
