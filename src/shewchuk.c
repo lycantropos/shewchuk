@@ -2380,7 +2380,7 @@ static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
   else if (PyLong_Check(self))
     return (PyObject *)PyLong_Expansion_subtract(self,
                                                  (ExpansionObject *)other);
-  else if (PyObject_IsInstance(other, Rational))
+  else if (PyObject_IsInstance(self, Rational))
     return (PyObject *)Rational_Expansion_subtract(self,
                                                    (ExpansionObject *)other);
   Py_RETURN_NOTIMPLEMENTED;
