@@ -154,8 +154,8 @@ static double two_subtract_tail(double left, double right, double head) {
   return left_error + right_error;
 }
 
-static size_t add_double_eliminating_zeros(size_t size, double *components,
-                                           double value, double *result) {
+static size_t add_double_in_place(size_t size, double *components, double value,
+                                  double *result) {
   size_t result_size = 0;
   double accumulator = value;
   for (size_t index = 0; index < size; index++) {
@@ -165,6 +165,21 @@ static size_t add_double_eliminating_zeros(size_t size, double *components,
   }
   if (!!accumulator || !result_size) result[result_size++] = accumulator;
   return result_size;
+}
+
+static int add_double(size_t size, double *components, double value,
+                      size_t *result_size, double **result) {
+  *result = (double *)PyMem_Malloc((size + 1) * sizeof(double));
+  if (!*result) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  *result_size = add_double_in_place(size, components, value, *result);
+  if (!PyMem_Resize(*result, double, *result_size)) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  return 0;
 }
 
 static int are_components_equal(const size_t left_size,
@@ -316,10 +331,8 @@ double sum_components(size_t size, double *components) {
   return result;
 }
 
-static size_t scale_components_eliminating_zeros(size_t size,
-                                                 double *components,
-                                                 double scalar,
-                                                 double *result) {
+static size_t scale_components_in_place(size_t size, double *components,
+                                        double scalar, double *result) {
   double scalar_high, scalar_low;
   split(scalar, &scalar_high, &scalar_low);
   double accumulator, tail;
@@ -341,18 +354,47 @@ static size_t scale_components_eliminating_zeros(size_t size,
   return result_size;
 }
 
-static size_t subtract_double_eliminating_zeros(size_t minuend_size,
-                                                double *minuend,
-                                                double subtrahend,
-                                                double *result) {
-  return add_double_eliminating_zeros(minuend_size, minuend, -subtrahend,
-                                      result);
+static int scale_components(size_t size, double *components, double scalar,
+                            size_t *result_size, double **result) {
+  *result = (double *)PyMem_Malloc(2 * size * sizeof(double));
+  if (!*result) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  *result_size = scale_components_in_place(size, components, scalar, *result);
+  if (!PyMem_Resize(*result, double, *result_size)) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  return 0;
 }
 
-static size_t subtract_from_double_eliminating_zeros(double minuend,
-                                                     size_t subtrahend_size,
-                                                     double *subtrahend,
-                                                     double *result) {
+static size_t subtract_double_in_place(size_t minuend_size, double *minuend,
+                                       double subtrahend, double *result) {
+  return add_double_in_place(minuend_size, minuend, -subtrahend, result);
+}
+
+static size_t subtract_double(size_t minuend_size, double *minuend,
+                              double subtrahend, size_t *result_size,
+                              double **result) {
+  *result = (double *)PyMem_Malloc((minuend_size + 1) * sizeof(double));
+  if (!*result) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  *result_size =
+      subtract_double_in_place(minuend_size, minuend, subtrahend, *result);
+  if (!PyMem_Resize(*result, double, *result_size)) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  return 0;
+}
+
+static size_t subtract_from_double_in_place(double minuend,
+                                            size_t subtrahend_size,
+                                            double *subtrahend,
+                                            double *result) {
   size_t result_size = 0;
   double accumulator = minuend;
   for (size_t index = 0; index < subtrahend_size; index++) {
@@ -364,11 +406,28 @@ static size_t subtract_from_double_eliminating_zeros(double minuend,
   return result_size;
 }
 
-static size_t add_components_eliminating_zeros(const size_t left_size,
-                                               const double *const left,
-                                               const size_t right_size,
-                                               const double *const right,
-                                               double *result) {
+static int subtract_from_double(double minuend, size_t subtrahend_size,
+                                double *subtrahend, size_t *result_size,
+                                double **result) {
+  *result = (double *)PyMem_Malloc((subtrahend_size + 1) * sizeof(double));
+  if (!*result) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  *result_size = subtract_from_double_in_place(minuend, subtrahend_size,
+                                               subtrahend, *result);
+  if (!PyMem_Resize(*result, double, *result_size)) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  return 0;
+}
+
+static size_t add_components_in_place(const size_t left_size,
+                                      const double *const left,
+                                      const size_t right_size,
+                                      const double *const right,
+                                      double *result) {
   size_t left_index = 0, right_index = 0;
   double left_component = left[left_index];
   double right_component = right[right_index];
@@ -421,11 +480,26 @@ static size_t add_components_eliminating_zeros(const size_t left_size,
   return result_size;
 }
 
-static size_t multiply_components_eliminating_zeros(size_t left_size,
-                                                    double *left,
-                                                    size_t right_size,
-                                                    double *right,
-                                                    double *result) {
+static int add_components(const size_t left_size, const double *const left,
+                          const size_t right_size, const double *const right,
+                          size_t *result_size, double **result) {
+  *result = (double *)PyMem_Malloc((left_size + right_size) * sizeof(double));
+  if (!*result) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  *result_size =
+      add_components_in_place(left_size, left, right_size, right, *result);
+  if (!PyMem_Resize(*result, double, *result_size)) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  return 0;
+}
+
+static size_t multiply_components_in_place(size_t left_size, double *left,
+                                           size_t right_size, double *right,
+                                           double *result) {
   double *next_components =
       (double *)PyMem_Malloc(2 * left_size * (right_size - 1) * sizeof(double));
   if (!next_components) {
@@ -439,24 +513,22 @@ static size_t multiply_components_eliminating_zeros(size_t left_size,
     return 0;
   }
   size_t result_size =
-      scale_components_eliminating_zeros(left_size, left, right[0], result);
+      scale_components_in_place(left_size, left, right[0], result);
   for (size_t index = 1; index < right_size; ++index) {
     size_t step_size =
-        scale_components_eliminating_zeros(left_size, left, right[index], step);
+        scale_components_in_place(left_size, left, right[index], step);
     copy_components(result, result_size, next_components);
-    result_size = add_components_eliminating_zeros(result_size, next_components,
-                                                   step_size, step, result);
+    result_size = add_components_in_place(result_size, next_components,
+                                          step_size, step, result);
   }
   PyMem_Free(next_components);
   PyMem_Free(step);
   return result_size;
 }
 
-static size_t subtract_components_eliminating_zeros(size_t minuend_size,
-                                                    double *minuend,
-                                                    size_t subtrahend_size,
-                                                    double *subtrahend,
-                                                    double *result) {
+static size_t subtract_components_in_place(size_t minuend_size, double *minuend,
+                                           size_t subtrahend_size,
+                                           double *subtrahend, double *result) {
   size_t minuend_index = 0, subtrahend_index = 0;
   double minuend_component = minuend[minuend_index];
   double subtrahend_component = -subtrahend[subtrahend_index];
@@ -512,6 +584,24 @@ static size_t subtract_components_eliminating_zeros(size_t minuend_size,
   return result_size;
 }
 
+static int subtract_components(size_t minuend_size, double *minuend,
+                               size_t subtrahend_size, double *subtrahend,
+                               size_t *result_size, double **result) {
+  *result =
+      (double *)PyMem_Malloc((minuend_size + subtrahend_size) * sizeof(double));
+  if (!*result) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  *result_size = subtract_components_in_place(
+      minuend_size, minuend, subtrahend_size, subtrahend, *result);
+  if (!PyMem_Resize(*result, double, *result_size)) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  return 0;
+}
+
 static int invert_components(const size_t size, double *const components,
                              size_t *result_size, double **result_components) {
   size_t iterations_count = 6 + ceil_log2(size);
@@ -543,9 +633,9 @@ static int invert_components(const size_t size, double *const components,
     return -1;
   }
   for (size_t _ = 0; _ < iterations_count; ++_) {
-    size_t tmp_size = multiply_components_eliminating_zeros(
-        step_size, step_components, negated_size, negated_components,
-        tmp_components);
+    size_t tmp_size =
+        multiply_components_in_place(step_size, step_components, negated_size,
+                                     negated_components, tmp_components);
     if (tmp_size == 0) {
       PyMem_Free(other_tmp_components);
       PyMem_Free(tmp_components);
@@ -553,12 +643,12 @@ static int invert_components(const size_t size, double *const components,
       PyMem_Free(step_components);
       return -1;
     }
-    size_t other_tmp_size = add_double_eliminating_zeros(
-        tmp_size, tmp_components, 2.0, other_tmp_components);
+    size_t other_tmp_size = add_double_in_place(tmp_size, tmp_components, 2.0,
+                                                other_tmp_components);
     swap(&step_components, &tmp_components);
-    step_size = multiply_components_eliminating_zeros(
-        step_size, tmp_components, other_tmp_size, other_tmp_components,
-        step_components);
+    step_size =
+        multiply_components_in_place(step_size, tmp_components, other_tmp_size,
+                                     other_tmp_components, step_components);
     if (step_size == 0) {
       PyMem_Free(other_tmp_components);
       PyMem_Free(tmp_components);
@@ -596,9 +686,9 @@ static int divide_components(size_t dividend_size, double *dividend,
     PyErr_NoMemory();
     return -1;
   }
-  *result_size = multiply_components_eliminating_zeros(
-      divisor_reciprocal_size, divisor_reciprocal, dividend_size, dividend,
-      *result);
+  *result_size =
+      multiply_components_in_place(divisor_reciprocal_size, divisor_reciprocal,
+                                   dividend_size, dividend, *result);
   PyMem_Free(divisor_reciprocal);
   if (!*result_size) {
     PyMem_Free(*result);
@@ -875,14 +965,14 @@ static size_t scale_by_squared_length(size_t size, double *components,
   double dx_components[8], dx_squared_components[16], dy_components[8],
       dy_squared_components[16];
   size_t dx_components_size =
-      scale_components_eliminating_zeros(size, components, dx, dx_components);
-  size_t dx_squared_components_size = scale_components_eliminating_zeros(
+      scale_components_in_place(size, components, dx, dx_components);
+  size_t dx_squared_components_size = scale_components_in_place(
       dx_components_size, dx_components, dx, dx_squared_components);
   size_t dy_components_size =
-      scale_components_eliminating_zeros(size, components, dy, dy_components);
-  size_t dy_squared_components_size = scale_components_eliminating_zeros(
+      scale_components_in_place(size, components, dy, dy_components);
+  size_t dy_squared_components_size = scale_components_in_place(
       dy_components_size, dy_components, dy, dy_squared_components);
-  return add_components_eliminating_zeros(
+  return add_components_in_place(
       dx_squared_components_size, dx_squared_components,
       dy_squared_components_size, dy_squared_components, result);
 }
@@ -903,76 +993,70 @@ static size_t add_extras(
   double first_dx_tail_second_third_cross_product[8];
   if (!!first_dx_tail) {
     first_dx_tail_second_third_cross_product_size =
-        scale_components_eliminating_zeros(
-            4, second_third_cross_product, first_dx_tail,
-            first_dx_tail_second_third_cross_product);
-    first_buffer_16_limit = scale_components_eliminating_zeros(
-        first_dx_tail_second_third_cross_product_size,
-        first_dx_tail_second_third_cross_product, 2.0 * first_dx,
-        first_buffer_16);
+        scale_components_in_place(4, second_third_cross_product, first_dx_tail,
+                                  first_dx_tail_second_third_cross_product);
+    first_buffer_16_limit =
+        scale_components_in_place(first_dx_tail_second_third_cross_product_size,
+                                  first_dx_tail_second_third_cross_product,
+                                  2.0 * first_dx, first_buffer_16);
     double first_dx_tail_third_squared_length[8];
     size_t first_dx_tail_third_squared_length_size =
-        scale_components_eliminating_zeros(4, third_squared_length,
-                                           first_dx_tail,
-                                           first_dx_tail_third_squared_length);
-    second_buffer_16_limit = scale_components_eliminating_zeros(
+        scale_components_in_place(4, third_squared_length, first_dx_tail,
+                                  first_dx_tail_third_squared_length);
+    second_buffer_16_limit = scale_components_in_place(
         first_dx_tail_third_squared_length_size,
         first_dx_tail_third_squared_length, second_dy, second_buffer_16);
     double first_dx_tail_second_squared_length[8];
     size_t first_dx_tail_second_squared_length_size =
-        scale_components_eliminating_zeros(4, second_squared_length,
-                                           first_dx_tail,
-                                           first_dx_tail_second_squared_length);
-    third_buffer_16_limit = scale_components_eliminating_zeros(
+        scale_components_in_place(4, second_squared_length, first_dx_tail,
+                                  first_dx_tail_second_squared_length);
+    third_buffer_16_limit = scale_components_in_place(
         first_dx_tail_second_squared_length_size,
         first_dx_tail_second_squared_length, -third_dy, third_buffer_16);
-    first_buffer_32_limit = add_components_eliminating_zeros(
+    first_buffer_32_limit = add_components_in_place(
         first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
         second_buffer_16, first_buffer_32);
-    buffer_48_limit = add_components_eliminating_zeros(
+    buffer_48_limit = add_components_in_place(
         third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
         first_buffer_32, buffer_48);
-    final_size = add_components_eliminating_zeros(final_size, *final_components,
-                                                  buffer_48_limit, buffer_48,
-                                                  *accumulated_components);
+    final_size =
+        add_components_in_place(final_size, *final_components, buffer_48_limit,
+                                buffer_48, *accumulated_components);
     swap(final_components, accumulated_components);
   }
   size_t first_dy_tail_second_third_cross_product_size;
   double first_dy_tail_second_third_cross_product[8];
   if (!!first_dy_tail) {
     first_dy_tail_second_third_cross_product_size =
-        scale_components_eliminating_zeros(
-            4, second_third_cross_product, first_dy_tail,
-            first_dy_tail_second_third_cross_product);
-    first_buffer_16_limit = scale_components_eliminating_zeros(
-        first_dy_tail_second_third_cross_product_size,
-        first_dy_tail_second_third_cross_product, 2.0 * first_dy,
-        first_buffer_16);
+        scale_components_in_place(4, second_third_cross_product, first_dy_tail,
+                                  first_dy_tail_second_third_cross_product);
+    first_buffer_16_limit =
+        scale_components_in_place(first_dy_tail_second_third_cross_product_size,
+                                  first_dy_tail_second_third_cross_product,
+                                  2.0 * first_dy, first_buffer_16);
     double first_dy_tail_second_squared_length[8];
     size_t first_dy_tail_second_squared_length_size =
-        scale_components_eliminating_zeros(4, second_squared_length,
-                                           first_dy_tail,
-                                           first_dy_tail_second_squared_length);
-    second_buffer_16_limit = scale_components_eliminating_zeros(
+        scale_components_in_place(4, second_squared_length, first_dy_tail,
+                                  first_dy_tail_second_squared_length);
+    second_buffer_16_limit = scale_components_in_place(
         first_dy_tail_second_squared_length_size,
         first_dy_tail_second_squared_length, third_dx, second_buffer_16);
     double first_dy_tail_third_squared_length[8];
     size_t first_dy_tail_third_squared_length_size =
-        scale_components_eliminating_zeros(4, third_squared_length,
-                                           first_dy_tail,
-                                           first_dy_tail_third_squared_length);
-    third_buffer_16_limit = scale_components_eliminating_zeros(
+        scale_components_in_place(4, third_squared_length, first_dy_tail,
+                                  first_dy_tail_third_squared_length);
+    third_buffer_16_limit = scale_components_in_place(
         first_dy_tail_third_squared_length_size,
         first_dy_tail_third_squared_length, -second_dx, third_buffer_16);
-    first_buffer_32_limit = add_components_eliminating_zeros(
+    first_buffer_32_limit = add_components_in_place(
         first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
         second_buffer_16, first_buffer_32);
-    buffer_48_limit = add_components_eliminating_zeros(
+    buffer_48_limit = add_components_in_place(
         third_buffer_16_limit, third_buffer_16, first_buffer_32_limit,
         first_buffer_32, buffer_48);
-    final_size = add_components_eliminating_zeros(final_size, *final_components,
-                                                  buffer_48_limit, buffer_48,
-                                                  *accumulated_components);
+    final_size =
+        add_components_in_place(final_size, *final_components, buffer_48_limit,
+                                buffer_48, *accumulated_components);
     swap(final_components, accumulated_components);
   }
   double dx_tail_dy_head_head, dx_head_dy_tail_head;
@@ -1003,9 +1087,9 @@ static size_t add_extras(
                   dx_head_dy_tail_head, dx_head_dy_tail_tail,
                   &second_buffer_4[3], &second_buffer_4[2], &second_buffer_4[1],
                   &second_buffer_4[0]);
-      second_third_cross_product_bodies_size = add_components_eliminating_zeros(
-          4, first_buffer_4, 4, second_buffer_4,
-          second_third_cross_product_bodies);
+      second_third_cross_product_bodies_size =
+          add_components_in_place(4, first_buffer_4, 4, second_buffer_4,
+                                  second_third_cross_product_bodies);
       two_multiply(second_dx_tail, third_dy_tail, &dx_tail_dy_head_head,
                    &dx_tail_dy_head_tail);
       two_multiply(third_dx_tail, second_dy_tail, &dx_head_dy_tail_head,
@@ -1024,125 +1108,125 @@ static size_t add_extras(
       second_third_cross_product_tails_size = 1;
     }
     if (!!first_dx_tail) {
-      first_buffer_16_limit = scale_components_eliminating_zeros(
+      first_buffer_16_limit = scale_components_in_place(
           first_dx_tail_second_third_cross_product_size,
           first_dx_tail_second_third_cross_product, first_dx_tail,
           first_buffer_16);
       double first_dx_tail_second_third_cross_product_bodies[16];
       size_t first_dx_tail_second_third_cross_product_bodies_size =
-          scale_components_eliminating_zeros(
+          scale_components_in_place(
               second_third_cross_product_bodies_size,
               second_third_cross_product_bodies, first_dx_tail,
               first_dx_tail_second_third_cross_product_bodies);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
+      first_buffer_32_limit = scale_components_in_place(
           first_dx_tail_second_third_cross_product_bodies_size,
           first_dx_tail_second_third_cross_product_bodies, 2.0 * first_dx,
           first_buffer_32);
-      buffer_48_limit = add_components_eliminating_zeros(
+      buffer_48_limit = add_components_in_place(
           first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
           first_buffer_32, buffer_48);
-      final_size = add_components_eliminating_zeros(
-          final_size, *final_components, buffer_48_limit, buffer_48,
-          *accumulated_components);
+      final_size = add_components_in_place(final_size, *final_components,
+                                           buffer_48_limit, buffer_48,
+                                           *accumulated_components);
       swap(final_components, accumulated_components);
       if (!!second_dy_tail) {
-        buffer_8_limit = scale_components_eliminating_zeros(
-            4, third_squared_length, first_dx_tail, buffer_8);
-        first_buffer_16_limit = scale_components_eliminating_zeros(
+        buffer_8_limit = scale_components_in_place(4, third_squared_length,
+                                                   first_dx_tail, buffer_8);
+        first_buffer_16_limit = scale_components_in_place(
             buffer_8_limit, buffer_8, second_dy_tail, first_buffer_16);
-        final_size = add_components_eliminating_zeros(
+        final_size = add_components_in_place(
             final_size, *final_components, first_buffer_16_limit,
             first_buffer_16, *accumulated_components);
         swap(final_components, accumulated_components);
       }
       if (!!third_dy_tail) {
-        buffer_8_limit = scale_components_eliminating_zeros(
-            4, second_squared_length, -first_dx_tail, buffer_8);
-        first_buffer_16_limit = scale_components_eliminating_zeros(
+        buffer_8_limit = scale_components_in_place(4, second_squared_length,
+                                                   -first_dx_tail, buffer_8);
+        first_buffer_16_limit = scale_components_in_place(
             buffer_8_limit, buffer_8, third_dy_tail, first_buffer_16);
-        final_size = add_components_eliminating_zeros(
+        final_size = add_components_in_place(
             final_size, *final_components, first_buffer_16_limit,
             first_buffer_16, *accumulated_components);
         swap(final_components, accumulated_components);
       }
-      first_buffer_32_limit = scale_components_eliminating_zeros(
+      first_buffer_32_limit = scale_components_in_place(
           first_dx_tail_second_third_cross_product_bodies_size,
           first_dx_tail_second_third_cross_product_bodies, first_dx_tail,
           first_buffer_32);
       double first_dx_tail_second_third_cross_product_tails[8];
       size_t first_dx_tail_second_third_cross_product_tails_size =
-          scale_components_eliminating_zeros(
+          scale_components_in_place(
               second_third_cross_product_tails_size,
               second_third_cross_product_tails, first_dx_tail,
               first_dx_tail_second_third_cross_product_tails);
-      first_buffer_16_limit = scale_components_eliminating_zeros(
+      first_buffer_16_limit = scale_components_in_place(
           first_dx_tail_second_third_cross_product_tails_size,
           first_dx_tail_second_third_cross_product_tails, 2.0 * first_dx,
           first_buffer_16);
-      second_buffer_16_limit = scale_components_eliminating_zeros(
+      second_buffer_16_limit = scale_components_in_place(
           first_dx_tail_second_third_cross_product_tails_size,
           first_dx_tail_second_third_cross_product_tails, first_dx_tail,
           second_buffer_16);
-      second_buffer_32_limit = add_components_eliminating_zeros(
+      second_buffer_32_limit = add_components_in_place(
           first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
           second_buffer_16, second_buffer_32);
-      buffer_64_limit = add_components_eliminating_zeros(
+      buffer_64_limit = add_components_in_place(
           first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
           second_buffer_32, buffer_64);
-      final_size = add_components_eliminating_zeros(
-          final_size, *final_components, buffer_64_limit, buffer_64,
-          *accumulated_components);
+      final_size = add_components_in_place(final_size, *final_components,
+                                           buffer_64_limit, buffer_64,
+                                           *accumulated_components);
       swap(final_components, accumulated_components);
     }
     if (!!first_dy_tail) {
-      first_buffer_16_limit = scale_components_eliminating_zeros(
+      first_buffer_16_limit = scale_components_in_place(
           first_dy_tail_second_third_cross_product_size,
           first_dy_tail_second_third_cross_product, first_dy_tail,
           first_buffer_16);
       double first_dy_tail_second_third_cross_product_bodies[16];
       size_t first_dy_tail_second_third_cross_product_bodies_size =
-          scale_components_eliminating_zeros(
+          scale_components_in_place(
               second_third_cross_product_bodies_size,
               second_third_cross_product_bodies, first_dy_tail,
               first_dy_tail_second_third_cross_product_bodies);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
+      first_buffer_32_limit = scale_components_in_place(
           first_dy_tail_second_third_cross_product_bodies_size,
           first_dy_tail_second_third_cross_product_bodies, 2.0 * first_dy,
           first_buffer_32);
-      buffer_48_limit = add_components_eliminating_zeros(
+      buffer_48_limit = add_components_in_place(
           first_buffer_16_limit, first_buffer_16, first_buffer_32_limit,
           first_buffer_32, buffer_48);
-      final_size = add_components_eliminating_zeros(
-          final_size, *final_components, buffer_48_limit, buffer_48,
-          *accumulated_components);
+      final_size = add_components_in_place(final_size, *final_components,
+                                           buffer_48_limit, buffer_48,
+                                           *accumulated_components);
       swap(final_components, accumulated_components);
-      first_buffer_32_limit = scale_components_eliminating_zeros(
+      first_buffer_32_limit = scale_components_in_place(
           first_dy_tail_second_third_cross_product_bodies_size,
           first_dy_tail_second_third_cross_product_bodies, first_dy_tail,
           first_buffer_32);
       double first_dy_tail_second_third_cross_product_tails[8];
       size_t first_dy_tail_second_third_cross_product_tails_size =
-          scale_components_eliminating_zeros(
+          scale_components_in_place(
               second_third_cross_product_tails_size,
               second_third_cross_product_tails, first_dy_tail,
               first_dy_tail_second_third_cross_product_tails);
-      first_buffer_16_limit = scale_components_eliminating_zeros(
+      first_buffer_16_limit = scale_components_in_place(
           first_dy_tail_second_third_cross_product_tails_size,
           first_dy_tail_second_third_cross_product_tails, 2.0 * first_dy,
           first_buffer_16);
-      second_buffer_16_limit = scale_components_eliminating_zeros(
+      second_buffer_16_limit = scale_components_in_place(
           first_dy_tail_second_third_cross_product_tails_size,
           first_dy_tail_second_third_cross_product_tails, first_dy_tail,
           second_buffer_16);
-      second_buffer_32_limit = add_components_eliminating_zeros(
+      second_buffer_32_limit = add_components_in_place(
           first_buffer_16_limit, first_buffer_16, second_buffer_16_limit,
           second_buffer_16, second_buffer_32);
-      buffer_64_limit = add_components_eliminating_zeros(
+      buffer_64_limit = add_components_in_place(
           first_buffer_32_limit, first_buffer_32, second_buffer_32_limit,
           second_buffer_32, buffer_64);
-      final_size = add_components_eliminating_zeros(
-          final_size, *final_components, buffer_64_limit, buffer_64,
-          *accumulated_components);
+      final_size = add_components_in_place(final_size, *final_components,
+                                           buffer_64_limit, buffer_64,
+                                           *accumulated_components);
       swap(final_components, accumulated_components);
     }
   }
@@ -1183,11 +1267,11 @@ double adaptive_incircle_determinant_estimation(double point_x, double point_y,
   size_t third_components_size = scale_by_squared_length(
       4, first_second_cross_product, third_dx, third_dy, third_components);
   double first_second_sum_components[64];
-  size_t first_second_sum_size = add_components_eliminating_zeros(
+  size_t first_second_sum_size = add_components_in_place(
       first_components_size, first_components, second_components_size,
       second_components, first_second_sum_components);
   double first_buffer[1152];
-  size_t final_size = add_components_eliminating_zeros(
+  size_t final_size = add_components_in_place(
       first_second_sum_size, first_second_sum_components, third_components_size,
       third_components, first_buffer);
   double result = sum_components(final_size, first_buffer);
@@ -1355,7 +1439,7 @@ double adaptive_vectors_cross_product_estimation(
                    &extra_components[3], &extra_components[2],
                    &extra_components[1], &extra_components[0]);
   double second_components[8];
-  size_t second_components_size = add_components_eliminating_zeros(
+  size_t second_components_size = add_components_in_place(
       4, first_components, 4, extra_components, second_components);
   two_multiply(minuend_x, subtrahend_y_tail, &minuend_x_subtrahend_y_head,
                &minuend_x_subtrahend_y_tail);
@@ -1366,9 +1450,9 @@ double adaptive_vectors_cross_product_estimation(
                    &extra_components[3], &extra_components[2],
                    &extra_components[1], &extra_components[0]);
   double third_components[12];
-  size_t third_components_size = add_components_eliminating_zeros(
-      second_components_size, second_components, 4, extra_components,
-      third_components);
+  size_t third_components_size =
+      add_components_in_place(second_components_size, second_components, 4,
+                              extra_components, third_components);
   two_multiply(minuend_x_tail, subtrahend_y_tail, &minuend_x_subtrahend_y_head,
                &minuend_x_subtrahend_y_tail);
   two_multiply(minuend_y_tail, subtrahend_x_tail, &minuend_y_subtrahend_x_head,
@@ -1379,8 +1463,8 @@ double adaptive_vectors_cross_product_estimation(
                    &extra_components[1], &extra_components[0]);
   double final_components[16];
   size_t final_components_size =
-      add_components_eliminating_zeros(third_components_size, third_components,
-                                       4, extra_components, final_components);
+      add_components_in_place(third_components_size, third_components, 4,
+                              extra_components, final_components);
   return final_components[final_components_size - 1];
 }
 
@@ -1471,7 +1555,7 @@ size_t adaptive_vectors_cross_product_impl(
       (minuend_y * subtrahend_x_tail + subtrahend_x * minuend_y_tail);
   estimation += extra;
   if ((estimation >= threshold) || (-estimation >= threshold))
-    return add_double_eliminating_zeros(4, first_components, extra, result);
+    return add_double_in_place(4, first_components, extra, result);
   double minuend_x_subtrahend_y_head, minuend_x_subtrahend_y_tail;
   two_multiply(minuend_x_tail, subtrahend_y, &minuend_x_subtrahend_y_head,
                &minuend_x_subtrahend_y_tail);
@@ -1484,7 +1568,7 @@ size_t adaptive_vectors_cross_product_impl(
                    &extra_components[3], &extra_components[2],
                    &extra_components[1], &extra_components[0]);
   double second_components[8];
-  size_t second_components_size = add_components_eliminating_zeros(
+  size_t second_components_size = add_components_in_place(
       4, first_components, 4, extra_components, second_components);
   two_multiply(minuend_x, subtrahend_y_tail, &minuend_x_subtrahend_y_head,
                &minuend_x_subtrahend_y_tail);
@@ -1495,9 +1579,9 @@ size_t adaptive_vectors_cross_product_impl(
                    &extra_components[3], &extra_components[2],
                    &extra_components[1], &extra_components[0]);
   double third_components[12];
-  size_t third_components_size = add_components_eliminating_zeros(
-      second_components_size, second_components, 4, extra_components,
-      third_components);
+  size_t third_components_size =
+      add_components_in_place(second_components_size, second_components, 4,
+                              extra_components, third_components);
   two_multiply(minuend_x_tail, subtrahend_y_tail, &minuend_x_subtrahend_y_head,
                &minuend_x_subtrahend_y_tail);
   two_multiply(minuend_y_tail, subtrahend_x_tail, &minuend_y_subtrahend_x_head,
@@ -1506,8 +1590,8 @@ size_t adaptive_vectors_cross_product_impl(
                    minuend_y_subtrahend_x_head, minuend_y_subtrahend_x_tail,
                    &extra_components[3], &extra_components[2],
                    &extra_components[1], &extra_components[0]);
-  return add_components_eliminating_zeros(
-      third_components_size, third_components, 4, extra_components, result);
+  return add_components_in_place(third_components_size, third_components, 4,
+                                 extra_components, result);
 }
 
 double vectors_cross_product_impl(double first_start_x, double first_start_y,
@@ -1575,10 +1659,10 @@ static ExpansionObject *Expansions_add(ExpansionObject *self,
                                        ExpansionObject *other) {
   double *result_components =
       (double *)PyMem_Malloc((self->size + other->size) * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = add_components_eliminating_zeros(
-      self->size, self->components, other->size, other->components,
-      result_components);
+  size_t result_size;
+  if (add_components(self->size, self->components, other->size,
+                     other->components, &result_size, &result_components) < 0)
+    return NULL;
   result_size = compress_components(result_size, result_components);
   if (!result_size) {
     PyMem_Free(result_components);
@@ -1591,11 +1675,11 @@ static ExpansionObject *Expansions_add(ExpansionObject *self,
 
 static ExpansionObject *Expansion_double_add(ExpansionObject *self,
                                              double other) {
-  double *result_components =
-      (double *)PyMem_Malloc((self->size + 1) * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = add_double_eliminating_zeros(
-      self->size, self->components, other, result_components);
+  double *result_components;
+  size_t result_size;
+  if (add_double(self->size, self->components, other, &result_size,
+                 &result_components) < 0)
+    return NULL;
   result_size = compress_components(result_size, result_components);
   if (!result_size) {
     PyMem_Free(result_components);
@@ -1721,9 +1805,9 @@ static ExpansionObject *Expansions_multiply(ExpansionObject *self,
   double *result_components =
       (double *)PyMem_Malloc(2 * self->size * other->size * sizeof(double));
   if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = multiply_components_eliminating_zeros(
-      self->size, self->components, other->size, other->components,
-      result_components);
+  size_t result_size =
+      multiply_components_in_place(self->size, self->components, other->size,
+                                   other->components, result_components);
   if (!result_size) {
     PyMem_Free(result_components);
     return NULL;
@@ -1740,11 +1824,11 @@ static ExpansionObject *Expansions_multiply(ExpansionObject *self,
 
 static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
                                                   double other) {
-  double *result_components =
-      (double *)PyMem_Malloc(2 * self->size * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = scale_components_eliminating_zeros(
-      self->size, self->components, other, result_components);
+  double *result_components;
+  size_t result_size;
+  if (scale_components(self->size, self->components, other, &result_size,
+                       &result_components) < 0)
+    return NULL;
   result_size = compress_components(result_size, result_components);
   if (!result_size) {
     PyMem_Free(result_components);
@@ -2136,12 +2220,12 @@ static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
 
 static ExpansionObject *Expansions_subtract(ExpansionObject *self,
                                             ExpansionObject *other) {
-  double *result_components =
-      (double *)PyMem_Malloc((self->size + other->size) * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = subtract_components_eliminating_zeros(
-      self->size, self->components, other->size, other->components,
-      result_components);
+  double *result_components;
+  size_t result_size;
+  if (subtract_components(self->size, self->components, other->size,
+                          other->components, &result_size,
+                          &result_components) < 0)
+    return NULL;
   result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
@@ -2150,11 +2234,11 @@ static ExpansionObject *Expansions_subtract(ExpansionObject *self,
 
 static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
                                                   double other) {
-  double *result_components =
-      (double *)PyMem_Malloc((self->size + 1) * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = subtract_double_eliminating_zeros(
-      self->size, self->components, other, result_components);
+  double *result_components;
+  size_t result_size;
+  if (subtract_double(self->size, self->components, other, &result_size,
+                      &result_components) < 0)
+    return NULL;
   result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
@@ -2163,11 +2247,11 @@ static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
 
 static ExpansionObject *double_Expansion_subtract(double self,
                                                   ExpansionObject *other) {
-  double *result_components =
-      (double *)PyMem_Malloc((other->size + 1) * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size = subtract_from_double_eliminating_zeros(
-      self, other->size, other->components, result_components);
+  double *result_components;
+  size_t result_size;
+  if (subtract_from_double(self, other->size, other->components, &result_size,
+                           &result_components) < 0)
+    return NULL;
   result_size = compress_components(result_size, result_components);
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();

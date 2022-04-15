@@ -82,8 +82,8 @@ except ImportError:
             return +self if self._components[-1] > 0. else -self
 
         def __add__(self, other):
-            return (Expansion(*_add_components_eliminating_zeros(
-                    self._components, other._components))
+            return (Expansion(*_add_components(self._components,
+                                               other._components))
                     if isinstance(other, Expansion)
                     else self.__radd__(other))
 
@@ -190,8 +190,8 @@ except ImportError:
                        else NotImplemented))))
 
         def __mul__(self, other):
-            return (Expansion(*_multiply_components_eliminating_zeros(
-                    self._components, other._components))
+            return (Expansion(*_multiply_components(self._components,
+                                                    other._components))
                     if isinstance(other, Expansion)
                     else self.__rmul__(other))
 
@@ -203,12 +203,11 @@ except ImportError:
             return self
 
         def __radd__(self, other):
-            return (Expansion(*_add_float_eliminating_zeros(self._components,
-                                                            other))
+            return (Expansion(*_add_float(self._components, other))
                     if isinstance(other, float)
                     else
-                    (Expansion(*_add_components_eliminating_zeros(
-                            self._components, _int_to_components(other)))
+                    (Expansion(*_add_components(self._components,
+                                                _int_to_components(other)))
                      if isinstance(other, _Integral)
                      else NotImplemented))
 
@@ -217,11 +216,10 @@ except ImportError:
                     + '({})'.format(', '.join(map(str, self._components))))
 
         def __rmul__(self, other):
-            return (Expansion(*_scale_components_eliminating_zeros(
-                    self._components, other))
+            return (Expansion(*_scale_components(self._components, other))
                     if isinstance(other, float)
                     else
-                    (Expansion(*_multiply_components_eliminating_zeros(
+                    (Expansion(*_multiply_components(
                             self._components, _int_to_components(other)))
                      if isinstance(other, _Integral)
                      else NotImplemented))
@@ -251,12 +249,11 @@ except ImportError:
                                    for component in self._components])
 
         def __rsub__(self, other):
-            return (Expansion(*_subtract_from_double_eliminating_zeros(
-                    other, self._components))
+            return (Expansion(*_subtract_from_double(other, self._components))
                     if isinstance(other, float)
                     else
-                    (Expansion(*_subtract_components_eliminating_zeros(
-                            _int_to_components(other), self._components))
+                    (Expansion(*_subtract_components(_int_to_components(other),
+                                                     self._components))
                      if isinstance(other, _Integral)
                      else NotImplemented))
 
@@ -266,15 +263,14 @@ except ImportError:
                     else NotImplemented)
 
         def __sub__(self, other):
-            return (Expansion(*_subtract_components_eliminating_zeros(
-                    self._components, other._components))
+            return (Expansion(*_subtract_components(self._components,
+                                                    other._components))
                     if isinstance(other, Expansion)
                     else
-                    (Expansion(*_subtract_double_eliminating_zeros(
-                            self._components, other))
+                    (Expansion(*_subtract_double(self._components, other))
                      if isinstance(other, float)
                      else
-                     (Expansion(*_subtract_components_eliminating_zeros(
+                     (Expansion(*_subtract_components(
                              self._components, _int_to_components(other)))
                       if isinstance(other, _Integral)
                       else NotImplemented)))
@@ -344,9 +340,7 @@ except ImportError:
 
     def _divide_components(dividend: _Sequence[float],
                            divisor: _Sequence[float]) -> _Sequence[float]:
-        return _multiply_components_eliminating_zeros(
-                dividend, _invert_components(divisor)
-        )
+        return _multiply_components(dividend, _invert_components(divisor))
 
 
     def _int_to_components(value: int) -> _Sequence[float]:
@@ -364,14 +358,11 @@ except ImportError:
         result = [1. / components[-1]]
         negated_components = _negate_components(components)
         for _ in _repeat(None, 6 + _ceil_log2(len(components))):
-            result = _multiply_components_eliminating_zeros(
+            result = _multiply_components(
                     result,
-                    _add_float_eliminating_zeros(
-                            _multiply_components_eliminating_zeros(
-                                    result,
-                                    negated_components
-                            ),
-                            2.)
+                    _add_float(_multiply_components(result,
+                                                    negated_components),
+                               2.)
             )
         return result
 
@@ -519,9 +510,8 @@ except ImportError:
                      else left[left_size - right_size - 1] < 0.))
 
 
-    def _add_components_eliminating_zeros(left: _Sequence[float],
-                                          right: _Sequence[float]
-                                          ) -> _Sequence[float]:
+    def _add_components(left: _Sequence[float], right: _Sequence[float]
+                        ) -> _Sequence[float]:
         left_length, right_length = len(left), len(right)
         left_component, right_component = left[0], right[0]
         left_index = right_index = 0
@@ -572,8 +562,8 @@ except ImportError:
         return result
 
 
-    def _add_float_eliminating_zeros(components: _Sequence[float],
-                                     value: float) -> _Sequence[float]:
+    def _add_float(components: _Sequence[float], value: float
+                   ) -> _Sequence[float]:
         result = []
         accumulator = value
         for component in components:
@@ -627,17 +617,15 @@ except ImportError:
         return tail, head
 
 
-    def _multiply_components_eliminating_zeros(left: _Sequence[float],
-                                               right: _Sequence[float]
-                                               ) -> _Sequence[float]:
-        return _reduce(_add_components_eliminating_zeros,
-                       [_scale_components_eliminating_zeros(left,
-                                                            right_component)
+    def _multiply_components(left: _Sequence[float], right: _Sequence[float]
+                             ) -> _Sequence[float]:
+        return _reduce(_add_components,
+                       [_scale_components(left, right_component)
                         for right_component in right])
 
 
-    def _scale_components_eliminating_zeros(components: _Sequence[float],
-                                            scalar: float) -> _Sequence[float]:
+    def _scale_components(components: _Sequence[float], scalar: float
+                          ) -> _Sequence[float]:
         components_iterator = iter(components)
         scalar_low, scalar_high = _split(scalar)
         tail, accumulator = _two_multiply_presplit(next(components_iterator),
@@ -681,9 +669,8 @@ except ImportError:
         return tail, head
 
 
-    def _subtract_components_eliminating_zeros(minuend: _Sequence[float],
-                                               subtrahend: _Sequence[float]
-                                               ) -> _Sequence[float]:
+    def _subtract_components(minuend: _Sequence[float],
+                             subtrahend: _Sequence[float]) -> _Sequence[float]:
         minuend_length, subtrahend_length = len(minuend), len(subtrahend)
         minuend_component, subtrahend_component = minuend[0], -subtrahend[0]
         minuend_index = subtrahend_index = 0
@@ -741,15 +728,13 @@ except ImportError:
         return result
 
 
-    def _subtract_double_eliminating_zeros(minuend: _Sequence[float],
-                                           subtrahend: float
-                                           ) -> _Sequence[float]:
-        return _add_float_eliminating_zeros(minuend, -subtrahend)
+    def _subtract_double(minuend: _Sequence[float], subtrahend: float
+                         ) -> _Sequence[float]:
+        return _add_float(minuend, -subtrahend)
 
 
-    def _subtract_from_double_eliminating_zeros(minuend: float,
-                                                subtrahend: _Sequence[float]
-                                                ) -> _Sequence[float]:
+    def _subtract_from_double(minuend: float, subtrahend: _Sequence[float]
+                              ) -> _Sequence[float]:
         result = []
         accumulator = minuend
         for subtrahend_component in subtrahend:
@@ -868,14 +853,11 @@ except ImportError:
     def _scale_by_squared_length(components: _Sequence[float],
                                  dx: float,
                                  dy: float) -> _Sequence[float]:
-        dx_components = _scale_components_eliminating_zeros(components, dx)
-        dx_squared_components = _scale_components_eliminating_zeros(
-                dx_components, dx)
-        dy_components = _scale_components_eliminating_zeros(components, dy)
-        dy_squared_components = _scale_components_eliminating_zeros(
-                dy_components, dy)
-        return _add_components_eliminating_zeros(dx_squared_components,
-                                                 dy_squared_components)
+        dx_components = _scale_components(components, dx)
+        dx_squared_components = _scale_components(dx_components, dx)
+        dy_components = _scale_components(components, dy)
+        dy_squared_components = _scale_components(dy_components, dy)
+        return _add_components(dx_squared_components, dy_squared_components)
 
 
     def _squared_length(dx: float,
@@ -909,50 +891,40 @@ except ImportError:
                     second_squared_length: _Tuple[float, float, float, float],
                     third_squared_length: _Tuple[float, float, float, float]):
         if first_dx_tail:
-            first_dx_tail_second_third_cross_product = (
-                _scale_components_eliminating_zeros(
-                        second_third_cross_product, first_dx_tail))
-            first_buffer_16 = _scale_components_eliminating_zeros(
+            first_dx_tail_second_third_cross_product = _scale_components(
+                    second_third_cross_product, first_dx_tail)
+            first_buffer_16 = _scale_components(
                     first_dx_tail_second_third_cross_product, 2. * first_dx)
-            first_dx_tail_third_squared_length = (
-                _scale_components_eliminating_zeros(third_squared_length,
-                                                    first_dx_tail))
-            second_buffer_16 = _scale_components_eliminating_zeros(
+            first_dx_tail_third_squared_length = _scale_components(
+                    third_squared_length, first_dx_tail)
+            second_buffer_16 = _scale_components(
                     first_dx_tail_third_squared_length, second_dy)
-            first_dx_tail_second_squared_length = (
-                _scale_components_eliminating_zeros(second_squared_length,
-                                                    first_dx_tail))
-            third_buffer_16 = _scale_components_eliminating_zeros(
+            first_dx_tail_second_squared_length = _scale_components(
+                    second_squared_length, first_dx_tail)
+            third_buffer_16 = _scale_components(
                     first_dx_tail_second_squared_length, -third_dy)
-            first_buffer_32 = _add_components_eliminating_zeros(
-                    first_buffer_16, second_buffer_16)
-            buffer_48 = _add_components_eliminating_zeros(third_buffer_16,
-                                                          first_buffer_32)
-            final_components = _add_components_eliminating_zeros(
-                    final_components, buffer_48)
+            first_buffer_32 = _add_components(first_buffer_16,
+                                              second_buffer_16)
+            buffer_48 = _add_components(third_buffer_16, first_buffer_32)
+            final_components = _add_components(final_components, buffer_48)
         first_dy_tail_second_third_cross_product = None
         if first_dy_tail:
-            first_dy_tail_second_third_cross_product = (
-                _scale_components_eliminating_zeros(second_third_cross_product,
-                                                    first_dy_tail))
-            first_buffer_16 = _scale_components_eliminating_zeros(
+            first_dy_tail_second_third_cross_product = _scale_components(
+                    second_third_cross_product, first_dy_tail)
+            first_buffer_16 = _scale_components(
                     first_dy_tail_second_third_cross_product, 2. * first_dy)
-            first_dy_tail_second_squared_length = (
-                _scale_components_eliminating_zeros(second_squared_length,
-                                                    first_dy_tail))
-            second_buffer_16 = _scale_components_eliminating_zeros(
+            first_dy_tail_second_squared_length = _scale_components(
+                    second_squared_length, first_dy_tail)
+            second_buffer_16 = _scale_components(
                     first_dy_tail_second_squared_length, third_dx)
-            first_dy_tail_third_squared_length = (
-                _scale_components_eliminating_zeros(third_squared_length,
-                                                    first_dy_tail))
-            third_buffer_16 = _scale_components_eliminating_zeros(
+            first_dy_tail_third_squared_length = _scale_components(
+                    third_squared_length, first_dy_tail)
+            third_buffer_16 = _scale_components(
                     first_dy_tail_third_squared_length, -second_dx)
-            first_buffer_32 = _add_components_eliminating_zeros(
-                    first_buffer_16, second_buffer_16)
-            buffer_48 = _add_components_eliminating_zeros(
-                    third_buffer_16, first_buffer_32)
-            final_components = _add_components_eliminating_zeros(
-                    final_components, buffer_48)
+            first_buffer_32 = _add_components(first_buffer_16,
+                                              second_buffer_16)
+            buffer_48 = _add_components(third_buffer_16, first_buffer_32)
+            final_components = _add_components(final_components, buffer_48)
         if first_dx_tail or first_dy_tail:
             if (second_dx_tail or second_dy_tail or third_dx_tail
                     or third_dy_tail):
@@ -972,9 +944,8 @@ except ImportError:
                                                dx_tail_dy_head_head,
                                                dx_head_dy_tail_tail,
                                                dx_head_dy_tail_head)
-                second_third_cross_product_bodies = (
-                    _add_components_eliminating_zeros(first_buffer_4,
-                                                      second_buffer_4))
+                second_third_cross_product_bodies = _add_components(
+                        first_buffer_4, second_buffer_4)
                 dx_tail_dy_head_tail, dx_tail_dy_head_head = _two_multiply(
                         second_dx_tail, third_dy_tail)
                 dx_head_dy_tail_tail, dx_head_dy_tail_head = _two_multiply(
@@ -986,86 +957,88 @@ except ImportError:
                 second_third_cross_product_bodies = [0.]
                 second_third_cross_product_tails = [0.]
             if first_dx_tail:
-                first_buffer_16 = _scale_components_eliminating_zeros(
+                first_buffer_16 = _scale_components(
                         first_dx_tail_second_third_cross_product,
                         first_dx_tail)
                 first_dx_tail_second_third_cross_product_bodies = (
-                    _scale_components_eliminating_zeros(
-                            second_third_cross_product_bodies,
-                            first_dx_tail))
-                first_buffer_32 = _scale_components_eliminating_zeros(
+                    _scale_components(second_third_cross_product_bodies,
+                                      first_dx_tail)
+                )
+                first_buffer_32 = _scale_components(
                         first_dx_tail_second_third_cross_product_bodies,
-                        2. * first_dx)
-                buffer_48 = _add_components_eliminating_zeros(
-                        first_buffer_16, first_buffer_32)
-                final_components = _add_components_eliminating_zeros(
-                        buffer_48, final_components)
+                        2. * first_dx
+                )
+                buffer_48 = _add_components(first_buffer_16, first_buffer_32)
+                final_components = _add_components(buffer_48, final_components)
                 if second_dy_tail:
-                    buffer_8 = _scale_components_eliminating_zeros(
-                            third_squared_length, first_dx_tail)
-                    first_buffer_16 = _scale_components_eliminating_zeros(
-                            buffer_8, second_dy_tail)
-                    final_components = _add_components_eliminating_zeros(
-                            final_components, first_buffer_16)
+                    buffer_8 = _scale_components(third_squared_length,
+                                                 first_dx_tail)
+                    first_buffer_16 = _scale_components(buffer_8,
+                                                        second_dy_tail)
+                    final_components = _add_components(final_components,
+                                                       first_buffer_16)
                 if third_dy_tail:
-                    buffer_8 = _scale_components_eliminating_zeros(
-                            second_squared_length, -first_dx_tail)
-                    first_buffer_16 = _scale_components_eliminating_zeros(
-                            buffer_8, third_dy_tail)
-                    final_components = _add_components_eliminating_zeros(
-                            final_components, first_buffer_16)
-                first_buffer_32 = _scale_components_eliminating_zeros(
+                    buffer_8 = _scale_components(second_squared_length,
+                                                 -first_dx_tail)
+                    first_buffer_16 = _scale_components(buffer_8,
+                                                        third_dy_tail)
+                    final_components = _add_components(final_components,
+                                                       first_buffer_16)
+                first_buffer_32 = _scale_components(
                         first_dx_tail_second_third_cross_product_bodies,
-                        first_dx_tail)
+                        first_dx_tail
+                )
                 first_dx_tail_second_third_cross_product_tails = (
-                    _scale_components_eliminating_zeros(
-                            second_third_cross_product_tails,
-                            first_dx_tail))
-                first_buffer_16 = _scale_components_eliminating_zeros(
+                    _scale_components(second_third_cross_product_tails,
+                                      first_dx_tail)
+                )
+                first_buffer_16 = _scale_components(
                         first_dx_tail_second_third_cross_product_tails,
-                        2. * first_dx)
-                second_buffer_16 = _scale_components_eliminating_zeros(
+                        2. * first_dx
+                )
+                second_buffer_16 = _scale_components(
                         first_dx_tail_second_third_cross_product_tails,
-                        first_dx_tail)
-                second_buffer_32 = _add_components_eliminating_zeros(
-                        first_buffer_16, second_buffer_16)
-                buffer_64 = _add_components_eliminating_zeros(
-                        first_buffer_32, second_buffer_32)
-                final_components = _add_components_eliminating_zeros(
-                        final_components, buffer_64)
+                        first_dx_tail
+                )
+                second_buffer_32 = _add_components(first_buffer_16,
+                                                   second_buffer_16)
+                buffer_64 = _add_components(first_buffer_32, second_buffer_32)
+                final_components = _add_components(final_components, buffer_64)
             if first_dy_tail:
-                first_buffer_16 = _scale_components_eliminating_zeros(
+                first_buffer_16 = _scale_components(
                         first_dy_tail_second_third_cross_product,
-                        first_dy_tail)
+                        first_dy_tail
+                )
                 first_dy_tail_second_third_cross_product_bodies = (
-                    _scale_components_eliminating_zeros(
-                            second_third_cross_product_bodies,
-                            first_dy_tail))
-                first_buffer_32 = _scale_components_eliminating_zeros(
+                    _scale_components(second_third_cross_product_bodies,
+                                      first_dy_tail)
+                )
+                first_buffer_32 = _scale_components(
                         first_dy_tail_second_third_cross_product_bodies,
-                        2. * first_dy)
-                buffer_48 = _add_components_eliminating_zeros(
-                        first_buffer_16, first_buffer_32)
-                final_components = _add_components_eliminating_zeros(
-                        final_components, buffer_48)
-                first_buffer_32 = _scale_components_eliminating_zeros(
+                        2. * first_dy
+                )
+                buffer_48 = _add_components(first_buffer_16, first_buffer_32)
+                final_components = _add_components(final_components, buffer_48)
+                first_buffer_32 = _scale_components(
                         first_dy_tail_second_third_cross_product_bodies,
-                        first_dy_tail)
+                        first_dy_tail
+                )
                 first_dy_tail_second_third_cross_product_tails = (
-                    _scale_components_eliminating_zeros(
-                            second_third_cross_product_tails, first_dy_tail))
-                first_buffer_16 = _scale_components_eliminating_zeros(
+                    _scale_components(second_third_cross_product_tails,
+                                      first_dy_tail)
+                )
+                first_buffer_16 = _scale_components(
                         first_dy_tail_second_third_cross_product_tails,
-                        2. * first_dy)
-                second_buffer_16 = _scale_components_eliminating_zeros(
+                        2. * first_dy
+                )
+                second_buffer_16 = _scale_components(
                         first_dy_tail_second_third_cross_product_tails,
-                        first_dy_tail)
-                second_buffer_32 = _add_components_eliminating_zeros(
-                        first_buffer_16, second_buffer_16)
-                buffer_64 = _add_components_eliminating_zeros(
-                        first_buffer_32, second_buffer_32)
-                final_components = _add_components_eliminating_zeros(
-                        final_components, buffer_64)
+                        first_dy_tail
+                )
+                second_buffer_32 = _add_components(first_buffer_16,
+                                                   second_buffer_16)
+                buffer_64 = _add_components(first_buffer_32, second_buffer_32)
+                final_components = _add_components(final_components, buffer_64)
         return final_components
 
 
@@ -1101,10 +1074,10 @@ except ImportError:
                                                      second_dx, second_dy)
         third_components = _scale_by_squared_length(first_second_cross_product,
                                                     third_dx, third_dy)
-        first_second_sum_components = _add_components_eliminating_zeros(
-                first_components, second_components)
-        first_buffer = _add_components_eliminating_zeros(
-                first_second_sum_components, third_components)
+        first_second_sum_components = _add_components(first_components,
+                                                      second_components)
+        first_buffer = _add_components(first_second_sum_components,
+                                       third_components)
         result = sum(first_buffer)
         first_upper_bound_coefficient = (4. + 48. * _EPSILON) * _EPSILON
         threshold = first_upper_bound_coefficient * upper_bound
@@ -1325,8 +1298,7 @@ except ImportError:
                                              minuend_x_subtrahend_y,
                                              minuend_y_subtrahend_x_tail,
                                              minuend_y_subtrahend_x)
-        second_components = _add_components_eliminating_zeros(
-                first_components, extra_components)
+        second_components = _add_components(first_components, extra_components)
         minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
                 minuend_x, subtrahend_y_tail)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
@@ -1335,8 +1307,7 @@ except ImportError:
                                              minuend_x_subtrahend_y,
                                              minuend_y_subtrahend_x_tail,
                                              minuend_y_subtrahend_x)
-        third_components = _add_components_eliminating_zeros(
-                second_components, extra_components)
+        third_components = _add_components(second_components, extra_components)
         minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
                 minuend_x_tail, subtrahend_y_tail)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
@@ -1345,8 +1316,7 @@ except ImportError:
                                              minuend_x_subtrahend_y,
                                              minuend_y_subtrahend_x_tail,
                                              minuend_y_subtrahend_x)
-        return _add_components_eliminating_zeros(third_components,
-                                                 extra_components)[-1]
+        return _add_components(third_components, extra_components)[-1]
 
 
     def _vectors_cross_product(first_start_x: float,
@@ -1436,7 +1406,7 @@ except ImportError:
                     + subtrahend_x * minuend_y_tail))
         estimation += extra
         if (estimation >= threshold) or (-estimation >= threshold):
-            return _add_float_eliminating_zeros(first_components, extra)
+            return _add_float(first_components, extra)
         minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
                 minuend_x_tail, subtrahend_y)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
@@ -1445,8 +1415,7 @@ except ImportError:
                                              minuend_x_subtrahend_y,
                                              minuend_y_subtrahend_x_tail,
                                              minuend_y_subtrahend_x)
-        second_components = _add_components_eliminating_zeros(
-                first_components, extra_components)
+        second_components = _add_components(first_components, extra_components)
         minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
                 minuend_x, subtrahend_y_tail)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
@@ -1455,8 +1424,7 @@ except ImportError:
                                              minuend_x_subtrahend_y,
                                              minuend_y_subtrahend_x_tail,
                                              minuend_y_subtrahend_x)
-        third_components = _add_components_eliminating_zeros(
-                second_components, extra_components)
+        third_components = _add_components(second_components, extra_components)
         minuend_x_subtrahend_y_tail, minuend_x_subtrahend_y = _two_multiply(
                 minuend_x_tail, subtrahend_y_tail)
         minuend_y_subtrahend_x_tail, minuend_y_subtrahend_x = _two_multiply(
@@ -1465,5 +1433,4 @@ except ImportError:
                                              minuend_x_subtrahend_y,
                                              minuend_y_subtrahend_x_tail,
                                              minuend_y_subtrahend_x)
-        return _add_components_eliminating_zeros(third_components,
-                                                 extra_components)
+        return _add_components(third_components, extra_components)
