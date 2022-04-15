@@ -1,7 +1,7 @@
 import platform
 from fractions import Fraction
 from functools import partial
-from numbers import Integral
+from numbers import Rational
 from typing import (Any,
                     Callable,
                     Iterable,
@@ -15,8 +15,8 @@ from hypothesis.strategies import SearchStrategy as Strategy
 import shewchuk
 from shewchuk import Expansion
 
-LeftOperand = Union[Integral, float]
-RightOperand = Union[Expansion, Integral, float]
+LeftOperand = Union[Rational, float]
+RightOperand = Union[Expansion, Rational, float]
 Strategy = Strategy
 Domain = TypeVar('Domain')
 Range = TypeVar('Range')
