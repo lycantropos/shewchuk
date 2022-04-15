@@ -221,8 +221,12 @@ except ImportError:
                     else
                     (Expansion(*_multiply_components(
                             self._components, _int_to_components(other)))
-                     if isinstance(other, _Integral)
-                     else NotImplemented))
+                     if isinstance(other, int)
+                     else
+                     (Expansion(*_multiply_components(
+                             self._components, _rational_to_components(other)))
+                      if isinstance(other, _Rational)
+                      else NotImplemented)))
 
         def __round__(self, precision=None):
             if precision is None:

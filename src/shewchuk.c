@@ -526,6 +526,26 @@ static size_t multiply_components_in_place(size_t left_size, double *left,
   return result_size;
 }
 
+static int multiply_components(size_t left_size, double *left,
+                               size_t right_size, double *right,
+                               size_t *result_size, double **result) {
+  *result = (double *)PyMem_Malloc(2 * left_size * right_size * sizeof(double));
+  if (!*result) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  *result_size = left_size < right_size
+                     ? multiply_components_in_place(right_size, right,
+                                                    left_size, left, *result)
+                     : multiply_components_in_place(left_size, left, right_size,
+                                                    right, *result);
+  if (!PyMem_Resize(*result, double, *result_size)) {
+    PyErr_NoMemory();
+    return -1;
+  }
+  return 0;
+}
+
 static size_t subtract_components_in_place(size_t minuend_size, double *minuend,
                                            size_t subtrahend_size,
                                            double *subtrahend, double *result) {
@@ -679,16 +699,9 @@ static int divide_components(size_t dividend_size, double *dividend,
   if (invert_components(divisor_size, divisor, &divisor_reciprocal_size,
                         &divisor_reciprocal) < 0)
     return -1;
-  *result = (double *)PyMem_Malloc(
-      (2 * divisor_reciprocal_size * dividend_size) * sizeof(double));
-  if (!*result) {
-    PyMem_Free(divisor_reciprocal);
-    PyErr_NoMemory();
+  if (multiply_components(divisor_reciprocal_size, divisor_reciprocal,
+                          dividend_size, dividend, result_size, result) < 0)
     return -1;
-  }
-  *result_size =
-      multiply_components_in_place(divisor_reciprocal_size, divisor_reciprocal,
-                                   dividend_size, dividend, *result);
   PyMem_Free(divisor_reciprocal);
   if (!*result_size) {
     PyMem_Free(*result);
@@ -1797,21 +1810,12 @@ static Py_hash_t Expansion_hash(ExpansionObject *self) {
 
 static ExpansionObject *Expansions_multiply(ExpansionObject *self,
                                             ExpansionObject *other) {
-  if (self->size < other->size) {
-    ExpansionObject *tmp = self;
-    self = other;
-    other = tmp;
-  }
-  double *result_components =
-      (double *)PyMem_Malloc(2 * self->size * other->size * sizeof(double));
-  if (!result_components) return (ExpansionObject *)PyErr_NoMemory();
-  size_t result_size =
-      multiply_components_in_place(self->size, self->components, other->size,
-                                   other->components, result_components);
-  if (!result_size) {
-    PyMem_Free(result_components);
+  double *result_components;
+  size_t result_size;
+  if (multiply_components(self->size, self->components, other->size,
+                          other->components, &result_size,
+                          &result_components) < 0)
     return NULL;
-  }
   result_size = compress_components(result_size, result_components);
   if (!result_size) {
     PyMem_Free(result_components);
@@ -1849,11 +1853,27 @@ static PyObject *Expansion_PyObject_multiply(ExpansionObject *self,
     size_t other_size;
     if (PyLong_to_components(other, &other_size, &other_components) < 0)
       return NULL;
-    ExpansionObject *other_expansion =
-        construct_Expansion(&ExpansionType, other_size, other_components);
-    PyObject *result = (PyObject *)Expansions_multiply(self, other_expansion);
-    Py_DECREF(other_expansion);
-    return result;
+    double *result_components;
+    size_t result_size;
+    if (multiply_components(self->size, self->components, other_size,
+                            other_components, &result_size,
+                            &result_components) < 0)
+      return NULL;
+    return (PyObject *)construct_Expansion(&ExpansionType, result_size,
+                                           result_components);
+  } else if (PyObject_IsInstance(other, Rational)) {
+    double *other_components;
+    size_t other_size;
+    if (Rational_to_components(other, &other_size, &other_components) < 0)
+      return NULL;
+    double *result_components;
+    size_t result_size;
+    if (multiply_components(self->size, self->components, other_size,
+                            other_components, &result_size,
+                            &result_components) < 0)
+      return NULL;
+    return (PyObject *)construct_Expansion(&ExpansionType, result_size,
+                                           result_components);
   }
   Py_RETURN_NOTIMPLEMENTED;
 }

@@ -68,7 +68,7 @@ class Expansion:
     def __lt__(self, other: _Union['Expansion', _Rational, float]) -> bool:
         ...
 
-    def __mul__(self, other: _Union['Expansion', _Integral, float]
+    def __mul__(self, other: _Union['Expansion', _Rational, float]
                 ) -> 'Expansion':
         ...
 
@@ -81,7 +81,7 @@ class Expansion:
     def __radd__(self, other: _Union[_Integral, float]) -> 'Expansion':
         ...
 
-    def __rmul__(self, other: _Union[_Integral, float]) -> 'Expansion':
+    def __rmul__(self, other: _Union[_Rational, float]) -> 'Expansion':
         ...
 
     @_overload
