@@ -1,3 +1,4 @@
+from numbers import Rational
 from typing import Sequence
 
 from hypothesis import given
@@ -33,8 +34,8 @@ def test_float_argument(value: float) -> None:
     assert result == value
 
 
-@given(strategies.integers)
-def test_integer_argument(value: int) -> None:
+@given(strategies.rationals)
+def test_rational_argument(value: Rational) -> None:
     result = Expansion(value)
 
     assert result == value
