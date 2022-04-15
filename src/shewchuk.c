@@ -609,6 +609,25 @@ static int divide_components(size_t dividend_size, double *dividend,
   return 0;
 }
 
+static int is_PyLong_odd(PyObject *value) {
+  PyObject *one = PyLong_FromLong(1);
+  if (!one) return -1;
+  PyObject *first_bit = PyNumber_And(value, one);
+  Py_DECREF(one);
+  if (!first_bit) return -1;
+  const int result = PyObject_IsTrue(first_bit);
+  Py_DECREF(first_bit);
+  return result;
+}
+
+static int is_PyLong_one(PyObject *value) {
+  PyObject *one = PyLong_FromLong(1);
+  if (!one) return -1;
+  int result = PyObject_RichCompareBool(value, one, Py_EQ);
+  Py_DECREF(one);
+  return result;
+}
+
 static PyObject *components_to_PyLong(const size_t size,
                                       const double *const components) {
   PyObject *result = PyLong_FromDouble(components[size - 1]);
@@ -710,22 +729,34 @@ static int Rational_to_components(PyObject *value, size_t *size,
   }
   assert(PyLong_Check(denominator));
   assert(PyLong_Check(numerator));
-  double *denominator_components;
-  size_t denominator_size;
-  if (PyLong_to_components(denominator, &denominator_size,
-                           &denominator_components) < 0) {
-    Py_DECREF(numerator);
-    Py_DECREF(denominator);
-    return -1;
-  }
-  Py_DECREF(denominator);
   double *numerator_components;
   size_t numerator_size;
   if (PyLong_to_components(numerator, &numerator_size, &numerator_components) <
       0) {
     Py_DECREF(numerator);
+    Py_DECREF(denominator);
     return -1;
   }
+  Py_DECREF(numerator);
+  int is_denominator_one = is_PyLong_one(denominator);
+  if (is_denominator_one < 0) {
+    PyMem_Free(numerator_components);
+    Py_DECREF(denominator);
+    return -1;
+  } else if (is_denominator_one) {
+    *components = numerator_components;
+    *size = numerator_size;
+    return 0;
+  }
+  double *denominator_components;
+  size_t denominator_size;
+  if (PyLong_to_components(denominator, &denominator_size,
+                           &denominator_components) < 0) {
+    PyMem_Free(numerator_components);
+    Py_DECREF(denominator);
+    return -1;
+  }
+  Py_DECREF(denominator);
   if (divide_components(numerator_size, numerator_components, denominator_size,
                         denominator_components, size, components) < 0) {
     PyMem_Free(numerator_components);
@@ -775,45 +806,9 @@ static int is_PyLong_lesser_than_components(PyObject *integral,
                  components_to_accumulated_fraction(size, components) > 0.0));
 }
 
-static int is_PyLong_odd(PyObject *value) {
-  PyObject *one = PyLong_FromLong(1);
-  if (!one) return -1;
-  PyObject *first_bit = PyNumber_And(value, one);
-  Py_DECREF(one);
-  if (!first_bit) return -1;
-  const int result = PyObject_IsTrue(first_bit);
-  Py_DECREF(first_bit);
-  return result;
-}
-
-static int is_PyLong_one(PyObject *value) {
-  PyObject *one = PyLong_FromLong(1);
-  if (!one) return -1;
-  int result = PyObject_RichCompareBool(value, one, Py_EQ);
-  Py_DECREF(one);
-  return result;
-}
-
-static int is_Rational_integer(PyObject *value) {
-  PyObject *denominator = PyObject_GetAttrString(value, "denominator");
-  if (!denominator) return -1;
-  assert(PyLong_Check(denominator));
-  int result = is_PyLong_one(denominator);
-  Py_DECREF(denominator);
-  return result;
-}
-
 static int are_components_equal_to_Rational(const size_t size,
                                             const double *const components,
                                             PyObject *value) {
-  if (is_Rational_integer(value)) {
-    PyObject *numerator = PyObject_GetAttrString(value, "numerator");
-    if (!numerator) return -1;
-    assert(PyLong_Check(numerator));
-    int result = are_components_equal_to_PyLong(size, components, numerator);
-    Py_DECREF(numerator);
-    return result;
-  }
   double *rational_components;
   size_t rational_size;
   if (Rational_to_components(value, &rational_size, &rational_components) < 0)
@@ -827,14 +822,6 @@ static int are_components_equal_to_Rational(const size_t size,
 static int are_components_lesser_than_Rational(const size_t size,
                                                const double *const components,
                                                PyObject *value) {
-  if (is_Rational_integer(value)) {
-    PyObject *numerator = PyObject_GetAttrString(value, "numerator");
-    if (!numerator) return -1;
-    assert(PyLong_Check(numerator));
-    int result = are_components_lesser_than_PyLong(size, components, numerator);
-    Py_DECREF(numerator);
-    return result;
-  }
   double *rational_components;
   size_t rational_size;
   if (Rational_to_components(value, &rational_size, &rational_components) < 0)
@@ -848,14 +835,6 @@ static int are_components_lesser_than_Rational(const size_t size,
 static int is_Rational_lesser_than_components(PyObject *value,
                                               const size_t size,
                                               const double *const components) {
-  if (is_Rational_integer(value)) {
-    PyObject *numerator = PyObject_GetAttrString(value, "numerator");
-    if (!numerator) return -1;
-    assert(PyLong_Check(numerator));
-    int result = is_PyLong_lesser_than_components(numerator, size, components);
-    Py_DECREF(numerator);
-    return result;
-  }
   double *rational_components;
   size_t rational_size;
   if (Rational_to_components(value, &rational_size, &rational_components) < 0)

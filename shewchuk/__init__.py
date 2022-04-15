@@ -299,8 +299,10 @@ except ImportError:
 
 
     def _rational_to_components(value: _Rational) -> _Sequence[float]:
-        return _divide_components(_int_to_components(value.numerator),
-                                  _int_to_components(value.denominator))
+        return (_int_to_components(value.numerator)
+                if value.denominator == 1
+                else _divide_components(_int_to_components(value.numerator),
+                                        _int_to_components(value.denominator)))
 
 
     def _are_components_equal_to_float(components: _Sequence[float],
@@ -316,9 +318,7 @@ except ImportError:
 
     def _are_components_equal_to_rational(components: _Sequence[float],
                                           value: _Rational) -> bool:
-        return (_are_components_equal_to_int(components, value.numerator)
-                if value.denominator == 1
-                else components == _rational_to_components(value))
+        return components == _rational_to_components(value)
 
 
     def _are_components_lesser_than_float(components: _Sequence[float],
@@ -338,11 +338,8 @@ except ImportError:
 
     def _are_components_lesser_than_rational(components: _Sequence[float],
                                              value: _Rational) -> bool:
-        return (_are_components_lesser_than_int(components, value.numerator)
-                if value.denominator == 1
-                else
-                _are_components_lesser_than(components,
-                                            _rational_to_components(value)))
+        return _are_components_lesser_than(components,
+                                           _rational_to_components(value))
 
 
     def _divide_components(dividend: _Sequence[float],
@@ -401,11 +398,8 @@ except ImportError:
     def _is_rational_lesser_than_components(value: _Rational,
                                             components: _Sequence[float]
                                             ) -> bool:
-        return (_is_int_lesser_than_components(value.numerator, components)
-                if value.denominator == 1
-                else
-                _are_components_lesser_than(_rational_to_components(value),
-                                            components))
+        return _are_components_lesser_than(_rational_to_components(value),
+                                           components)
 
 
     def _components_to_accumulated_fraction(components: _Sequence[float]
