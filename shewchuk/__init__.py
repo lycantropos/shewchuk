@@ -17,7 +17,6 @@ except ImportError:
                       floor as _floor,
                       modf as _modf)
     from numbers import (Rational as _Rational,
-                         Integral as _Integral,
                          Real as _Real)
     from operator import not_ as _not
     from sys import float_info as _float_info
