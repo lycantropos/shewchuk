@@ -1,3 +1,5 @@
+from fractions import Fraction
+
 import math
 from typing import Sequence
 
@@ -11,7 +13,8 @@ from tests.utils import (MAX_VALUE,
 precisions = strategies.none() | strategies.integers(-10, 10)
 finite_floats = finite_floats
 integers = strategies.integers(-MAX_VALUE, MAX_VALUE)
-reals = integers | finite_floats
+rationals = integers | strategies.fractions(-MAX_VALUE, MAX_VALUE)
+reals = rationals | finite_floats
 
 
 def is_floats_sequence_sum_finite(values: Sequence[float]) -> bool:
@@ -25,7 +28,9 @@ non_zero_expansions = expansions.filter(bool)
 non_zero_reals = reals.filter(bool)
 non_zero_reals_or_expansions = non_zero_reals | non_zero_expansions
 reals_or_expansions = reals | expansions
-zero_reals = strategies.builds(int) | strategies.builds(float)
+zero_integers = strategies.builds(int)
+zero_rationals = zero_integers | strategies.builds(Fraction)
+zero_reals = zero_rationals | strategies.builds(float)
 zero_expansions = strategies.builds(Expansion)
 zero_reals_or_expansions = zero_reals | zero_expansions
 ones = strategies.just(1) | strategies.just(1.0)
