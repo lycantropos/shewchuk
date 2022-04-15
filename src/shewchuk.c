@@ -2281,6 +2281,9 @@ static ExpansionObject *Expansion_PyLong_subtract(ExpansionObject *self,
     return NULL;
   }
   PyMem_Free(other_components);
+  result_size = compress_components(result_size, result_components);
+  if (!PyMem_Resize(result_components, double, result_size))
+    return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
@@ -2297,6 +2300,9 @@ static ExpansionObject *PyLong_Expansion_subtract(PyObject *self,
     return NULL;
   }
   PyMem_Free(components);
+  result_size = compress_components(result_size, result_components);
+  if (!PyMem_Resize(result_components, double, result_size))
+    return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
@@ -2315,6 +2321,9 @@ static ExpansionObject *Expansion_Rational_subtract(ExpansionObject *self,
     return NULL;
   }
   PyMem_Free(other_components);
+  result_size = compress_components(result_size, result_components);
+  if (!PyMem_Resize(result_components, double, result_size))
+    return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
@@ -2331,6 +2340,9 @@ static ExpansionObject *Rational_Expansion_subtract(PyObject *self,
     return NULL;
   }
   PyMem_Free(components);
+  result_size = compress_components(result_size, result_components);
+  if (!PyMem_Resize(result_components, double, result_size))
+    return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
