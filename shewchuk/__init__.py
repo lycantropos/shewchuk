@@ -74,7 +74,7 @@ except ImportError:
                     components = _compress_components(components)
             else:
                 components = [0.]
-            self._components = components
+            self._components = tuple(components)
             return self
 
         def __abs__(self):
@@ -103,7 +103,8 @@ except ImportError:
                      else
                      (_are_components_equal_to_int(self._components, other)
                       if isinstance(other, int)
-                      else (self._components == _rational_to_components(other)
+                      else (_are_components_equal_to_rational(self._components,
+                                                              other)
                             if isinstance(other, _Rational)
                             else NotImplemented))))
 
@@ -346,7 +347,7 @@ except ImportError:
 
     def _are_components_equal_to_rational(components: _Sequence[float],
                                           value: _Rational) -> bool:
-        return components == _rational_to_components(value)
+        return components == tuple(_rational_to_components(value))
 
 
     def _are_components_lesser_than_float(components: _Sequence[float],
