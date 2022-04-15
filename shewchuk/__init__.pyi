@@ -92,13 +92,13 @@ class Expansion:
     def __round__(self, precision: int) -> 'Expansion':
         ...
 
-    def __rsub__(self, other: _Union[_Integral, float]) -> 'Expansion':
+    def __rsub__(self, other: _Union[_Rational, float]) -> 'Expansion':
         ...
 
     def __rtruediv__(self, other: _Union[_Rational, float]) -> 'Expansion':
         ...
 
-    def __sub__(self, other: _Union['Expansion', _Integral, float]
+    def __sub__(self, other: _Union['Expansion', _Rational, float]
                 ) -> 'Expansion':
         ...
 

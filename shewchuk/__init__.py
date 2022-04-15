@@ -262,8 +262,12 @@ except ImportError:
                     else
                     (Expansion(*_subtract_components(_int_to_components(other),
                                                      self._components))
-                     if isinstance(other, _Integral)
-                     else NotImplemented))
+                     if isinstance(other, int)
+                     else
+                     (Expansion(*_subtract_components(
+                             _rational_to_components(other), self._components))
+                      if isinstance(other, _Rational)
+                      else NotImplemented)))
 
         def __rtruediv__(self, other):
             return (Expansion(*_divide_components([other], self._components))
@@ -288,8 +292,11 @@ except ImportError:
                      else
                      (Expansion(*_subtract_components(
                              self._components, _int_to_components(other)))
-                      if isinstance(other, _Integral)
-                      else NotImplemented)))
+                      if isinstance(other, int)
+                      else (Expansion(*_subtract_components(
+                             self._components, _rational_to_components(other)))
+                            if isinstance(other, _Rational)
+                            else NotImplemented))))
 
         def __truediv__(self, other):
             return (Expansion(*_divide_components(self._components,

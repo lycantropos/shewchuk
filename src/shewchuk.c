@@ -2266,6 +2266,74 @@ static ExpansionObject *Expansions_subtract(ExpansionObject *self,
   return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
+static ExpansionObject *Expansion_PyLong_subtract(ExpansionObject *self,
+                                                  PyObject *other) {
+  double *other_components;
+  size_t other_size;
+  if (PyLong_to_components(other, &other_size, &other_components) < 0)
+    return NULL;
+  size_t result_size;
+  double *result_components;
+  if (subtract_components(self->size, self->components, other_size,
+                          other_components, &result_size,
+                          &result_components) < 0) {
+    PyMem_Free(other_components);
+    return NULL;
+  }
+  PyMem_Free(other_components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
+static ExpansionObject *PyLong_Expansion_subtract(PyObject *self,
+                                                  ExpansionObject *other) {
+  double *components;
+  size_t size;
+  if (PyLong_to_components(self, &size, &components) < 0) return NULL;
+  size_t result_size;
+  double *result_components;
+  if (subtract_components(size, components, other->size, other->components,
+                          &result_size, &result_components) < 0) {
+    PyMem_Free(components);
+    return NULL;
+  }
+  PyMem_Free(components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
+static ExpansionObject *Expansion_Rational_subtract(ExpansionObject *self,
+                                                    PyObject *other) {
+  double *other_components;
+  size_t other_size;
+  if (Rational_to_components(other, &other_size, &other_components) < 0)
+    return NULL;
+  size_t result_size;
+  double *result_components;
+  if (subtract_components(self->size, self->components, other_size,
+                          other_components, &result_size,
+                          &result_components) < 0) {
+    PyMem_Free(other_components);
+    return NULL;
+  }
+  PyMem_Free(other_components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
+static ExpansionObject *Rational_Expansion_subtract(PyObject *self,
+                                                    ExpansionObject *other) {
+  double *components;
+  size_t size;
+  if (Rational_to_components(self, &size, &components) < 0) return NULL;
+  size_t result_size;
+  double *result_components;
+  if (subtract_components(size, components, other->size, other->components,
+                          &result_size, &result_components) < 0) {
+    PyMem_Free(components);
+    return NULL;
+  }
+  PyMem_Free(components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
 static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
                                                   double other) {
   double *result_components;
@@ -2300,32 +2368,21 @@ static PyObject *Expansion_subtract(PyObject *self, PyObject *other) {
     else if (PyFloat_Check(other))
       return (PyObject *)Expansion_double_subtract((ExpansionObject *)self,
                                                    PyFloat_AS_DOUBLE(other));
-    else if (PyLong_Check(other)) {
-      double *other_components;
-      size_t other_size;
-      if (PyLong_to_components(other, &other_size, &other_components) < 0)
-        return NULL;
-      ExpansionObject *other_expansion =
-          construct_Expansion(&ExpansionType, other_size, other_components);
-      PyObject *result = (PyObject *)Expansions_subtract(
-          (ExpansionObject *)self, other_expansion);
-      Py_DECREF(other_expansion);
-      return result;
-    }
+    else if (PyLong_Check(other))
+      return (PyObject *)Expansion_PyLong_subtract((ExpansionObject *)self,
+                                                   other);
+    else if (PyObject_IsInstance(other, Rational))
+      return (PyObject *)Expansion_Rational_subtract((ExpansionObject *)self,
+                                                     other);
   } else if (PyFloat_Check(self))
     return (PyObject *)double_Expansion_subtract(PyFloat_AS_DOUBLE(self),
                                                  (ExpansionObject *)other);
-  else if (PyLong_Check(self)) {
-    double *components;
-    size_t size;
-    if (PyLong_to_components(self, &size, &components) < 0) return NULL;
-    ExpansionObject *expansion =
-        construct_Expansion(&ExpansionType, size, components);
-    PyObject *result =
-        (PyObject *)Expansions_subtract(expansion, (ExpansionObject *)other);
-    Py_DECREF(expansion);
-    return result;
-  }
+  else if (PyLong_Check(self))
+    return (PyObject *)PyLong_Expansion_subtract(self,
+                                                 (ExpansionObject *)other);
+  else if (PyObject_IsInstance(other, Rational))
+    return (PyObject *)Rational_Expansion_subtract(self,
+                                                   (ExpansionObject *)other);
   Py_RETURN_NOTIMPLEMENTED;
 }
 
