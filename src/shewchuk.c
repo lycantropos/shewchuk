@@ -2352,6 +2352,28 @@ static ExpansionObject *Expansion_PyLong_true_divide(ExpansionObject *self,
   return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
+static ExpansionObject *Expansion_Rational_true_divide(ExpansionObject *self,
+                                                       PyObject *other) {
+  if (PyObject_Not(other)) {
+    PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
+    return NULL;
+  }
+  double *other_components;
+  size_t other_size;
+  if (Rational_to_components(other, &other_size, &other_components) < 0)
+    return NULL;
+  size_t result_size;
+  double *result_components;
+  if (divide_components(self->size, self->components, other_size,
+                        other_components, &result_size,
+                        &result_components) < 0) {
+    PyMem_Free(other_components);
+    return NULL;
+  }
+  PyMem_Free(other_components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
 static ExpansionObject *PyLong_Expansion_true_divide(PyObject *self,
                                                      ExpansionObject *other) {
   if (!Expansion_bool(other)) {
@@ -2361,6 +2383,26 @@ static ExpansionObject *PyLong_Expansion_true_divide(PyObject *self,
   double *components;
   size_t size;
   if (PyLong_to_components(self, &size, &components) < 0) return NULL;
+  size_t result_size;
+  double *result_components;
+  if (divide_components(size, components, other->size, other->components,
+                        &result_size, &result_components) < 0) {
+    PyMem_Free(components);
+    return NULL;
+  }
+  PyMem_Free(components);
+  return construct_Expansion(&ExpansionType, result_size, result_components);
+}
+
+static ExpansionObject *Rational_Expansion_true_divide(PyObject *self,
+                                                       ExpansionObject *other) {
+  if (!Expansion_bool(other)) {
+    PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
+    return NULL;
+  }
+  double *components;
+  size_t size;
+  if (Rational_to_components(self, &size, &components) < 0) return NULL;
   size_t result_size;
   double *result_components;
   if (divide_components(size, components, other->size, other->components,
@@ -2423,12 +2465,18 @@ static PyObject *Expansion_true_divide(PyObject *self, PyObject *other) {
     else if (PyLong_Check(other))
       return (PyObject *)Expansion_PyLong_true_divide((ExpansionObject *)self,
                                                       other);
+    else if (PyObject_IsInstance(other, Rational))
+      return (PyObject *)Expansion_Rational_true_divide((ExpansionObject *)self,
+                                                        other);
   } else if (PyFloat_Check(self))
     return (PyObject *)double_Expansion_true_divide(PyFloat_AS_DOUBLE(self),
                                                     (ExpansionObject *)other);
   else if (PyLong_Check(self))
     return (PyObject *)PyLong_Expansion_true_divide(self,
                                                     (ExpansionObject *)other);
+  else if (PyObject_IsInstance(self, Rational))
+    return (PyObject *)Rational_Expansion_true_divide(self,
+                                                      (ExpansionObject *)other);
   Py_RETURN_NOTIMPLEMENTED;
 }
 

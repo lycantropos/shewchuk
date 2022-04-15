@@ -262,9 +262,17 @@ except ImportError:
                      else NotImplemented))
 
         def __rtruediv__(self, other):
-            return (other * Expansion(*_invert_components(self._components))
-                    if isinstance(other, (_Integral, float))
-                    else NotImplemented)
+            return (Expansion(*_divide_components([other], self._components))
+                    if isinstance(other, float)
+                    else
+                    (Expansion(*_divide_components(_int_to_components(other),
+                                                   self._components))
+                     if isinstance(other, int)
+                     else
+                     (Expansion(*_divide_components(
+                             _rational_to_components(other), self._components))
+                      if isinstance(other, _Rational)
+                      else NotImplemented)))
 
         def __sub__(self, other):
             return (Expansion(*_subtract_components(self._components,
@@ -283,9 +291,19 @@ except ImportError:
             return (Expansion(*_divide_components(self._components,
                                                   other._components))
                     if isinstance(other, Expansion)
-                    else (self / Expansion(other)
-                          if isinstance(other, (_Integral, float))
-                          else NotImplemented))
+                    else
+                    (Expansion(*_divide_components(self._components, [other]))
+                     if isinstance(other, float)
+                     else
+                     (Expansion(*_divide_components(self._components,
+                                                    _int_to_components(other)))
+                      if isinstance(other, int)
+                      else
+                      (Expansion(*_divide_components(
+                              self._components,
+                              _rational_to_components(other)))
+                       if isinstance(other, _Rational)
+                       else NotImplemented))))
 
         def __trunc__(self):
             integer = _components_to_integer(self._components)
