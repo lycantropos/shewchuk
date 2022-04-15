@@ -1694,50 +1694,58 @@ static ExpansionObject *Expansion_double_add(ExpansionObject *self,
                  &result_components) < 0)
     return NULL;
   result_size = compress_components(result_size, result_components);
-  if (!result_size) {
-    PyMem_Free(result_components);
-    return NULL;
-  }
   if (!PyMem_Resize(result_components, double, result_size))
     return (ExpansionObject *)PyErr_NoMemory();
   return construct_Expansion(&ExpansionType, result_size, result_components);
 }
 
-static PyObject *Expansion_add(PyObject *self, PyObject *other) {
-  if (PyObject_TypeCheck(self, &ExpansionType)) {
-    if (PyObject_TypeCheck(other, &ExpansionType))
-      return (PyObject *)Expansions_add((ExpansionObject *)self,
-                                        (ExpansionObject *)other);
-    else if (PyFloat_Check(other))
-      return (PyObject *)Expansion_double_add((ExpansionObject *)self,
-                                              PyFloat_AS_DOUBLE(other));
-    else if (PyLong_Check(other)) {
-      double *other_components;
-      size_t other_size;
-      if (PyLong_to_components(other, &other_size, &other_components) < 0)
-        return NULL;
-      ExpansionObject *other_expansion =
-          construct_Expansion(&ExpansionType, other_size, other_components);
-      PyObject *result =
-          (PyObject *)Expansions_add((ExpansionObject *)self, other_expansion);
-      Py_DECREF(other_expansion);
-      return result;
-    }
-  } else if (PyFloat_Check(self))
-    return (PyObject *)Expansion_double_add((ExpansionObject *)other,
-                                            PyFloat_AS_DOUBLE(self));
-  else if (PyLong_Check(self)) {
-    double *components;
-    size_t size;
-    if (PyLong_to_components(self, &size, &components) < 0) return NULL;
-    ExpansionObject *expansion =
-        construct_Expansion(&ExpansionType, size, components);
-    PyObject *result =
-        (PyObject *)Expansions_add(expansion, (ExpansionObject *)other);
-    Py_DECREF(expansion);
-    return result;
+static PyObject *Expansion_PyObject_add(ExpansionObject *self,
+                                        PyObject *other) {
+  if (PyFloat_Check(other))
+    return (PyObject *)Expansion_double_add((ExpansionObject *)self,
+                                            PyFloat_AS_DOUBLE(other));
+  else if (PyLong_Check(other)) {
+    double *other_components;
+    size_t other_size;
+    if (PyLong_to_components(other, &other_size, &other_components) < 0)
+      return NULL;
+    double *result_components;
+    size_t result_size;
+    if (add_components(self->size, self->components, other_size,
+                       other_components, &result_size, &result_components) < 0)
+      return NULL;
+    result_size = compress_components(result_size, result_components);
+    if (!PyMem_Resize(result_components, double, result_size))
+      return PyErr_NoMemory();
+    return (PyObject *)construct_Expansion(&ExpansionType, result_size,
+                                           result_components);
+  } else if (PyObject_IsInstance(other, Rational)) {
+    double *other_components;
+    size_t other_size;
+    if (Rational_to_components(other, &other_size, &other_components) < 0)
+      return NULL;
+    double *result_components;
+    size_t result_size;
+    if (add_components(self->size, self->components, other_size,
+                       other_components, &result_size, &result_components) < 0)
+      return NULL;
+    result_size = compress_components(result_size, result_components);
+    if (!PyMem_Resize(result_components, double, result_size))
+      return PyErr_NoMemory();
+    return (PyObject *)construct_Expansion(&ExpansionType, result_size,
+                                           result_components);
   }
   Py_RETURN_NOTIMPLEMENTED;
+}
+
+static PyObject *Expansion_add(PyObject *self, PyObject *other) {
+  if (PyObject_TypeCheck(self, &ExpansionType))
+    return PyObject_TypeCheck(other, &ExpansionType)
+               ? (PyObject *)Expansions_add((ExpansionObject *)self,
+                                            (ExpansionObject *)other)
+               : Expansion_PyObject_add((ExpansionObject *)self, other);
+  else
+    return Expansion_PyObject_add((ExpansionObject *)other, self);
 }
 
 static int Expansion_bool(ExpansionObject *self) {
@@ -1859,6 +1867,9 @@ static PyObject *Expansion_PyObject_multiply(ExpansionObject *self,
                             other_components, &result_size,
                             &result_components) < 0)
       return NULL;
+    result_size = compress_components(result_size, result_components);
+    if (!PyMem_Resize(result_components, double, result_size))
+      return PyErr_NoMemory();
     return (PyObject *)construct_Expansion(&ExpansionType, result_size,
                                            result_components);
   } else if (PyObject_IsInstance(other, Rational)) {
@@ -1872,6 +1883,9 @@ static PyObject *Expansion_PyObject_multiply(ExpansionObject *self,
                             other_components, &result_size,
                             &result_components) < 0)
       return NULL;
+    result_size = compress_components(result_size, result_components);
+    if (!PyMem_Resize(result_components, double, result_size))
+      return PyErr_NoMemory();
     return (PyObject *)construct_Expansion(&ExpansionType, result_size,
                                            result_components);
   }

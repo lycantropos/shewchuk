@@ -29,7 +29,7 @@ class Expansion:
     def __abs__(self) -> 'Expansion':
         ...
 
-    def __add__(self, other: _Union['Expansion', _Integral, float]
+    def __add__(self, other: _Union['Expansion', _Rational, float]
                 ) -> 'Expansion':
         ...
 
@@ -78,7 +78,7 @@ class Expansion:
     def __pos__(self) -> 'Expansion':
         ...
 
-    def __radd__(self, other: _Union[_Integral, float]) -> 'Expansion':
+    def __radd__(self, other: _Union[_Rational, float]) -> 'Expansion':
         ...
 
     def __rmul__(self, other: _Union[_Rational, float]) -> 'Expansion':

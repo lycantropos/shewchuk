@@ -208,8 +208,12 @@ except ImportError:
                     else
                     (Expansion(*_add_components(self._components,
                                                 _int_to_components(other)))
-                     if isinstance(other, _Integral)
-                     else NotImplemented))
+                     if isinstance(other, int)
+                     else
+                     (Expansion(*_add_components(
+                             self._components, _rational_to_components(other)))
+                      if isinstance(other, _Rational)
+                      else NotImplemented)))
 
         def __repr__(self):
             return (type(self).__qualname__
