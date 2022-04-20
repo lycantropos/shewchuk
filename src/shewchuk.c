@@ -1657,6 +1657,17 @@ typedef struct {
 
 static ExpansionObject *construct_Expansion(PyTypeObject *cls, size_t size,
                                             double *components) {
+  for (size_t index = 0; index < size; ++index)
+    if (!isfinite(components[index])) {
+      PyObject *component = PyFloat_FromDouble(components[index]);
+      if (component) {
+        PyErr_Format(PyExc_ValueError,
+                     "Components should be finite, but found: %R.", component);
+        Py_DECREF(component);
+      }
+      PyMem_Free(components);
+      return NULL;
+    }
   ExpansionObject *result = (ExpansionObject *)(cls->tp_alloc(cls, 0));
   if (result) {
     result->components = components;

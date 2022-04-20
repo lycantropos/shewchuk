@@ -15,6 +15,7 @@ except ImportError:
                            repeat as _repeat)
     from math import (ceil as _ceil,
                       floor as _floor,
+                      isfinite as _isfinite,
                       modf as _modf)
     from numbers import (Rational as _Rational,
                          Real as _Real)
@@ -74,6 +75,16 @@ except ImportError:
                     components = _compress_components(components)
             else:
                 components = [0.]
+            try:
+                invalid_component = next(component
+                                         for component in components
+                                         if not _isfinite(component))
+            except StopIteration:
+                pass
+            else:
+                raise ValueError('Components should be finite, '
+                                 'but found: {!r}.'
+                                 .format(invalid_component))
             self._components = tuple(components)
             return self
 
