@@ -23,7 +23,19 @@ def is_floats_sequence_sum_finite(values: Sequence[float]) -> bool:
 
 finite_floats_sequences = (strategies.lists(finite_floats)
                            .filter(is_floats_sequence_sum_finite))
+floats = strategies.floats(allow_infinity=True,
+                           allow_nan=True)
+
+
+def is_floats_sequence_sum_non_finite(values: Sequence[float]) -> bool:
+    return not math.isfinite(sum(values))
+
+
+non_finite_floats_sequences = (strategies.lists(floats)
+                               .filter(is_floats_sequence_sum_non_finite))
 expansions = strategies.builds(pack(Expansion), finite_floats_sequences)
+invalid_components = strategies.lists(rationals | expansions,
+                                      min_size=2)
 non_zero_expansions = expansions.filter(bool)
 non_zero_reals = reals.filter(bool)
 non_zero_reals_or_expansions = non_zero_reals | non_zero_expansions

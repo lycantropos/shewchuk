@@ -1,6 +1,8 @@
 from numbers import Rational
-from typing import Sequence
+from typing import (Any,
+                    Sequence)
 
+import pytest
 from hypothesis import given
 
 from shewchuk import Expansion
@@ -46,3 +48,15 @@ def test_determinism(components: Sequence[float]) -> None:
     result = Expansion(*components)
 
     assert result == Expansion(*components)
+
+
+@given(strategies.invalid_components)
+def test_invalid_components_types(components: Sequence[Any]) -> None:
+    with pytest.raises(TypeError):
+        Expansion(*components)
+
+
+@given(strategies.non_finite_floats_sequences)
+def test_invalid_components_values(components: Sequence[float]) -> None:
+    with pytest.raises(ValueError):
+        Expansion(*components)
