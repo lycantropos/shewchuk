@@ -1,4 +1,5 @@
 import math
+
 from hypothesis import given
 
 from shewchuk import Expansion

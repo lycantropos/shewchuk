@@ -1,6 +1,5 @@
-from fractions import Fraction
-
 import math
+from fractions import Fraction
 from typing import Sequence
 
 from hypothesis import strategies
