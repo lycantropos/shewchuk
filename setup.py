@@ -42,8 +42,11 @@ if platform.python_implementation() == 'CPython':
 
     from setuptools import Extension
 
-    parameters.update(ext_modules=[Extension(shewchuk.__name__ + '._'
-                                             + shewchuk.__name__,
-                                             glob('src/*.c'))],
-                      zip_safe=False)
+    parameters.update(
+            ext_modules=[
+                Extension(f'{shewchuk.__name__}._c{shewchuk.__name__}',
+                          glob('src/*.c'))
+            ],
+            zip_safe=False
+    )
 setup(**parameters)
