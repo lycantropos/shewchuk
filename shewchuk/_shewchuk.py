@@ -41,12 +41,19 @@ class Expansion:
         self = super().__new__(cls)
         components: _t.Sequence[float]
         if args:
-            if (not isinstance(_argument, float)
-                    or any(argument
-                           for argument in args
-                           if not isinstance(argument, float))):
+            try:
+                invalid_component = (
+                    _argument
+                    if not isinstance(_argument, float)
+                    else next(argument
+                              for argument in args
+                              if not isinstance(argument, float))
+                )
+            except StopIteration:
+                pass
+            else:
                 raise TypeError(f'Components should be of type {float!r}, '
-                                'but found: {actual!r}.')
+                                f'but found: {type(invalid_component)!r}.')
             components = [_argument, *args]
             if _compress:
                 components = _compress_components(components)
