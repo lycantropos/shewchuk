@@ -1,10 +1,14 @@
+import sys
+
 from hypothesis import strategies
 
 from tests.utils import MAX_VALUE
 
-finite_floats = strategies.floats(-float(MAX_VALUE), float(MAX_VALUE),
-                                  allow_infinity=False,
-                                  allow_nan=False)
+MIN_POSITIVE_FLOAT = sys.float_info.min * float(MAX_VALUE)
+assert MIN_POSITIVE_FLOAT < 1.0, MIN_POSITIVE_FLOAT
+finite_floats = (strategies.floats(-float(MAX_VALUE), -MIN_POSITIVE_FLOAT)
+                 | strategies.just(0.0)
+                 | strategies.floats(MIN_POSITIVE_FLOAT, float(MAX_VALUE)))
 floats_quadruplets = strategies.lists(finite_floats,
                                       min_size=4,
                                       max_size=4)
