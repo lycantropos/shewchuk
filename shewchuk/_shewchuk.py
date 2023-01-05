@@ -1024,13 +1024,14 @@ def _two_two_add(left_tail: float,
     return third_tail, second_tail, first_tail, head
 
 
-def _two_two_subtract(left_tail: float,
-                      left_head: float,
-                      right_tail: float,
-                      right_head: float) -> _t.Tuple[
-    float, float, float, float]:
-    third_tail, mid_tail, mid_head = _two_one_subtract(
-            left_tail, left_head, right_tail)
+def _two_two_subtract(
+        left_tail: float,
+        left_head: float,
+        right_tail: float,
+        right_head: float
+) -> _t.Tuple[float, float, float, float]:
+    third_tail, mid_tail, mid_head = _two_one_subtract(left_tail, left_head,
+                                                       right_tail)
     second_tail, first_tail, head = _two_one_subtract(mid_tail, mid_head,
                                                       right_head)
     return third_tail, second_tail, first_tail, head
@@ -1040,14 +1041,12 @@ def _cross_product(first_dx: float,
                    first_dy: float,
                    second_dx: float,
                    second_dy: float) -> _t.Tuple[float, float, float, float]:
-    first_dx_second_dy_tail, first_dx_second_dy_head = _two_multiply(
-            first_dx, second_dy)
-    second_dx_first_dy_tail, second_dx_first_dy_head = _two_multiply(
-            second_dx, first_dy)
-    return _two_two_subtract(first_dx_second_dy_tail,
-                             first_dx_second_dy_head,
-                             second_dx_first_dy_tail,
-                             second_dx_first_dy_head)
+    first_dx_second_dy_tail, first_dx_second_dy_head = _two_multiply(first_dx,
+                                                                     second_dy)
+    second_dx_first_dy_tail, second_dx_first_dy_head = _two_multiply(second_dx,
+                                                                     first_dy)
+    return _two_two_subtract(first_dx_second_dy_tail, first_dx_second_dy_head,
+                             second_dx_first_dy_tail, second_dx_first_dy_head)
 
 
 def _scale_by_squared_length(components: _t.Sequence[float],
@@ -1302,7 +1301,8 @@ def _adaptive_incircle_determinant_estimation(
     result = sum(first_buffer)
     first_upper_bound_coefficient = (4. + 48. * _EPSILON) * _EPSILON
     threshold = first_upper_bound_coefficient * upper_bound
-    if (result >= threshold) or (-result >= threshold): return result
+    if (result >= threshold) or (-result >= threshold):
+        return result
     first_dx_tail = _two_subtract_tail(first_x, point_x, first_dx)
     first_dy_tail = _two_subtract_tail(first_y, point_y, first_dy)
     second_dx_tail = _two_subtract_tail(second_x, point_x, second_dx)
@@ -1351,22 +1351,19 @@ def _adaptive_incircle_determinant_estimation(
                             if (first_dx_tail or first_dy_tail
                                 or second_dx_tail or second_dy_tail)
                             else (0, 0, 0, 0))
-    final_components = _add_extras(first_buffer, first_dx, first_dx_tail,
-                                   first_dy, first_dy_tail, second_dx,
-                                   second_dx_tail, second_dy,
-                                   second_dy_tail, third_dx, third_dx_tail,
-                                   third_dy, third_dy_tail,
-                                   second_third_cross_product,
-                                   second_squared_length,
-                                   third_squared_length)
-    final_components = _add_extras(final_components, second_dx,
-                                   second_dx_tail, second_dy,
-                                   second_dy_tail, third_dx, third_dx_tail,
-                                   third_dy, third_dy_tail, first_dx,
-                                   first_dx_tail, first_dy, first_dy_tail,
-                                   third_first_cross_product,
-                                   third_squared_length,
-                                   first_squared_length)
+    final_components = _add_extras(
+            first_buffer, first_dx, first_dx_tail, first_dy, first_dy_tail,
+            second_dx, second_dx_tail, second_dy, second_dy_tail, third_dx,
+            third_dx_tail, third_dy, third_dy_tail, second_third_cross_product,
+            second_squared_length, third_squared_length
+    )
+    final_components = _add_extras(
+            final_components, second_dx, second_dx_tail, second_dy,
+            second_dy_tail, third_dx, third_dx_tail, third_dy, third_dy_tail,
+            first_dx, first_dx_tail, first_dy, first_dy_tail,
+            third_first_cross_product, third_squared_length,
+            first_squared_length
+    )
     final_components = _add_extras(
             final_components, third_dx, third_dx_tail, third_dy, third_dy_tail,
             first_dx, first_dx_tail, first_dy, first_dy_tail, second_dx,
@@ -1416,12 +1413,14 @@ def _incircle_determinant_estimation(
                    + (abs(first_dx_second_dy) + abs(second_dx_first_dy))
                    * third_squared_distance)
     threshold = upper_bound_coefficient * upper_bound
-    return (result
-            if (result > threshold) or (-result > threshold)
-            else
-            _adaptive_incircle_determinant_estimation(
-                    point_x, point_y, first_x, first_y, second_x, second_y,
-                    third_x, third_y, upper_bound))
+    return (
+        result
+        if (result > threshold) or (-result > threshold)
+        else _adaptive_incircle_determinant_estimation(
+                point_x, point_y, first_x, first_y, second_x, second_y,
+                third_x, third_y, upper_bound
+        )
+    )
 
 
 def _vectors_cross_product_estimation(
