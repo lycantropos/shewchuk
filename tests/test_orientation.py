@@ -10,8 +10,9 @@ from . import strategies
 
 
 @given(strategies.floats_sextuplets)
-def test_basic(sextuplet: Tuple[float, float, float, float, float, float]
-               ) -> None:
+def test_basic(
+        sextuplet: Tuple[float, float, float, float, float, float]
+) -> None:
     start_x, start_y, end_x, end_y, point_x, point_y = sextuplet
 
     result = orientation(start_x, start_y, end_x, end_y, point_x, point_y)
@@ -29,8 +30,9 @@ def test_endpoints(quadruplet: Tuple[float, float, float, float]) -> None:
 
 
 @given(strategies.floats_sextuplets)
-def test_endpoints_permutation(sextuplet: Tuple[float, float, float, float,
-                                                float, float]) -> None:
+def test_endpoints_permutation(
+        sextuplet: Tuple[float, float, float, float, float, float]
+) -> None:
     start_x, start_y, end_x, end_y, point_x, point_y = sextuplet
 
     result = orientation(start_x, start_y, end_x, end_y, point_x, point_y)
@@ -40,8 +42,9 @@ def test_endpoints_permutation(sextuplet: Tuple[float, float, float, float,
 
 
 @given(strategies.floats_sextuplets)
-def test_alternatives(sextuplet: Tuple[float, float, float, float, float,
-                                       float]) -> None:
+def test_alternatives(
+        sextuplet: Tuple[float, float, float, float, float, float]
+) -> None:
     start_x, start_y, end_x, end_y, point_x, point_y = sextuplet
 
     result = orientation(start_x, start_y, end_x, end_y, point_x, point_y)
