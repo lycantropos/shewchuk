@@ -64,7 +64,7 @@ jobs:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.platform.python_architecture }}
       - name: 'Install packaging tools'
-        run: python -m pip install -U pip setuptools
+        run: python -m pip install -U pip setuptools wheel
       - name: 'Install coverage dependencies'
         run: python -m pip install -U coverage
       - name: 'Install С++ coverage dependencies'
