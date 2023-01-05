@@ -1344,18 +1344,18 @@ double adaptive_incircle_determinant_estimation(double point_x, double point_y,
              2.0 * (third_dx * third_dx_tail + third_dy * third_dy_tail) *
                  (first_dx * second_dy - first_dy * second_dx));
   if ((result >= threshold) || (-result >= threshold)) return result;
-  double first_squared_length[4];
+  double first_squared_length[4] = {0};
   if (!!second_dx_tail || !!second_dy_tail || !!third_dx_tail ||
       !!third_dy_tail)
     squared_length(first_dx, first_dy, &first_squared_length[3],
                    &first_squared_length[2], &first_squared_length[1],
                    &first_squared_length[0]);
-  double second_squared_length[4];
+  double second_squared_length[4] = {0};
   if (!!third_dx_tail || !!third_dy_tail || !!first_dx_tail || !!first_dy_tail)
     squared_length(second_dx, second_dy, &second_squared_length[3],
                    &second_squared_length[2], &second_squared_length[1],
                    &second_squared_length[0]);
-  double third_squared_length[4];
+  double third_squared_length[4] = {0};
   if (!!first_dx_tail || !!first_dy_tail || !!second_dx_tail ||
       !!second_dy_tail)
     squared_length(third_dx, third_dy, &third_squared_length[3],
