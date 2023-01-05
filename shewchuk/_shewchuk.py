@@ -1377,17 +1377,17 @@ def _adaptive_incircle_determinant_estimation(
     return final_components[-1]
 
 
-def _incircle_determinant_estimation(point_x: float,
-                                     point_y: float,
-                                     first_x: float,
-                                     first_y: float,
-                                     second_x: float,
-                                     second_y: float,
-                                     third_x: float,
-                                     third_y: float,
-                                     upper_bound_coefficient: float
-                                     = (10. + 96. * _EPSILON) * _EPSILON
-                                     ) -> float:
+def _incircle_determinant_estimation(
+        point_x: float,
+        point_y: float,
+        first_x: float,
+        first_y: float,
+        second_x: float,
+        second_y: float,
+        third_x: float,
+        third_y: float,
+        upper_bound_coefficient: float = (10. + 96. * _EPSILON) * _EPSILON
+) -> float:
     first_dx = first_x - point_x
     second_dx = second_x - point_x
     third_dx = third_x - point_x
@@ -1424,17 +1424,17 @@ def _incircle_determinant_estimation(point_x: float,
                     third_x, third_y, upper_bound))
 
 
-def _vectors_cross_product_estimation(first_start_x: float,
-                                      first_start_y: float,
-                                      first_end_x: float,
-                                      first_end_y: float,
-                                      second_start_x: float,
-                                      second_start_y: float,
-                                      second_end_x: float,
-                                      second_end_y: float,
-                                      upper_bound_coefficient: float
-                                      = (3. + 16. * _EPSILON) * _EPSILON
-                                      ) -> float:
+def _vectors_cross_product_estimation(
+        first_start_x: float,
+        first_start_y: float,
+        first_end_x: float,
+        first_end_y: float,
+        second_start_x: float,
+        second_start_y: float,
+        second_end_x: float,
+        second_end_y: float,
+        upper_bound_coefficient: float = (3. + 16. * _EPSILON) * _EPSILON
+) -> float:
     minuend = ((first_end_x - first_start_x)
                * (second_end_y - second_start_y))
     subtrahend = ((first_end_y - first_start_y)
