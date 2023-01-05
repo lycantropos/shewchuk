@@ -524,14 +524,21 @@ def _int_to_components(value: int) -> _t.List[float]:
 
 
 def _invert_components(components: _t.Sequence[float]) -> _t.Sequence[float]:
-    result: _t.Sequence[float] = [1. / components[-1]]
+    # based on Newton's method
+    # https://en.wikipedia.org/wiki/Newton%27s_method
+    # for f(x) = 1 / x
+    first_approximation = 1. / components[-1]
+    _, high = _split(first_approximation)
+    if not _isfinite(high):
+        raise OverflowError(f'Components {components} '
+                            'are not finitely invertible.')
+    result: _t.Sequence[float] = [first_approximation]
     negated_components = _negate_components(components)
     for _ in _repeat(None, 6 + _ceil_log2(len(components))):
         result = _multiply_components(
-                result,
-                _add_float(_multiply_components(result,
-                                                negated_components),
-                           2.)
+                _add_float(_multiply_components(result, negated_components),
+                           2.),
+                result
         )
     return result
 

@@ -624,12 +624,34 @@ static int subtract_components(size_t minuend_size, double *minuend,
 
 static int invert_components(const size_t size, double *const components,
                              size_t *result_size, double **result_components) {
+  double first_approximation = 1.0 / components[size - 1];
+  double first_approximation_high, first_approximation_low;
+  split(first_approximation, &first_approximation_high,
+        &first_approximation_low);
+  if (!isfinite(first_approximation_high)) {
+    PyObject *components_object = PyList_New(size);
+    if (!components_object) return -1;
+    for (size_t index = 0; index < size; ++index) {
+      PyObject *component_object = PyFloat_FromDouble(components[index]);
+      if (!component_object) {
+        Py_DECREF(components_object);
+        return -1;
+      }
+      PyList_SET_ITEM(components_object, index, component_object);
+    }
+    PyErr_Format(PyExc_OverflowError,
+                 "Components %R are not finitely invertible.",
+                 components_object);
+    Py_DECREF(components_object);
+    return -1;
+  }
   size_t iterations_count = 6 + ceil_log2(size);
-  size_t max_result_size = 2 * size * iterations_count * (iterations_count + 1);
+  size_t max_result_size = (iterations_count - 1) * iterations_count *
+                           (1 + 2 * size * (2 * iterations_count - 1) / 3);
   double *step_components =
       (double *)PyMem_Malloc(max_result_size * sizeof(double));
   if (!step_components) return -1;
-  step_components[0] = 1.0 / components[size - 1];
+  step_components[0] = first_approximation;
   size_t step_size = 1;
   double *negated_components = (double *)PyMem_Malloc(size * sizeof(double));
   if (!negated_components) {
@@ -665,10 +687,10 @@ static int invert_components(const size_t size, double *const components,
     }
     size_t other_tmp_size = add_double_in_place(tmp_size, tmp_components, 2.0,
                                                 other_tmp_components);
+    step_size = multiply_components_in_place(other_tmp_size,
+                                             other_tmp_components, step_size,
+                                             step_components, tmp_components);
     swap(&step_components, &tmp_components);
-    step_size =
-        multiply_components_in_place(step_size, tmp_components, other_tmp_size,
-                                     other_tmp_components, step_components);
     if (step_size == 0) {
       PyMem_Free(other_tmp_components);
       PyMem_Free(tmp_components);
