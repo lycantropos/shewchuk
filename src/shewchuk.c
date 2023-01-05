@@ -1556,11 +1556,8 @@ size_t adaptive_vectors_cross_product_impl(
       (2.0 + 12.0 * EPSILON) * EPSILON;
   double threshold = first_upper_bound_coefficient * upper_bound;
   if ((estimation >= threshold) || (-estimation >= threshold)) {
-    size_t offset = 0, result_size = 4;
-    for (; offset < result_size - 1 && !first_components[offset]; ++offset)
-      ;
-    result_size -= offset;
-    copy_components(&first_components[offset], result_size, result);
+    size_t result_size = compress_components_single(4, first_components);
+    copy_components(first_components, result_size, result);
     return result_size;
   }
   double minuend_x_tail =
@@ -1573,11 +1570,8 @@ size_t adaptive_vectors_cross_product_impl(
       two_subtract_tail(second_end_y, second_start_y, subtrahend_y);
   if (!minuend_x_tail && !minuend_y_tail && !subtrahend_x_tail &&
       !subtrahend_y_tail) {
-    size_t offset = 0, result_size = 4;
-    for (; offset < result_size - 1 && !first_components[offset]; ++offset)
-      ;
-    result_size -= offset;
-    copy_components(&first_components[offset], result_size, result);
+    size_t result_size = compress_components_single(4, first_components);
+    copy_components(first_components, result_size, result);
     return result_size;
   }
   static const double second_upper_bound_coefficient =

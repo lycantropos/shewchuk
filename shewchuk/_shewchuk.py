@@ -1605,7 +1605,7 @@ def _adaptive_vectors_cross_product(first_start_x: float,
     estimation = sum(first_components)
     threshold = first_upper_bound_coefficient * upper_bound
     if (estimation >= threshold) or (-estimation >= threshold):
-        return list(_dropwhile(_not, first_components))
+        return _compress_components_single(first_components)
     minuend_x_tail = _two_subtract_tail(first_end_x, first_start_x,
                                         minuend_x)
     subtrahend_x_tail = _two_subtract_tail(second_end_x, second_start_x,
@@ -1616,7 +1616,7 @@ def _adaptive_vectors_cross_product(first_start_x: float,
                                            subtrahend_y)
     if (not minuend_x_tail and not minuend_y_tail and not subtrahend_x_tail
             and not subtrahend_y_tail):
-        return list(_dropwhile(_not, first_components))
+        return _compress_components_single(first_components)
     threshold = (second_upper_bound_coefficient * upper_bound
                  + estimation_coefficient * abs(estimation))
     extra = ((minuend_x * subtrahend_y_tail
