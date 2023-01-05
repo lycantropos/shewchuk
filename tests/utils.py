@@ -61,10 +61,10 @@ def exact_kind(vertex_x: float,
                first_ray_point_y: float,
                second_ray_point_x: float,
                second_ray_point_y: float) -> int:
-    return to_sign((Fraction(first_ray_point_x) - Fraction(vertex_x))
-                   * (Fraction(second_ray_point_x) - Fraction(vertex_x))
-                   + (Fraction(first_ray_point_y) - Fraction(vertex_y))
-                   * (Fraction(second_ray_point_y) - Fraction(vertex_y)))
+    return to_sign(((Fraction(first_ray_point_x) - Fraction(vertex_x))
+                    * (Fraction(second_ray_point_x) - Fraction(vertex_x)))
+                   + ((Fraction(first_ray_point_y) - Fraction(vertex_y))
+                      * (Fraction(second_ray_point_y) - Fraction(vertex_y))))
 
 
 def exact_orientation(start_x: float,
