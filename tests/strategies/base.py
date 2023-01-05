@@ -7,9 +7,10 @@ from tests.utils import MAX_VALUE
 
 def to_min_positive_float() -> float:
     result = 0.5
-    while result * result * result != 0.0 and result > sys.float_info.min:
+    while (result * result * result / 16. != 0.0
+           and result > sys.float_info.min):
         result /= 2.
-    return result * 2.
+    return result
 
 
 MIN_POSITIVE_FLOAT = to_min_positive_float()
