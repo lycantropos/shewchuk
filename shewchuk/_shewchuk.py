@@ -54,6 +54,7 @@ class Expansion:
             else:
                 raise TypeError(f'Components should be of type {float!r}, '
                                 f'but found: {type(invalid_component)!r}.')
+            assert isinstance(_argument, float), _argument
             components = [_argument, *args]
             if _compress:
                 components = _compress_components(components)
