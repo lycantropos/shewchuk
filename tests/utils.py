@@ -47,12 +47,12 @@ def exact_incircle_test(point_x: float,
                             Fraction(second_y) - exact_point_y)
     third_dx, third_dy = (Fraction(third_x) - exact_point_x,
                           Fraction(third_y) - exact_point_y)
-    return to_sign((first_dx * first_dx + first_dy * first_dy)
-                   * (second_dx * third_dy - second_dy * third_dx)
-                   - (second_dx * second_dx + second_dy * second_dy)
-                   * (first_dx * third_dy - first_dy * third_dx)
-                   + (third_dx * third_dx + third_dy * third_dy)
-                   * (first_dx * second_dy - first_dy * second_dx))
+    return to_sign(((first_dx * first_dx + first_dy * first_dy)
+                    * (second_dx * third_dy - second_dy * third_dx))
+                   - ((second_dx * second_dx + second_dy * second_dy)
+                      * (first_dx * third_dy - first_dy * third_dx))
+                   + ((third_dx * third_dx + third_dy * third_dy)
+                      * (first_dx * second_dy - first_dy * second_dx)))
 
 
 def exact_kind(vertex_x: float,
