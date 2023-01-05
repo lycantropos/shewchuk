@@ -1,6 +1,7 @@
 import math
 from fractions import Fraction
-from typing import Sequence
+from typing import (Sequence,
+                    Tuple)
 
 from hypothesis import strategies
 
@@ -26,12 +27,34 @@ floats = strategies.floats(allow_infinity=True,
                            allow_nan=True)
 
 
-def is_floats_sequence_sum_non_finite(values: Sequence[float]) -> bool:
-    return not math.isfinite(sum(values))
+def is_invalid_floats_sequence(values: Sequence[float]) -> bool:
+    return (not math.isfinite(sum(values))
+            and not (all(math.isfinite(value) for value in values)
+                     and _are_non_overlapping(values)))
 
 
-non_finite_floats_sequences = (strategies.lists(floats)
-                               .filter(is_floats_sequence_sum_non_finite))
+def _are_non_overlapping(values: Sequence[float]) -> bool:
+    return all(_do_not_overlap(value, values[next_value_index])
+               for index, value in enumerate(values)
+               for next_value_index in range(index + 1, len(values)))
+
+
+def _do_not_overlap(first: float, second: float) -> bool:
+    return _two_add(first, second) == (min(first, second), max(first, second))
+
+
+def _two_add(left: float, right: float) -> Tuple[float, float]:
+    head = left + right
+    right_virtual = head - left
+    left_virtual = head - right_virtual
+    right_tail = right - right_virtual
+    left_tail = left - left_virtual
+    tail = left_tail + right_tail
+    return tail, head
+
+
+invalid_floats_sequences = (strategies.lists(floats)
+                            .filter(is_invalid_floats_sequence))
 expansions = strategies.builds(pack(Expansion), finite_floats_sequences)
 invalid_components = strategies.lists(rationals | expansions,
                                       min_size=2)

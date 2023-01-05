@@ -56,7 +56,7 @@ def test_invalid_components_types(components: Sequence[Any]) -> None:
         Expansion(*components)
 
 
-@given(strategies.non_finite_floats_sequences)
+@given(strategies.invalid_floats_sequences)
 def test_invalid_components_values(components: Sequence[float]) -> None:
     with pytest.raises(ValueError):
         Expansion(*components)
