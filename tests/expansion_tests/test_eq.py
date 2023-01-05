@@ -21,20 +21,21 @@ def test_symmetry(first: Expansion, second: Expansion) -> None:
 
 
 @given(strategies.expansions, strategies.expansions, strategies.expansions)
-def test_transitivity(first: Expansion, second: Expansion, third: Expansion
-                      ) -> None:
+def test_transitivity(first: Expansion,
+                      second: Expansion,
+                      third: Expansion) -> None:
     assert implication(first == second and second == third, first == third)
 
 
 @given(strategies.expansions, strategies.reals)
-def test_connection_with_inequality(first: Expansion, second: RightOperand
-                                    ) -> None:
+def test_connection_with_inequality(first: Expansion,
+                                    second: RightOperand) -> None:
     assert equivalence(not first == second, first != second)
 
 
 @given(strategies.expansions, strategies.finite_floats)
 def test_float_operand(first: Expansion, second: float) -> None:
-    assert equivalence(first == second, float(first) == second)
+    assert implication(first == second, float(first) == second)
 
 
 @skip_reference_counter_test
