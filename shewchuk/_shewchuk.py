@@ -725,8 +725,7 @@ def _add_components(left: _t.Sequence[float],
         right_index += 1
     result = []
     if (left_index < left_length) and (right_index < right_length):
-        left_component, right_component = (left[left_index],
-                                           right[right_index])
+        left_component, right_component = left[left_index], right[right_index]
         if ((right_component > left_component)
                 is (right_component > -left_component)):
             tail, accumulator = _fast_two_add(left_component, accumulator)
@@ -831,15 +830,13 @@ def _scale_components(components: _t.Sequence[float],
     components_iterator = iter(components)
     scalar_low, scalar_high = _split(scalar)
     tail, accumulator = _two_multiply_presplit(next(components_iterator),
-                                               scalar, scalar_low,
-                                               scalar_high)
+                                               scalar, scalar_low, scalar_high)
     result = []
     if tail:
         result.append(tail)
     for component in components_iterator:
         product_tail, product = _two_multiply_presplit(component, scalar,
-                                                       scalar_low,
-                                                       scalar_high)
+                                                       scalar_low, scalar_high)
         tail, interim = _two_add(accumulator, product_tail)
         if tail:
             result.append(tail)
@@ -851,11 +848,11 @@ def _scale_components(components: _t.Sequence[float],
     return result
 
 
-def _split(value: float,
-           *,
-           splitter: float
-           = float(1 + (1 << ((_float_info.mant_dig + 1) // 2)))
-           ) -> _t.Tuple[float, float]:
+def _split(
+        value: float,
+        *,
+        splitter: float = float(1 + (1 << ((_float_info.mant_dig + 1) // 2)))
+) -> _t.Tuple[float, float]:
     base = splitter * value
     high = base - (base - value)
     low = value - high
