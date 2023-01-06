@@ -294,7 +294,7 @@ static size_t compress_components_single(size_t size, double *components) {
   return top;
 }
 
-static void copy_components(double *source, size_t size, double *destination) {
+static void copy_components(size_t size, double *source, double *destination) {
   for (size_t index = 0; index < size; ++index)
     destination[index] = source[index];
 }
@@ -306,13 +306,13 @@ static size_t compress_components(size_t size, double *components) {
     PyErr_NoMemory();
     return 0;
   }
-  copy_components(components, size, next_components);
+  copy_components(size, components, next_components);
   for (size_t step = 0; step < original_size; ++step) {
     const size_t next_size = compress_components_single(size, next_components);
     if (are_components_equal(next_size, next_components, size, components))
       break;
     size = next_size;
-    copy_components(next_components, size, components);
+    copy_components(size, next_components, components);
   }
   PyMem_Free(next_components);
   return size;
@@ -517,7 +517,7 @@ static size_t multiply_components_in_place(size_t left_size, double *left,
   for (size_t index = 1; index < right_size; ++index) {
     size_t step_size =
         scale_components_in_place(left_size, left, right[index], step);
-    copy_components(result, result_size, next_components);
+    copy_components(result_size, result, next_components);
     result_size = add_components_in_place(result_size, next_components,
                                           step_size, step, result);
   }
@@ -1557,7 +1557,7 @@ size_t adaptive_vectors_cross_product_impl(
   double threshold = first_upper_bound_coefficient * upper_bound;
   if ((estimation >= threshold) || (-estimation >= threshold)) {
     size_t result_size = compress_components_single(4, first_components);
-    copy_components(first_components, result_size, result);
+    copy_components(result_size, first_components, result);
     return result_size;
   }
   double minuend_x_tail =
@@ -1571,7 +1571,7 @@ size_t adaptive_vectors_cross_product_impl(
   if (!minuend_x_tail && !minuend_y_tail && !subtrahend_x_tail &&
       !subtrahend_y_tail) {
     size_t result_size = compress_components_single(4, first_components);
-    copy_components(first_components, result_size, result);
+    copy_components(result_size, first_components, result);
     return result_size;
   }
   static const double second_upper_bound_coefficient =
@@ -1959,7 +1959,7 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
       components =
           (double *)PyMem_Malloc(expansion_argument->size * sizeof(double));
       if (!components) return NULL;
-      copy_components(expansion_argument->components, expansion_argument->size,
+      copy_components(expansion_argument->size, expansion_argument->components,
                       components);
       size = expansion_argument->size;
     } else if (PyFloat_Check(argument)) {
@@ -2720,7 +2720,7 @@ static PyObject *vectors_cross_product(PyObject *Py_UNUSED(self),
   double *result_components =
       (double *)PyMem_Malloc(result_size * sizeof(double));
   if (!result_components) return PyErr_NoMemory();
-  copy_components(components, result_size, result_components);
+  copy_components(result_size, components, result_components);
   return (PyObject *)construct_Expansion(&ExpansionType, result_size,
                                          result_components);
 }
@@ -2740,7 +2740,7 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
   double *result_components =
       (double *)PyMem_Malloc(result_size * sizeof(double));
   if (!result_components) return PyErr_NoMemory();
-  copy_components(components, result_size, result_components);
+  copy_components(result_size, components, result_components);
   return (PyObject *)construct_Expansion(&ExpansionType, result_size,
                                          result_components);
 }
