@@ -1,3 +1,4 @@
+import pickle
 import platform
 from fractions import Fraction
 from functools import partial
@@ -90,6 +91,10 @@ def is_expansion_valid(expansion: Expansion) -> bool:
 def pack(function: Callable[..., Range]
          ) -> Callable[[Iterable[Domain]], Range]:
     return partial(apply, function)
+
+
+def pickle_round_trip(value: Any) -> Any:
+    return pickle.loads(pickle.dumps(value))
 
 
 skip_reference_counter_test = pytest.mark.skipif(
