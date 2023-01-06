@@ -1834,10 +1834,10 @@ static PyObject *Expansion_floor(ExpansionObject *self,
 
 static PyObject *Expansion_getnewargs(ExpansionObject *self,
                                       PyObject *Py_UNUSED(args)) {
-  PyObject *result = PyTuple_New(size);
+  PyObject *result = PyTuple_New(self->size);
   if (!result) return NULL;
-  for (size_t index = 0; index < size; ++index) {
-    PyObject *component = PyFloat_FromDouble(components[index]);
+  for (size_t index = 0; index < self->size; ++index) {
+    PyObject *component = PyFloat_FromDouble(self->components[index]);
     if (!component) {
       Py_DECREF(component);
       return NULL;
