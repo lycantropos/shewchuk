@@ -716,8 +716,8 @@ static int invert_components(const size_t size, double *const components,
 static int divide_components(size_t dividend_size, double *dividend,
                              size_t divisor_size, double *divisor,
                              size_t *result_size, double **result) {
-  double *divisor_reciprocal;
-  size_t divisor_reciprocal_size;
+  double *divisor_reciprocal = NULL;
+  size_t divisor_reciprocal_size = 0;
   if (invert_components(divisor_size, divisor, &divisor_reciprocal_size,
                         &divisor_reciprocal) < 0)
     return -1;
@@ -1024,7 +1024,7 @@ static size_t add_extras(
   double first_buffer_32[32], second_buffer_32[32], buffer_48[48];
   size_t first_buffer_16_limit, second_buffer_16_limit, third_buffer_16_limit;
   size_t first_buffer_32_limit, second_buffer_32_limit, buffer_48_limit;
-  size_t first_dx_tail_second_third_cross_product_size;
+  size_t first_dx_tail_second_third_cross_product_size = 0;
   double first_dx_tail_second_third_cross_product[8];
   if (!!first_dx_tail) {
     first_dx_tail_second_third_cross_product_size =
@@ -1059,7 +1059,7 @@ static size_t add_extras(
                                 buffer_48, *accumulated_components);
     swap(final_components, accumulated_components);
   }
-  size_t first_dy_tail_second_third_cross_product_size;
+  size_t first_dy_tail_second_third_cross_product_size = 0;
   double first_dy_tail_second_third_cross_product[8];
   if (!!first_dy_tail) {
     first_dy_tail_second_third_cross_product_size =
@@ -2391,7 +2391,7 @@ static ExpansionObject *Rational_Expansion_subtract(PyObject *self,
 static ExpansionObject *Expansion_double_subtract(ExpansionObject *self,
                                                   double other) {
   double *result_components;
-  size_t result_size;
+  size_t result_size = 0;
   if (subtract_double(self->size, self->components, other, &result_size,
                       &result_components) < 0)
     return NULL;
