@@ -690,7 +690,6 @@ static int invert_components(const size_t size, double *const components,
     step_size = multiply_components_in_place(other_tmp_size,
                                              other_tmp_components, step_size,
                                              step_components, tmp_components);
-    swap(&step_components, &tmp_components);
     if (step_size == 0) {
       PyMem_Free(other_tmp_components);
       PyMem_Free(tmp_components);
@@ -698,6 +697,7 @@ static int invert_components(const size_t size, double *const components,
       PyMem_Free(step_components);
       return -1;
     }
+    swap(&step_components, &tmp_components);
   }
   PyMem_Free(other_tmp_components);
   PyMem_Free(tmp_components);
