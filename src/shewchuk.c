@@ -1623,7 +1623,7 @@ size_t adaptive_vectors_cross_product_impl(
                                  extra_components, result);
 }
 
-double vectors_cross_product_impl(double first_start_x, double first_start_y,
+size_t vectors_cross_product_impl(double first_start_x, double first_start_y,
                                   double first_end_x, double first_end_y,
                                   double second_start_x, double second_start_y,
                                   double second_end_x, double second_end_y,
