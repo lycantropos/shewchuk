@@ -2,15 +2,19 @@ import sys
 
 from hypothesis import strategies
 
-from tests.utils import MAX_VALUE
+from shewchuk import incircle_test
+from tests.utils import (MAX_VALUE,
+                         exact_incircle_test)
 
 
 def to_min_positive_float() -> float:
     result = 0.5
-    while (result * result * result / 16. != 0.0
-           and result > sys.float_info.min):
+    while (incircle_test(0., 0., result, 0., 0., result, -result, -result)
+           == exact_incircle_test(0., 0., result, 0., 0., result, -result,
+                                  -result)):
         result /= 2.
-    return result
+        assert result > sys.float_info.min, result
+    return result * 2.
 
 
 MIN_POSITIVE_FLOAT = to_min_positive_float()
