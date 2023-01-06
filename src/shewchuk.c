@@ -1832,6 +1832,21 @@ static PyObject *Expansion_floor(ExpansionObject *self,
   return result;
 }
 
+static PyObject *Expansion_getnewargs(ExpansionObject *self,
+                                      PyObject *Py_UNUSED(args)) {
+  PyObject *result = PyTuple_New(size);
+  if (!result) return NULL;
+  for (size_t index = 0; index < size; ++index) {
+    PyObject *component = PyFloat_FromDouble(components[index]);
+    if (!component) {
+      Py_DECREF(component);
+      return NULL;
+    }
+    PyTuple_SET_ITEM(result, index, component);
+  }
+  return result;
+}
+
 static Py_hash_t Expansion_hash(ExpansionObject *self) {
   PyObject *components = PyTuple_New(self->size);
   if (!components) return -1;
@@ -2636,6 +2651,7 @@ static PyGetSetDef Expansion_getset[] = {
 static PyMethodDef Expansion_methods[] = {
     {"__ceil__", (PyCFunction)Expansion_ceil, METH_NOARGS, NULL},
     {"__floor__", (PyCFunction)Expansion_floor, METH_NOARGS, NULL},
+    {"__getnewargs__", (PyCFunction)Expansion_getnewargs, METH_NOARGS, NULL},
     {"__round__", (PyCFunction)Expansion_round, METH_VARARGS, NULL},
     {"__trunc__", (PyCFunction)Expansion_trunc, METH_NOARGS, NULL},
     {NULL, NULL} /* sentinel */
