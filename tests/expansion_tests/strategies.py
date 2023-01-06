@@ -1,5 +1,6 @@
 import math
 from fractions import Fraction
+from functools import reduce
 from typing import (Sequence,
                     Tuple)
 
@@ -28,9 +29,11 @@ floats = strategies.floats(allow_infinity=True,
 
 
 def is_invalid_floats_sequence(values: Sequence[float]) -> bool:
-    return (not math.isfinite(sum(values))
-            and not (all(math.isfinite(value) for value in values)
-                     and _are_non_overlapping(values)))
+    def to_next_component(component: float, value: float) -> float:
+        tail, head = _two_add(component, value)
+        return tail or head
+
+    return not math.isfinite(reduce(to_next_component, reversed(values), 0.0))
 
 
 def _are_non_overlapping(values: Sequence[float]) -> bool:
