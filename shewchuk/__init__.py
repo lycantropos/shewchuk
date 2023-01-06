@@ -1,6 +1,6 @@
 """Robust floating point operations."""
 
-__version__ = '6.5.0-alpha'
+__version__ = '6.5.0'
 
 try:
     from ._cshewchuk import (Expansion,
