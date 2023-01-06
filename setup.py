@@ -41,8 +41,24 @@ if platform.python_implementation() == 'CPython':
     from glob import glob
 
     from setuptools import Extension
+    from setuptools.command.build_ext import build_ext
+
+
+    class BuildExt(build_ext):
+        def build_extensions(self) -> None:
+            compile_args = []
+            compiler_type = self.compiler.compiler_type
+            if compiler_type == 'unix':
+                compile_args.append('-Werror')
+            elif compiler_type == 'msvc':
+                compile_args.append('/WX')
+            for extension in self.extensions:
+                extension.extra_compile_args += compile_args
+            super().build_extensions()
+
 
     parameters.update(
+            cmdclass={build_ext.__name__: BuildExt},
             ext_modules=[
                 Extension(f'{shewchuk.__name__}._c{shewchuk.__name__}',
                           glob('src/*.c'))
