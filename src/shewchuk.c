@@ -1797,7 +1797,7 @@ static PyObject *Expansion_ceil(ExpansionObject *self,
   double fraction =
       components_to_accumulated_fraction(self->size, self->components);
   assert(fabs(fraction) < 1.0);
-  PyObject *fraction_ceil = PyLong_FromLong(ceil(fraction));
+  PyObject *fraction_ceil = PyLong_FromLong((long)ceil(fraction));
   if (!fraction_ceil) {
     Py_DECREF(result);
     return NULL;
@@ -1820,7 +1820,7 @@ static PyObject *Expansion_floor(ExpansionObject *self,
   double fraction =
       components_to_accumulated_fraction(self->size, self->components);
   assert(fabs(fraction) < 1.0);
-  PyObject *fraction_floor = PyLong_FromLong(floor(fraction));
+  PyObject *fraction_floor = PyLong_FromLong((long)floor(fraction));
   if (!fraction_floor) {
     Py_DECREF(result);
     return NULL;
