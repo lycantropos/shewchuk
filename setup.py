@@ -16,6 +16,7 @@ def read_file(path_string: str) -> str:
 parameters = dict(
         name=shewchuk.__name__,
         packages=find_packages(exclude=('tests', 'tests.*')),
+        package_data={shewchuk.__name__: ['py.typed']},
         version=shewchuk.__version__,
         description=shewchuk.__doc__,
         long_description=read_file('README.md'),
