@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import typing as _t
 from functools import reduce as _reduce
-from itertools import (dropwhile as _dropwhile,
-                       repeat as _repeat)
+from itertools import repeat as _repeat
 from math import (ceil as _ceil,
                   floor as _floor,
                   isfinite as _isfinite,
                   modf as _modf)
 from numbers import (Rational as _Rational,
                      Real as _Real)
-from operator import not_ as _not
 from sys import float_info as _float_info
 
 _Number = _t.Union[_Rational, float, int]
