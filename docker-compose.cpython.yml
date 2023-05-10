@@ -9,11 +9,10 @@ services:
         - IMAGE_VERSION=${CPYTHON_IMAGE_VERSION}
     image: lycantropos/shewchuk-cpython:6.6.0
     volumes:
-      - ./pytest.ini:/opt/shewchuk/pytest.ini
+      - ./pyproject.toml:/opt/shewchuk/pyproject.toml
       - ./README.md:/opt/shewchuk/README.md
-      - ./requirements-tests.txt:/opt/shewchuk/requirements-tests.txt
       - ./setup.py:/opt/shewchuk/setup.py
-      - ./shewchuk:/opt/shewchuk/shewchuk
       - ./src:/opt/shewchuk/src
+      - ./shewchuk:/opt/shewchuk/shewchuk
       - ./tests:/opt/shewchuk/tests
     entrypoint: pytest
