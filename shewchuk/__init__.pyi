@@ -18,6 +18,9 @@ class Expansion:
     def imag(self) -> _Real:
         ...
 
+    def as_integer_ratio(self) -> _t.Tuple[int, int]:
+        ...
+
     @_t.overload
     def __new__(cls, value: _t.Union[Expansion, _Number]) -> Expansion:
         ...

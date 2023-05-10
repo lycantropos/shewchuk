@@ -1945,6 +1945,128 @@ static PyObject *Expansion_multiply(PyObject *self, PyObject *other) {
     return Expansion_PyObject_multiply((ExpansionObject *)other, self);
 }
 
+static int is_unit_Object(PyObject *self) {
+  PyObject *tmp = PyLong_FromLong(1);
+  int result = PyObject_RichCompareBool(self, tmp, Py_EQ);
+  Py_DECREF(tmp);
+  return result;
+}
+
+static int normalize_fraction_components(PyObject **result_numerator,
+                                         PyObject **result_denominator) {
+  PyObject *gcd = _PyLong_GCD(*result_numerator, *result_denominator);
+  if (!gcd) return -1;
+  int is_gcd_unit = is_unit_Object(gcd);
+  if (is_gcd_unit < 0) {
+    Py_DECREF(gcd);
+    return -1;
+  } else if (!is_gcd_unit) {
+    PyObject *numerator = PyNumber_FloorDivide(*result_numerator, gcd);
+    if (!numerator) {
+      Py_DECREF(gcd);
+      return -1;
+    }
+    PyObject *denominator = PyNumber_FloorDivide(*result_denominator, gcd);
+    if (!denominator) {
+      Py_DECREF(numerator);
+      Py_DECREF(gcd);
+      return -1;
+    }
+    PyObject *tmp = *result_numerator;
+    *result_numerator = numerator;
+    Py_DECREF(tmp);
+    tmp = *result_denominator;
+    *result_denominator = denominator;
+    Py_DECREF(tmp);
+  }
+  Py_DECREF(gcd);
+  return 0;
+}
+
+static int fractions_components_add(PyObject *numerator, PyObject *denominator,
+                                    PyObject *other_numerator,
+                                    PyObject *other_denominator,
+                                    PyObject **result_numerator,
+                                    PyObject **result_denominator) {
+  PyObject *first_result_numerator_component =
+      PyNumber_Multiply(numerator, other_denominator);
+  if (!first_result_numerator_component) return -1;
+  PyObject *second_result_numerator_component =
+      PyNumber_Multiply(other_numerator, denominator);
+  if (!second_result_numerator_component) {
+    Py_DECREF(first_result_numerator_component);
+    return -1;
+  }
+  *result_numerator = PyNumber_Add(first_result_numerator_component,
+                                   second_result_numerator_component);
+  Py_DECREF(second_result_numerator_component);
+  Py_DECREF(first_result_numerator_component);
+  if (*result_numerator == NULL) return -1;
+  *result_denominator = PyNumber_Multiply(denominator, other_denominator);
+  if (*result_denominator == NULL) {
+    Py_DECREF(*result_numerator);
+    return -1;
+  }
+  if (normalize_fraction_components(result_numerator, result_denominator)) {
+    Py_DECREF(*result_denominator);
+    Py_DECREF(*result_numerator);
+    return -1;
+  }
+  return 0;
+}
+
+static PyObject *double_as_integer_ratio(double value) {
+  PyObject *as_integer_ratio_method_name = PyUnicode_FromString("as_integer_ratio");
+  if (!as_integer_ratio_method_name) return NULL;
+  PyObject *tmp = PyFloat_FromDouble(value);
+  PyObject* result =
+#if PY39_OR_MORE
+      PyObject_CallMethodNoArgs(tmp, as_integer_ratio_method_name);
+#else
+      PyObject_CallMethodObjArgs(tmp, as_integer_ratio_method_name, NULL)
+#endif
+  ;
+  Py_DECREF(tmp);
+  return result;
+}
+
+static PyObject *Expansion_as_integer_ratio(ExpansionObject *self,
+                                            PyObject *Py_UNUSED(args)) {
+  PyObject *result = double_as_integer_ratio(self->components[0]);
+  if (self->size == 1 || result == NULL) {
+    return result;
+  }
+  PyObject *result_numerator = PyTuple_GET_ITEM(result, 0);
+  PyObject *result_denominator = PyTuple_GET_ITEM(result, 1);
+  Py_INCREF(result_numerator);
+  Py_INCREF(result_denominator);
+  Py_DECREF(result);
+  for (size_t index = 1; index < self->size; ++index) {
+    PyObject *step = double_as_integer_ratio(self->components[index]);
+    if (step == NULL) {
+      return NULL;
+    }
+    PyObject *step_numerator = PyTuple_GET_ITEM(step, 0);
+    PyObject *step_denominator = PyTuple_GET_ITEM(step, 1);
+    PyObject *next_result_numerator, *next_result_denominator;
+    if (fractions_components_add(result_numerator, result_denominator,
+                                 step_numerator, step_denominator,
+                                 &next_result_numerator,
+                                 &next_result_denominator) < 0) {
+      Py_DECREF(step);
+      Py_DECREF(result_denominator);
+      Py_DECREF(result_numerator);
+      return NULL;
+    }
+    Py_DECREF(step);
+    Py_DECREF(result_denominator);
+    Py_DECREF(result_numerator);
+    result_numerator = next_result_numerator;
+    result_denominator = next_result_denominator;
+  }
+  return PyTuple_Pack(2, result_numerator, result_denominator);
+}
+
 static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
                                PyObject *kwargs) {
   if (!_PyArg_NoKeywords("Expansion", kwargs)) return NULL;
@@ -2649,6 +2771,7 @@ static PyGetSetDef Expansion_getset[] = {
 };
 
 static PyMethodDef Expansion_methods[] = {
+    {"as_integer_ratio", (PyCFunction)Expansion_as_integer_ratio, METH_NOARGS, NULL},
     {"__ceil__", (PyCFunction)Expansion_ceil, METH_NOARGS, NULL},
     {"__floor__", (PyCFunction)Expansion_floor, METH_NOARGS, NULL},
     {"__getnewargs__", (PyCFunction)Expansion_getnewargs, METH_NOARGS, NULL},

@@ -5,6 +5,7 @@ from functools import reduce as _reduce
 from itertools import repeat as _repeat
 from math import (ceil as _ceil,
                   floor as _floor,
+                  gcd as _gcd,
                   isfinite as _isfinite,
                   modf as _modf)
 from numbers import (Rational as _Rational,
@@ -27,6 +28,25 @@ class Expansion:
     def imag(self) -> _Number:
         """The real part of the expansion."""
         return 0
+
+    def as_integer_ratio(self) -> _t.Tuple[int, int]:
+        result_numerator, result_denominator = (
+            self._components[0].as_integer_ratio()
+        )
+        for component in self._components[1:]:
+            component_numerator, component_denominator = (
+                component.as_integer_ratio()
+            )
+            result_numerator = (
+                    result_numerator * component_denominator
+                    + component_numerator * result_denominator
+            )
+            result_denominator = result_denominator * component_denominator
+            gcd = _gcd(result_numerator, result_denominator)
+            if gcd != 1:
+                result_numerator //= gcd
+                result_denominator //= gcd
+        return result_numerator, result_denominator
 
     _components: _t.Sequence[float]
 
@@ -137,9 +157,10 @@ class Expansion:
         return self._components[-1]
 
     def __floor__(self) -> int:
-        return (_components_to_integer(self._components)
-                + _floor(_components_to_accumulated_fraction(
-                        self._components)))
+        return (
+                _components_to_integer(self._components)
+                + _floor(_components_to_accumulated_fraction(self._components))
+        )
 
     @_t.overload
     def __ge__(self, other: _t.Union[Expansion, _Number]) -> bool:
@@ -151,22 +172,22 @@ class Expansion:
 
     def __ge__(self,
                other: _t.Union[Expansion, _Number]) -> _t.Union[_t.Any, bool]:
-        return (not _are_components_lesser_than(self._components,
-                                                other._components)
-                if isinstance(other, Expansion)
-                else
-                (not _are_components_lesser_than_float(self._components,
-                                                       other)
-                 if isinstance(other, float)
-                 else
-                 (not _are_components_lesser_than_int(self._components,
-                                                      other)
-                  if isinstance(other, int)
-                  else
-                  (not _are_components_lesser_than_rational(
-                          self._components, other)
-                   if isinstance(other, _Rational)
-                   else NotImplemented))))
+        return (
+            not _are_components_lesser_than(self._components,
+                                            other._components)
+            if isinstance(other, Expansion)
+            else
+            (not _are_components_lesser_than_float(self._components, other)
+             if isinstance(other, float)
+             else
+             (not _are_components_lesser_than_int(self._components, other)
+              if isinstance(other, int)
+              else
+              (not _are_components_lesser_than_rational(self._components,
+                                                        other)
+               if isinstance(other, _Rational)
+               else NotImplemented)))
+        )
 
     @_t.overload
     def __gt__(self, other: _t.Union[Expansion, _Number]) -> bool:
@@ -474,8 +495,8 @@ def _are_components_equal_to_float(components: _t.Sequence[float],
     return len(components) == 1 and components[0] == value
 
 
-def _are_components_equal_to_int(components: _t.Sequence[float], value: int
-                                 ) -> bool:
+def _are_components_equal_to_int(components: _t.Sequence[float],
+                                 value: int) -> bool:
     return (_to_fraction(components[0]) == 0.
             and _components_to_integer(components) == value)
 
