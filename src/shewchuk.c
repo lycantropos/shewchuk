@@ -165,7 +165,8 @@ static size_t add_double_in_place(size_t size, double *components, double value,
     two_add(accumulator, components[index], &accumulator, &tail);
     if (tail != 0.0) result[result_size++] = tail;
   }
-  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0)
+    result[result_size++] = accumulator;
   return result_size;
 }
 
@@ -351,7 +352,8 @@ static size_t scale_components_in_place(size_t size, double *components,
     fast_two_add(product, interim, &accumulator, &tail);
     if (tail != 0.0) result[result_size++] = tail;
   }
-  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0)
+    result[result_size++] = accumulator;
   return result_size;
 }
 
@@ -403,7 +405,8 @@ static size_t subtract_from_double_in_place(double minuend,
     two_add(accumulator, -subtrahend[index], &accumulator, &tail);
     if (tail != 0.0) result[result_size++] = tail;
   }
-  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0)
+    result[result_size++] = accumulator;
   return result_size;
 }
 
@@ -477,7 +480,8 @@ static size_t add_components_in_place(const size_t left_size,
     accumulator = head;
     if (tail != 0.0) result[result_size++] = tail;
   }
-  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0)
+    result[result_size++] = accumulator;
   return result_size;
 }
 
@@ -601,7 +605,8 @@ static size_t subtract_components_in_place(size_t minuend_size, double *minuend,
     accumulator = head;
     if (tail != 0.0) result[result_size++] = tail;
   }
-  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0)
+    result[result_size++] = accumulator;
   return result_size;
 }
 
@@ -638,7 +643,7 @@ static int invert_components(const size_t size, double *const components,
         Py_DECREF(components_object);
         return -1;
       }
-      PyList_SET_ITEM(components_object, index, component_object);
+      PyList_SET_ITEM(components_object, (Py_ssize_t)(index), component_object);
     }
     PyErr_Format(PyExc_OverflowError,
                  "Components %R are not finitely invertible.",
@@ -1844,7 +1849,7 @@ static PyObject *Expansion_getnewargs(ExpansionObject *self,
       Py_DECREF(component);
       return NULL;
     }
-    PyTuple_SET_ITEM(result, index, component);
+    PyTuple_SET_ITEM(result, (Py_ssize_t)(index), component);
   }
   return result;
 }
@@ -1853,7 +1858,7 @@ static Py_hash_t Expansion_hash(ExpansionObject *self) {
   PyObject *components = PyTuple_New((Py_ssize_t)(self->size));
   if (components == NULL) return -1;
   for (size_t index = 0; index < self->size; ++index)
-    PyTuple_SET_ITEM(components, index,
+    PyTuple_SET_ITEM(components, (Py_ssize_t)(index),
                      PyFloat_FromDouble(self->components[index]));
   Py_hash_t result = PyObject_Hash(components);
   Py_DECREF(components);
@@ -2162,7 +2167,8 @@ static PyObject *Expansion_repr(ExpansionObject *self) {
         Py_DECREF(components_reprs);
         return NULL;
       }
-      PyTuple_SET_ITEM(components_reprs, index, PyObject_Repr(item));
+      PyTuple_SET_ITEM(components_reprs, (Py_ssize_t)(index),
+                       PyObject_Repr(item));
       Py_DECREF(item);
     }
     PyObject *separator = PyUnicode_FromString(", ");
