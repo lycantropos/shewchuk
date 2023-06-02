@@ -21,8 +21,12 @@ if platform.python_implementation() == 'CPython':
             compiler_type = self.compiler.compiler_type
             if compiler_type == 'unix':
                 compile_args.append('-Werror')
+                compile_args.append('-Wall')
+                compile_args.append('-Wextra')
+                compile_args.append('-Wconversion')
             elif compiler_type == 'msvc':
                 compile_args.append('/WX')
+                compile_args.append('/Wall')
             for extension in self.extensions:
                 extension.extra_compile_args += compile_args
             super().build_extensions()
