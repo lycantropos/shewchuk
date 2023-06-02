@@ -2772,8 +2772,10 @@ PyObject *Expansion_getreal(ExpansionObject *self, void *Py_UNUSED(closure)) {
   return (PyObject *)Expansion_positive(self);
 }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
 static PyGetSetDef Expansion_getset[] = {
     {"real", (getter)Expansion_getreal, (setter)NULL,
      "The real part of the expansion.", NULL},
@@ -2781,10 +2783,14 @@ static PyGetSetDef Expansion_getset[] = {
      "The imaginary part of the expansion.", NULL},
     {NULL} /* sentinel */
 };
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
 static PyMethodDef Expansion_methods[] = {
     {"as_integer_ratio", (PyCFunction)Expansion_as_integer_ratio, METH_NOARGS,
      NULL},
@@ -2795,7 +2801,9 @@ static PyMethodDef Expansion_methods[] = {
     {"__trunc__", (PyCFunction)Expansion_trunc, METH_NOARGS, NULL},
     {NULL, NULL} /* sentinel */
 };
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 static PyTypeObject ExpansionType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_as_number = &Expansion_as_number,
@@ -2885,8 +2893,10 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
                                          result_components);
 }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
 static PyMethodDef _cshewchuk_methods[] = {
     {"incircle_test", incircle_test, METH_VARARGS,
      PyDoc_STR("incircle_test(point_x, point_y, first_x, first_y, second_x, "
@@ -2916,7 +2926,9 @@ static PyMethodDef _cshewchuk_methods[] = {
                "coordinates.")},
     {NULL, NULL}, /* sentinel */
 };
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 static PyModuleDef _cshewchuk_module = {
     PyModuleDef_HEAD_INIT,
