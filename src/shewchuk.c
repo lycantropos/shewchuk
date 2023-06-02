@@ -12,7 +12,7 @@ static int to_sign(double value) {
   return value > 0.0 ? 1 : (value == 0.0 ? 0 : -1);
 }
 
-const static size_t BIT_LENGTHS_TABLE[32] = {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4,
+static const size_t BIT_LENGTHS_TABLE[32] = {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4,
                                              4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
                                              5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
 
@@ -2766,17 +2766,19 @@ PyObject *Expansion_getreal(ExpansionObject *self, void *Py_UNUSED(closure)) {
   return (PyObject *)Expansion_positive(self);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 static PyGetSetDef Expansion_getset[] = {
     {"real", (getter)Expansion_getreal, (setter)NULL,
      "The real part of the expansion.", NULL},
     {"imag", (getter)Expansion_getimag, (setter)NULL,
      "The imaginary part of the expansion.", NULL},
+    {NULL} /* sentinel */
+};
+#pragma GCC diagnostic pop
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-    {NULL} /* sentinel */
-#pragma GCC diagnostic pop
-};
-
 static PyMethodDef Expansion_methods[] = {
     {"as_integer_ratio", (PyCFunction)Expansion_as_integer_ratio, METH_NOARGS,
      NULL},
@@ -2785,11 +2787,9 @@ static PyMethodDef Expansion_methods[] = {
     {"__getnewargs__", (PyCFunction)Expansion_getnewargs, METH_NOARGS, NULL},
     {"__round__", (PyCFunction)Expansion_round, METH_VARARGS, NULL},
     {"__trunc__", (PyCFunction)Expansion_trunc, METH_NOARGS, NULL},
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
     {NULL, NULL} /* sentinel */
-#pragma GCC diagnostic pop
 };
+#pragma GCC diagnostic pop
 
 static PyTypeObject ExpansionType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_as_number = &Expansion_as_number,
@@ -2879,6 +2879,8 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
                                          result_components);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 static PyMethodDef _cshewchuk_methods[] = {
     {"incircle_test", incircle_test, METH_VARARGS,
      PyDoc_STR("incircle_test(point_x, point_y, first_x, first_y, second_x, "
@@ -2906,11 +2908,9 @@ static PyMethodDef _cshewchuk_methods[] = {
                "second_end_y, /)\n--\n\n"
                "Computes dot product of two vectors given their endpoints "
                "coordinates.")},
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
     {NULL, NULL}, /* sentinel */
-#pragma GCC diagnostic pop
 };
+#pragma GCC diagnostic pop
 
 static PyModuleDef _cshewchuk_module = {
     PyModuleDef_HEAD_INIT,
