@@ -26,7 +26,7 @@ if platform.python_implementation() == 'CPython':
                 compile_args.append('-Wconversion')
             elif compiler_type == 'msvc':
                 compile_args.append('/WX')
-                compile_args.append('/Wall')
+                compile_args.append('/W3')
             for extension in self.extensions:
                 extension.extra_compile_args += compile_args
             super().build_extensions()
