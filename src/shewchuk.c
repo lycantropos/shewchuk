@@ -8,7 +8,9 @@
 #define EPSILON (DBL_EPSILON / 2.0)
 #define PY39_OR_MORE PY_VERSION_HEX >= 0x03090000
 
-static int to_sign(double value) { return value > 0.0 ? 1 : (!value ? 0 : -1); }
+static int to_sign(double value) {
+  return value > 0.0 ? 1 : (value == 0.0 ? 0 : -1);
+}
 
 const static size_t BIT_LENGTHS_TABLE[32] = {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4,
                                              4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
@@ -161,16 +163,16 @@ static size_t add_double_in_place(size_t size, double *components, double value,
   for (size_t index = 0; index < size; index++) {
     double tail;
     two_add(accumulator, components[index], &accumulator, &tail);
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
   }
-  if (!!accumulator || !result_size) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
   return result_size;
 }
 
 static int add_double(size_t size, double *components, double value,
                       size_t *result_size, double **result) {
   *result = (double *)PyMem_Malloc((size + 1) * sizeof(double));
-  if (!*result) {
+  if (*result == NULL) {
     PyErr_NoMemory();
     return -1;
   }
@@ -225,7 +227,7 @@ static int components_to_fractions(const size_t size, double *const components,
                                    size_t *result_size,
                                    double **result_components) {
   *result_components = (double *)PyMem_Malloc(size * sizeof(double));
-  if (!*result_components) {
+  if (*result_components == NULL) {
     PyErr_NoMemory();
     return -1;
   }
@@ -233,7 +235,7 @@ static int components_to_fractions(const size_t size, double *const components,
   size_t index;
   for (index = 0; index < size; ++index)
     (*result_components)[index] = modf(components[index], &_);
-  for (; index > 1 && !(*result_components)[index - 1]; --index) {
+  for (; index > 1 && (*result_components)[index - 1] == 0.0; --index) {
   }
   *result_size = index;
   if (!PyMem_Resize(*result_components, double, *result_size)) {
@@ -250,7 +252,7 @@ static double components_to_accumulated_fraction(
   size_t index;
   for (index = 0; index < size; ++index) {
     double component_fraction = modf(components[index], &_);
-    if (!component_fraction) break;
+    if (component_fraction == 0.0) break;
     result += component_fraction;
   }
   assert(result == 0.0 && index == 0 ||
@@ -258,10 +260,9 @@ static double components_to_accumulated_fraction(
   return result;
 }
 
-static int do_components_have_fraction(const size_t size,
-                                       const double *const components) {
+static int do_components_have_fraction(const double *const components) {
   double _;
-  return !!modf(components[0], &_);
+  return modf(components[0], &_) != 0.0;
 }
 
 static int is_double_lesser_than_components(double value, const size_t size,
@@ -277,7 +278,7 @@ static size_t compress_components_single(size_t size, double *components) {
   for (Py_ssize_t index = (Py_ssize_t)(bottom)-1; index >= 0; --index) {
     double head, tail;
     two_add(accumulator, components[index], &head, &tail);
-    if (!!tail) {
+    if (tail != 0.0) {
       components[bottom--] = head;
       accumulator = tail;
     } else
@@ -287,10 +288,10 @@ static size_t compress_components_single(size_t size, double *components) {
   for (size_t index = bottom + 1; index < size; ++index) {
     double head, tail;
     two_add(components[index], accumulator, &head, &tail);
-    if (!!tail) components[top++] = tail;
+    if (tail != 0.0) components[top++] = tail;
     accumulator = head;
   }
-  if (!!accumulator || !top) components[top++] = accumulator;
+  if (accumulator != 0.0 || top == 0) components[top++] = accumulator;
   return top;
 }
 
@@ -302,7 +303,7 @@ static void copy_components(size_t size, double *source, double *destination) {
 static size_t compress_components(size_t size, double *components) {
   const size_t original_size = size;
   double *next_components = (double *)PyMem_Malloc(size * sizeof(double));
-  if (!next_components) {
+  if (next_components == NULL) {
     PyErr_NoMemory();
     return 0;
   }
@@ -339,25 +340,25 @@ static size_t scale_components_in_place(size_t size, double *components,
   two_multiply_presplit(components[0], scalar, scalar_high, scalar_low,
                         &accumulator, &tail);
   size_t result_size = 0;
-  if (!!tail) result[result_size++] = tail;
+  if (tail != 0.0) result[result_size++] = tail;
   for (size_t index = 1; index < size; ++index) {
     double product, product_tail;
     two_multiply_presplit(components[index], scalar, scalar_high, scalar_low,
                           &product, &product_tail);
     double interim;
     two_add(accumulator, product_tail, &interim, &tail);
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
     fast_two_add(product, interim, &accumulator, &tail);
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
   }
-  if (!!accumulator || !result_size) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
   return result_size;
 }
 
 static int scale_components(size_t size, double *components, double scalar,
                             size_t *result_size, double **result) {
   *result = (double *)PyMem_Malloc(2 * size * sizeof(double));
-  if (!*result) {
+  if (*result == NULL) {
     PyErr_NoMemory();
     return -1;
   }
@@ -374,11 +375,11 @@ static size_t subtract_double_in_place(size_t minuend_size, double *minuend,
   return add_double_in_place(minuend_size, minuend, -subtrahend, result);
 }
 
-static size_t subtract_double(size_t minuend_size, double *minuend,
-                              double subtrahend, size_t *result_size,
-                              double **result) {
+static int subtract_double(size_t minuend_size, double *minuend,
+                           double subtrahend, size_t *result_size,
+                           double **result) {
   *result = (double *)PyMem_Malloc((minuend_size + 1) * sizeof(double));
-  if (!*result) {
+  if (*result == NULL) {
     PyErr_NoMemory();
     return -1;
   }
@@ -400,9 +401,9 @@ static size_t subtract_from_double_in_place(double minuend,
   for (size_t index = 0; index < subtrahend_size; index++) {
     double tail;
     two_add(accumulator, -subtrahend[index], &accumulator, &tail);
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
   }
-  if (!!accumulator || !result_size) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
   return result_size;
 }
 
@@ -410,7 +411,7 @@ static int subtract_from_double(double minuend, size_t subtrahend_size,
                                 double *subtrahend, size_t *result_size,
                                 double **result) {
   *result = (double *)PyMem_Malloc((subtrahend_size + 1) * sizeof(double));
-  if (!*result) {
+  if (*result == NULL) {
     PyErr_NoMemory();
     return -1;
   }
@@ -452,7 +453,7 @@ static size_t add_components_in_place(const size_t left_size,
       right_component = right[++right_index];
     }
     accumulator = head;
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
     while ((left_index < left_size) && (right_index < right_size)) {
       if ((right_component > left_component) ==
           (right_component > -left_component)) {
@@ -463,20 +464,20 @@ static size_t add_components_in_place(const size_t left_size,
         right_component = right[++right_index];
       }
       accumulator = head;
-      if (!!tail) result[result_size++] = tail;
+      if (tail != 0.0) result[result_size++] = tail;
     }
   }
   for (; left_index < left_size; ++left_index) {
     two_add(accumulator, left[left_index], &head, &tail);
     accumulator = head;
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
   }
   for (; right_index < right_size; ++right_index) {
     two_add(accumulator, right[right_index], &head, &tail);
     accumulator = head;
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
   }
-  if (!!accumulator || !result_size) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
   return result_size;
 }
 
@@ -484,7 +485,7 @@ static int add_components(const size_t left_size, const double *const left,
                           const size_t right_size, const double *const right,
                           size_t *result_size, double **result) {
   *result = (double *)PyMem_Malloc((left_size + right_size) * sizeof(double));
-  if (!*result) {
+  if (*result == NULL) {
     PyErr_NoMemory();
     return -1;
   }
@@ -502,12 +503,12 @@ static size_t multiply_components_in_place(size_t left_size, double *left,
                                            double *result) {
   double *next_components =
       (double *)PyMem_Malloc(2 * left_size * (right_size - 1) * sizeof(double));
-  if (!next_components) {
+  if (next_components == NULL) {
     PyErr_NoMemory();
     return 0;
   }
   double *step = (double *)PyMem_Malloc(2 * left_size * sizeof(double));
-  if (!step) {
+  if (step == NULL) {
     PyMem_Free(next_components);
     PyErr_NoMemory();
     return 0;
@@ -530,7 +531,7 @@ static int multiply_components(size_t left_size, double *left,
                                size_t right_size, double *right,
                                size_t *result_size, double **result) {
   *result = (double *)PyMem_Malloc(2 * left_size * right_size * sizeof(double));
-  if (!*result) {
+  if (*result == NULL) {
     PyErr_NoMemory();
     return -1;
   }
@@ -573,7 +574,7 @@ static size_t subtract_components_in_place(size_t minuend_size, double *minuend,
       subtrahend_component = -subtrahend[++subtrahend_index];
     }
     accumulator = head;
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
     while ((minuend_index < minuend_size) &&
            (subtrahend_index < subtrahend_size)) {
       if ((subtrahend_component > minuend_component) ==
@@ -585,22 +586,22 @@ static size_t subtract_components_in_place(size_t minuend_size, double *minuend,
         subtrahend_component = -subtrahend[++subtrahend_index];
       }
       accumulator = head;
-      if (!!tail) result[result_size++] = tail;
+      if (tail != 0.0) result[result_size++] = tail;
     }
   }
   while (minuend_index < minuend_size) {
     two_add(accumulator, minuend_component, &head, &tail);
     minuend_component = minuend[++minuend_index];
     accumulator = head;
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
   }
   while (subtrahend_index < subtrahend_size) {
     two_add(accumulator, subtrahend_component, &head, &tail);
     subtrahend_component = -subtrahend[++subtrahend_index];
     accumulator = head;
-    if (!!tail) result[result_size++] = tail;
+    if (tail != 0.0) result[result_size++] = tail;
   }
-  if (!!accumulator || !result_size) result[result_size++] = accumulator;
+  if (accumulator != 0.0 || result_size == 0) result[result_size++] = accumulator;
   return result_size;
 }
 
@@ -609,7 +610,7 @@ static int subtract_components(size_t minuend_size, double *minuend,
                                size_t *result_size, double **result) {
   *result =
       (double *)PyMem_Malloc((minuend_size + subtrahend_size) * sizeof(double));
-  if (!*result) {
+  if (*result == NULL) {
     PyErr_NoMemory();
     return -1;
   }
@@ -629,11 +630,11 @@ static int invert_components(const size_t size, double *const components,
   split(first_approximation, &first_approximation_high,
         &first_approximation_low);
   if (!isfinite(first_approximation_high)) {
-    PyObject *components_object = PyList_New(size);
-    if (!components_object) return -1;
+    PyObject *components_object = PyList_New((Py_ssize_t)(size));
+    if (components_object == NULL) return -1;
     for (size_t index = 0; index < size; ++index) {
       PyObject *component_object = PyFloat_FromDouble(components[index]);
-      if (!component_object) {
+      if (component_object == NULL) {
         Py_DECREF(components_object);
         return -1;
       }
@@ -650,25 +651,25 @@ static int invert_components(const size_t size, double *const components,
                            (1 + 2 * size * (2 * iterations_count - 1) / 3);
   double *step_components =
       (double *)PyMem_Malloc(max_result_size * sizeof(double));
-  if (!step_components) return -1;
+  if (step_components == NULL) return -1;
   step_components[0] = first_approximation;
   size_t step_size = 1;
   double *negated_components = (double *)PyMem_Malloc(size * sizeof(double));
-  if (!negated_components) {
+  if (negated_components == NULL) {
     PyMem_Free(step_components);
     return -1;
   }
   size_t negated_size = negate_components(size, components, negated_components);
   double *tmp_components =
       (double *)PyMem_Malloc(max_result_size * sizeof(double));
-  if (!tmp_components) {
+  if (tmp_components == NULL) {
     PyMem_Free(negated_components);
     PyMem_Free(step_components);
     return -1;
   }
   double *other_tmp_components =
       (double *)PyMem_Malloc(max_result_size * sizeof(double));
-  if (!other_tmp_components) {
+  if (other_tmp_components == NULL) {
     PyMem_Free(tmp_components);
     PyMem_Free(negated_components);
     PyMem_Free(step_components);
@@ -703,7 +704,7 @@ static int invert_components(const size_t size, double *const components,
   PyMem_Free(tmp_components);
   PyMem_Free(negated_components);
   step_size = compress_components(step_size, step_components);
-  if (!step_size) return 0;
+  if (step_size == 0) return 0;
   if (!PyMem_Resize(step_components, double, step_size)) {
     PyErr_NoMemory();
     return 0;
@@ -725,7 +726,7 @@ static int divide_components(size_t dividend_size, double *dividend,
                           dividend_size, dividend, result_size, result) < 0)
     return -1;
   PyMem_Free(divisor_reciprocal);
-  if (!*result_size) {
+  if (*result_size == 0) {
     PyMem_Free(*result);
     return -1;
   }
@@ -736,10 +737,10 @@ static int divide_components(size_t dividend_size, double *dividend,
 
 static int is_PyLong_odd(PyObject *value) {
   PyObject *one = PyLong_FromLong(1);
-  if (!one) return -1;
+  if (one == NULL) return -1;
   PyObject *first_bit = PyNumber_And(value, one);
   Py_DECREF(one);
-  if (!first_bit) return -1;
+  if (first_bit == NULL) return -1;
   const int result = PyObject_IsTrue(first_bit);
   Py_DECREF(first_bit);
   return result;
@@ -747,7 +748,7 @@ static int is_PyLong_odd(PyObject *value) {
 
 static int is_PyLong_one(PyObject *value) {
   PyObject *one = PyLong_FromLong(1);
-  if (!one) return -1;
+  if (one == NULL) return -1;
   int result = PyObject_RichCompareBool(value, one, Py_EQ);
   Py_DECREF(one);
   return result;
@@ -756,10 +757,10 @@ static int is_PyLong_one(PyObject *value) {
 static PyObject *components_to_PyLong(const size_t size,
                                       const double *const components) {
   PyObject *result = PyLong_FromDouble(components[size - 1]);
-  if (!result) return NULL;
+  if (result == NULL) return NULL;
   for (size_t offset = 2; offset <= size; ++offset) {
     PyObject *component_integer = PyLong_FromDouble(components[size - offset]);
-    if (!component_integer) {
+    if (component_integer == NULL) {
       Py_DECREF(result);
       return NULL;
     }
@@ -768,7 +769,7 @@ static PyObject *components_to_PyLong(const size_t size,
     result = PyNumber_InPlaceAdd(result, component_integer);
     Py_DECREF(tmp);
     Py_DECREF(component_integer);
-    if (!result) return NULL;
+    if (result == NULL) return NULL;
   }
   return result;
 }
@@ -777,7 +778,7 @@ static int PyLong_to_components(PyObject *value, size_t *size,
                                 double **components) {
   if (PyObject_Not(value)) {
     *components = (double *)PyMem_Malloc(sizeof(double));
-    if (!*components) {
+    if (*components == NULL) {
       PyErr_NoMemory();
       return -1;
     }
@@ -786,7 +787,7 @@ static int PyLong_to_components(PyObject *value, size_t *size,
     return 0;
   }
   PyObject *rest = PyNumber_Long(value);
-  if (!rest) return -1;
+  if (rest == NULL) return -1;
   double component = PyFloat_AsDouble(rest);
   if (component == -1.0 && PyErr_Occurred()) {
     Py_DECREF(rest);
@@ -798,7 +799,7 @@ static int PyLong_to_components(PyObject *value, size_t *size,
   size_t max_components_count = 1 + ((size_t)exponent - 1) / DBL_MANT_DIG;
   double *reversed_components =
       (double *)PyMem_Malloc(max_components_count * sizeof(double));
-  if (!reversed_components) {
+  if (reversed_components == NULL) {
     PyErr_NoMemory();
     return -1;
   }
@@ -810,7 +811,7 @@ static int PyLong_to_components(PyObject *value, size_t *size,
     PyObject *tmp = rest;
     rest = PyNumber_InPlaceSubtract(rest, component_integer);
     Py_DECREF(tmp);
-    if (!rest) {
+    if (rest == NULL) {
       PyMem_Free(reversed_components);
       return -1;
     }
@@ -830,7 +831,7 @@ static int PyLong_to_components(PyObject *value, size_t *size,
   }
   Py_DECREF(rest);
   *components = (double *)PyMem_Malloc(result_size * sizeof(double));
-  if (!*components) {
+  if (*components == NULL) {
     PyMem_Free(reversed_components);
     PyErr_NoMemory();
     return -1;
@@ -846,9 +847,9 @@ static int PyLong_to_components(PyObject *value, size_t *size,
 static int Rational_to_components(PyObject *value, size_t *size,
                                   double **components) {
   PyObject *denominator = PyObject_GetAttrString(value, "denominator");
-  if (!denominator) return -1;
+  if (denominator == NULL) return -1;
   PyObject *numerator = PyObject_GetAttrString(value, "numerator");
-  if (!numerator) {
+  if (numerator == NULL) {
     Py_DECREF(denominator);
     return -1;
   }
@@ -896,7 +897,7 @@ static int Rational_to_components(PyObject *value, size_t *size,
 static int are_components_equal_to_PyLong(const size_t size,
                                           const double *const components,
                                           PyObject *value) {
-  if (do_components_have_fraction(size, components)) return 0;
+  if (do_components_have_fraction(components)) return 0;
   PyObject *components_integer = components_to_PyLong(size, components);
   int result = PyObject_RichCompareBool(components_integer, value, Py_EQ);
   Py_DECREF(components_integer);
@@ -1026,7 +1027,7 @@ static size_t add_extras(
   size_t first_buffer_32_limit, second_buffer_32_limit, buffer_48_limit;
   size_t first_dx_tail_second_third_cross_product_size = 0;
   double first_dx_tail_second_third_cross_product[8];
-  if (!!first_dx_tail) {
+  if (first_dx_tail != 0.0) {
     first_dx_tail_second_third_cross_product_size =
         scale_components_in_place(4, second_third_cross_product, first_dx_tail,
                                   first_dx_tail_second_third_cross_product);
@@ -1061,7 +1062,7 @@ static size_t add_extras(
   }
   size_t first_dy_tail_second_third_cross_product_size = 0;
   double first_dy_tail_second_third_cross_product[8];
-  if (!!first_dy_tail) {
+  if (first_dy_tail != 0.0) {
     first_dy_tail_second_third_cross_product_size =
         scale_components_in_place(4, second_third_cross_product, first_dy_tail,
                                   first_dy_tail_second_third_cross_product);
@@ -1099,13 +1100,13 @@ static size_t add_extras(
   double buffer_8[8], buffer_64[64];
   size_t buffer_8_limit, buffer_64_limit;
   double first_buffer_4[4], second_buffer_4[4];
-  if (!!first_dx_tail || !!first_dy_tail) {
+  if (first_dx_tail != 0.0 || first_dy_tail != 0.0) {
     size_t second_third_cross_product_bodies_size,
         second_third_cross_product_tails_size;
     double second_third_cross_product_bodies[8],
         second_third_cross_product_tails[4];
-    if (!!second_dx_tail || !!second_dy_tail || !!third_dx_tail ||
-        !!third_dy_tail) {
+    if (second_dx_tail != 0.0 || second_dy_tail != 0.0 ||
+        third_dx_tail != 0.0 || third_dy_tail != 0.0) {
       two_multiply(second_dx_tail, third_dy, &dx_tail_dy_head_head,
                    &dx_tail_dy_head_tail);
       two_multiply(second_dx, third_dy_tail, &dx_head_dy_tail_head,
@@ -1142,7 +1143,7 @@ static size_t add_extras(
       second_third_cross_product_tails[0] = 0.0;
       second_third_cross_product_tails_size = 1;
     }
-    if (!!first_dx_tail) {
+    if (first_dx_tail != 0.0) {
       first_buffer_16_limit = scale_components_in_place(
           first_dx_tail_second_third_cross_product_size,
           first_dx_tail_second_third_cross_product, first_dx_tail,
@@ -1164,7 +1165,7 @@ static size_t add_extras(
                                            buffer_48_limit, buffer_48,
                                            *accumulated_components);
       swap(final_components, accumulated_components);
-      if (!!second_dy_tail) {
+      if (second_dy_tail != 0.0) {
         buffer_8_limit = scale_components_in_place(4, third_squared_length,
                                                    first_dx_tail, buffer_8);
         first_buffer_16_limit = scale_components_in_place(
@@ -1174,7 +1175,7 @@ static size_t add_extras(
             first_buffer_16, *accumulated_components);
         swap(final_components, accumulated_components);
       }
-      if (!!third_dy_tail) {
+      if (third_dy_tail != 0.0) {
         buffer_8_limit = scale_components_in_place(4, second_squared_length,
                                                    -first_dx_tail, buffer_8);
         first_buffer_16_limit = scale_components_in_place(
@@ -1213,7 +1214,7 @@ static size_t add_extras(
                                            *accumulated_components);
       swap(final_components, accumulated_components);
     }
-    if (!!first_dy_tail) {
+    if (first_dy_tail != 0.0) {
       first_buffer_16_limit = scale_components_in_place(
           first_dy_tail_second_third_cross_product_size,
           first_dy_tail_second_third_cross_product, first_dy_tail,
@@ -1320,8 +1321,8 @@ double adaptive_incircle_determinant_estimation(double point_x, double point_y,
   double second_dy_tail = two_subtract_tail(second_y, point_y, second_dy);
   double third_dx_tail = two_subtract_tail(third_x, point_x, third_dx);
   double third_dy_tail = two_subtract_tail(third_y, point_y, third_dy);
-  if (!first_dx_tail && !second_dx_tail && !third_dx_tail && !first_dy_tail &&
-      !second_dy_tail && !third_dy_tail)
+  if (first_dx_tail == 0.0 && second_dx_tail == 0.0 && third_dx_tail == 0.0 &&
+      first_dy_tail == 0.0 && second_dy_tail == 0.0 && third_dy_tail == 0.0)
     return result;
   static const double second_upper_bound_coefficient =
       (44.0 + 576.0 * EPSILON) * EPSILON * EPSILON;
@@ -1345,19 +1346,20 @@ double adaptive_incircle_determinant_estimation(double point_x, double point_y,
                  (first_dx * second_dy - first_dy * second_dx));
   if ((result >= threshold) || (-result >= threshold)) return result;
   double first_squared_length[4] = {0};
-  if (!!second_dx_tail || !!second_dy_tail || !!third_dx_tail ||
-      !!third_dy_tail)
+  if (second_dx_tail != 0.0 || second_dy_tail != 0.0 || third_dx_tail != 0.0 ||
+      third_dy_tail != 0.0)
     squared_length(first_dx, first_dy, &first_squared_length[3],
                    &first_squared_length[2], &first_squared_length[1],
                    &first_squared_length[0]);
   double second_squared_length[4] = {0};
-  if (!!third_dx_tail || !!third_dy_tail || !!first_dx_tail || !!first_dy_tail)
+  if (third_dx_tail != 0.0 || third_dy_tail != 0.0 || first_dx_tail != 0.0 ||
+      first_dy_tail != 0.0)
     squared_length(second_dx, second_dy, &second_squared_length[3],
                    &second_squared_length[2], &second_squared_length[1],
                    &second_squared_length[0]);
   double third_squared_length[4] = {0};
-  if (!!first_dx_tail || !!first_dy_tail || !!second_dx_tail ||
-      !!second_dy_tail)
+  if (first_dx_tail != 0.0 || first_dy_tail != 0.0 || second_dx_tail != 0.0 ||
+      second_dy_tail != 0.0)
     squared_length(third_dx, third_dy, &third_squared_length[3],
                    &third_squared_length[2], &third_squared_length[1],
                    &third_squared_length[0]);
@@ -1451,8 +1453,8 @@ double adaptive_vectors_cross_product_estimation(
       two_subtract_tail(first_end_y, first_start_y, minuend_y);
   double subtrahend_y_tail =
       two_subtract_tail(second_end_y, second_start_y, subtrahend_y);
-  if (!minuend_x_tail && !minuend_y_tail && !subtrahend_x_tail &&
-      !subtrahend_y_tail)
+  if (minuend_x_tail == 0.0 && minuend_y_tail == 0.0 &&
+      subtrahend_x_tail == 0.0 && subtrahend_y_tail == 0.0)
     return result;
   static const double second_upper_bound_coefficient =
       (9.0 + 64.0 * EPSILON) * EPSILON * EPSILON;
@@ -1568,8 +1570,8 @@ size_t adaptive_vectors_cross_product_impl(
       two_subtract_tail(first_end_y, first_start_y, minuend_y);
   double subtrahend_y_tail =
       two_subtract_tail(second_end_y, second_start_y, subtrahend_y);
-  if (!minuend_x_tail && !minuend_y_tail && !subtrahend_x_tail &&
-      !subtrahend_y_tail) {
+  if (minuend_x_tail == 0.0 && minuend_y_tail == 0.0 &&
+      subtrahend_x_tail == 0.0 && subtrahend_y_tail == 0.0) {
     size_t result_size = compress_components_single(4, first_components);
     copy_components(result_size, first_components, result);
     return result_size;
@@ -1685,7 +1687,7 @@ static ExpansionObject *construct_Expansion(PyTypeObject *cls, size_t size,
       return NULL;
     }
   ExpansionObject *result = (ExpansionObject *)(cls->tp_alloc(cls, 0));
-  if (result) {
+  if (result != NULL) {
     result->components = components;
     result->size = size;
   } else
@@ -1704,7 +1706,7 @@ static ExpansionObject *Expansions_add(ExpansionObject *self,
                      other->components, &result_size, &result_components) < 0)
     return NULL;
   result_size = compress_components(result_size, result_components);
-  if (!result_size) {
+  if (result_size == 0) {
     PyMem_Free(result_components);
     return NULL;
   }
@@ -1776,7 +1778,7 @@ static PyObject *Expansion_add(PyObject *self, PyObject *other) {
 }
 
 static int Expansion_bool(ExpansionObject *self) {
-  return !!self->components[self->size - 1];
+  return self->components[self->size - 1] != 0.0;
 }
 
 static void Expansion_dealloc(ExpansionObject *self) {
@@ -1793,12 +1795,12 @@ static double Expansion_double(ExpansionObject *self) {
 static PyObject *Expansion_ceil(ExpansionObject *self,
                                 PyObject *Py_UNUSED(args)) {
   PyObject *result = components_to_PyLong(self->size, self->components);
-  if (!result) return NULL;
+  if (result == NULL) return NULL;
   double fraction =
       components_to_accumulated_fraction(self->size, self->components);
   assert(fabs(fraction) < 1.0);
   PyObject *fraction_ceil = PyLong_FromLong((long)ceil(fraction));
-  if (!fraction_ceil) {
+  if (fraction_ceil == NULL) {
     Py_DECREF(result);
     return NULL;
   }
@@ -1816,12 +1818,12 @@ static PyObject *Expansion_float(ExpansionObject *self) {
 static PyObject *Expansion_floor(ExpansionObject *self,
                                  PyObject *Py_UNUSED(args)) {
   PyObject *result = components_to_PyLong(self->size, self->components);
-  if (!result) return NULL;
+  if (result == NULL) return NULL;
   double fraction =
       components_to_accumulated_fraction(self->size, self->components);
   assert(fabs(fraction) < 1.0);
   PyObject *fraction_floor = PyLong_FromLong((long)floor(fraction));
-  if (!fraction_floor) {
+  if (fraction_floor == NULL) {
     Py_DECREF(result);
     return NULL;
   }
@@ -1834,11 +1836,11 @@ static PyObject *Expansion_floor(ExpansionObject *self,
 
 static PyObject *Expansion_getnewargs(ExpansionObject *self,
                                       PyObject *Py_UNUSED(args)) {
-  PyObject *result = PyTuple_New(self->size);
-  if (!result) return NULL;
+  PyObject *result = PyTuple_New((Py_ssize_t)(self->size));
+  if (result == NULL) return NULL;
   for (size_t index = 0; index < self->size; ++index) {
     PyObject *component = PyFloat_FromDouble(self->components[index]);
-    if (!component) {
+    if (component == NULL) {
       Py_DECREF(component);
       return NULL;
     }
@@ -1848,8 +1850,8 @@ static PyObject *Expansion_getnewargs(ExpansionObject *self,
 }
 
 static Py_hash_t Expansion_hash(ExpansionObject *self) {
-  PyObject *components = PyTuple_New(self->size);
-  if (!components) return -1;
+  PyObject *components = PyTuple_New((Py_ssize_t)(self->size));
+  if (components == NULL) return -1;
   for (size_t index = 0; index < self->size; ++index)
     PyTuple_SET_ITEM(components, index,
                      PyFloat_FromDouble(self->components[index]));
@@ -1867,7 +1869,7 @@ static ExpansionObject *Expansions_multiply(ExpansionObject *self,
                           &result_components) < 0)
     return NULL;
   result_size = compress_components(result_size, result_components);
-  if (!result_size) {
+  if (result_size == 0) {
     PyMem_Free(result_components);
     return NULL;
   }
@@ -1884,7 +1886,7 @@ static ExpansionObject *Expansion_double_multiply(ExpansionObject *self,
                        &result_components) < 0)
     return NULL;
   result_size = compress_components(result_size, result_components);
-  if (!result_size) {
+  if (result_size == 0) {
     PyMem_Free(result_components);
     return NULL;
   }
@@ -1955,19 +1957,19 @@ static int is_unit_Object(PyObject *self) {
 static int normalize_fraction_components(PyObject **result_numerator,
                                          PyObject **result_denominator) {
   PyObject *gcd = _PyLong_GCD(*result_numerator, *result_denominator);
-  if (!gcd) return -1;
+  if (gcd == NULL) return -1;
   int is_gcd_unit = is_unit_Object(gcd);
   if (is_gcd_unit < 0) {
     Py_DECREF(gcd);
     return -1;
   } else if (!is_gcd_unit) {
     PyObject *numerator = PyNumber_FloorDivide(*result_numerator, gcd);
-    if (!numerator) {
+    if (numerator == NULL) {
       Py_DECREF(gcd);
       return -1;
     }
     PyObject *denominator = PyNumber_FloorDivide(*result_denominator, gcd);
-    if (!denominator) {
+    if (denominator == NULL) {
       Py_DECREF(numerator);
       Py_DECREF(gcd);
       return -1;
@@ -1990,10 +1992,10 @@ static int fractions_components_add(PyObject *numerator, PyObject *denominator,
                                     PyObject **result_denominator) {
   PyObject *first_result_numerator_component =
       PyNumber_Multiply(numerator, other_denominator);
-  if (!first_result_numerator_component) return -1;
+  if (first_result_numerator_component == NULL) return -1;
   PyObject *second_result_numerator_component =
       PyNumber_Multiply(other_numerator, denominator);
-  if (!second_result_numerator_component) {
+  if (second_result_numerator_component == NULL) {
     Py_DECREF(first_result_numerator_component);
     return -1;
   }
@@ -2016,10 +2018,11 @@ static int fractions_components_add(PyObject *numerator, PyObject *denominator,
 }
 
 static PyObject *double_as_integer_ratio(double value) {
-  PyObject *as_integer_ratio_method_name = PyUnicode_FromString("as_integer_ratio");
-  if (!as_integer_ratio_method_name) return NULL;
+  PyObject *as_integer_ratio_method_name =
+      PyUnicode_FromString("as_integer_ratio");
+  if (as_integer_ratio_method_name == NULL) return NULL;
   PyObject *tmp = PyFloat_FromDouble(value);
-  PyObject* result =
+  PyObject *result =
 #if PY39_OR_MORE
       PyObject_CallMethodNoArgs(tmp, as_integer_ratio_method_name);
 #else
@@ -2080,13 +2083,13 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
       ExpansionObject *expansion_argument = (ExpansionObject *)argument;
       components =
           (double *)PyMem_Malloc(expansion_argument->size * sizeof(double));
-      if (!components) return NULL;
+      if (components == NULL) return NULL;
       copy_components(expansion_argument->size, expansion_argument->components,
                       components);
       size = expansion_argument->size;
     } else if (PyFloat_Check(argument)) {
       components = (double *)PyMem_Malloc(sizeof(double));
-      if (!components) return PyErr_NoMemory();
+      if (components == NULL) return PyErr_NoMemory();
       components[0] = PyFloat_AS_DOUBLE(argument);
       size = 1;
     } else if (PyLong_Check(argument)) {
@@ -2100,12 +2103,12 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
                    &ExpansionType, Py_TYPE(argument));
       return NULL;
     }
-  } else if (size) {
+  } else if (size != 0) {
     components = (double *)PyMem_Malloc(size * sizeof(double));
-    if (!components) return PyErr_NoMemory();
+    if (components == NULL) return PyErr_NoMemory();
     for (size_t index = 0; index < size; ++index) {
       PyObject *item = PyTuple_GET_ITEM(args, index);
-      if (!item) {
+      if (item == NULL) {
         PyMem_Free(components);
         return NULL;
       }
@@ -2119,11 +2122,11 @@ static PyObject *Expansion_new(PyTypeObject *cls, PyObject *args,
       components[index] = PyFloat_AS_DOUBLE(item);
     }
     size = compress_components(size, components);
-    if (!size) return NULL;
+    if (size == 0) return NULL;
     if (!PyMem_Resize(components, double, size)) return PyErr_NoMemory();
   } else {
     components = (double *)PyMem_Malloc(sizeof(double));
-    if (!components) return PyErr_NoMemory();
+    if (components == NULL) return PyErr_NoMemory();
     components[0] = 0.0;
     size = 1;
   }
@@ -2151,11 +2154,11 @@ static ExpansionObject *Expansion_absolute(ExpansionObject *self) {
 static PyObject *Expansion_repr(ExpansionObject *self) {
   PyObject *result;
   if (self->size > 1) {
-    PyObject *components_reprs = PyTuple_New(self->size);
-    if (!components_reprs) return NULL;
+    PyObject *components_reprs = PyTuple_New((Py_ssize_t)(self->size));
+    if (components_reprs == NULL) return NULL;
     for (size_t index = 0; index < self->size; ++index) {
       PyObject *item = PyFloat_FromDouble(self->components[index]);
-      if (!item) {
+      if (item == NULL) {
         Py_DECREF(components_reprs);
         return NULL;
       }
@@ -2163,7 +2166,7 @@ static PyObject *Expansion_repr(ExpansionObject *self) {
       Py_DECREF(item);
     }
     PyObject *separator = PyUnicode_FromString(", ");
-    if (!separator) {
+    if (separator == NULL) {
       Py_DECREF(components_reprs);
       return NULL;
     }
@@ -2171,7 +2174,7 @@ static PyObject *Expansion_repr(ExpansionObject *self) {
         PyUnicode_Join(separator, components_reprs);
     Py_DECREF(separator);
     Py_DECREF(components_reprs);
-    if (!joined_components_reprs) return NULL;
+    if (joined_components_reprs == NULL) return NULL;
     result = PyUnicode_FromFormat("Expansion(%U)", joined_components_reprs);
     Py_DECREF(joined_components_reprs);
   } else {
@@ -2302,7 +2305,7 @@ static PyObject *Expansion_richcompare(ExpansionObject *self, PyObject *other,
 
 static PyObject *Expansion_round_plain(ExpansionObject *self) {
   PyObject *result = components_to_PyLong(self->size, self->components);
-  if (!result) return NULL;
+  if (result == NULL) return NULL;
   size_t fractions_size;
   double *fractions_components;
   if (components_to_fractions(self->size, self->components, &fractions_size,
@@ -2319,7 +2322,7 @@ static PyObject *Expansion_round_plain(ExpansionObject *self) {
     if ((fraction > 0.0 && Py_SIZE(result) < 0) ||
         (fraction < 0.0 && Py_SIZE(result) > 0)) {
       PyObject *sign = PyLong_FromLong(Py_SIZE(result) > 0 ? 1 : -1);
-      if (!sign) {
+      if (sign == NULL) {
         Py_DECREF(result);
         return NULL;
       }
@@ -2335,7 +2338,7 @@ static PyObject *Expansion_round_plain(ExpansionObject *self) {
     }
     if (is_truncation_odd) {
       PyObject *sign = PyLong_FromLong(Py_SIZE(result) > 0 ? 1 : -1);
-      if (!sign) {
+      if (sign == NULL) {
         Py_DECREF(result);
         return NULL;
       }
@@ -2353,7 +2356,7 @@ static PyObject *Expansion_round_plain(ExpansionObject *self) {
                                                          fractions_components)
                             ? 1
                             : -1);
-    if (!sign) {
+    if (sign == NULL) {
       Py_DECREF(result);
       return NULL;
     }
@@ -2368,18 +2371,18 @@ static PyObject *Expansion_round_plain(ExpansionObject *self) {
 static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
   PyObject *precision = NULL;
   if (!PyArg_ParseTuple(args, "|O", &precision)) return NULL;
-  if (!precision) return Expansion_round_plain(self);
+  if (precision == NULL) return Expansion_round_plain(self);
   const size_t size = self->size;
   double *const components = self->components;
   size_t result_size = size;
   double *result_components =
       (double *)PyMem_Malloc(result_size * sizeof(double));
-  if (!result_components) {
+  if (result_components == NULL) {
     Py_DECREF(precision);
     return PyErr_NoMemory();
   }
   PyObject *round_args = PyTuple_New(2);
-  if (!round_args) {
+  if (round_args == NULL) {
     Py_DECREF(precision);
     PyMem_Free(result_components);
     return NULL;
@@ -2388,7 +2391,7 @@ static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
   PyTuple_SET_ITEM(round_args, 1, precision);
   for (size_t index = 0; index < self->size; ++index) {
     PyObject *component = PyFloat_FromDouble(components[index]);
-    if (!component) {
+    if (component == NULL) {
       Py_DECREF(round_args);
       PyMem_Free(result_components);
       return NULL;
@@ -2396,7 +2399,7 @@ static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
     PyTuple_SET_ITEM(round_args, 0, component);
     PyObject *rounded_component =
         PyObject_CallObject(PyFloat_round, round_args);
-    if (!rounded_component) {
+    if (rounded_component == NULL) {
       Py_DECREF(round_args);
       PyMem_Free(result_components);
       return NULL;
@@ -2406,7 +2409,7 @@ static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
   }
   Py_DECREF(round_args);
   result_size = compress_components(result_size, result_components);
-  if (!result_size) {
+  if (result_size == 0) {
     PyMem_Free(result_components);
     return NULL;
   }
@@ -2663,12 +2666,12 @@ static ExpansionObject *Rational_Expansion_true_divide(PyObject *self,
 
 static ExpansionObject *Expansion_double_true_divide(ExpansionObject *self,
                                                      double other) {
-  if (!other) {
+  if (other == 0.0) {
     PyErr_Format(PyExc_ZeroDivisionError, "Divisor is zero.");
     return NULL;
   }
   double *other_components = (double *)PyMem_Malloc(sizeof(double));
-  if (!other_components) return (ExpansionObject *)PyErr_NoMemory();
+  if (other_components == NULL) return (ExpansionObject *)PyErr_NoMemory();
   other_components[0] = other;
   double *result_components;
   size_t result_size;
@@ -2688,7 +2691,7 @@ static ExpansionObject *double_Expansion_true_divide(double self,
     return NULL;
   }
   double *components = (double *)PyMem_Malloc(sizeof(double));
-  if (!components) return (ExpansionObject *)PyErr_NoMemory();
+  if (components == NULL) return (ExpansionObject *)PyErr_NoMemory();
   components[0] = self;
   double *result_components;
   size_t result_size;
@@ -2730,7 +2733,7 @@ static PyObject *Expansion_true_divide(PyObject *self, PyObject *other) {
 static PyObject *Expansion_trunc(ExpansionObject *self,
                                  PyObject *Py_UNUSED(args)) {
   PyObject *result = components_to_PyLong(self->size, self->components);
-  if (!result) return NULL;
+  if (result == NULL) return NULL;
   double fraction =
       components_to_accumulated_fraction(self->size, self->components);
   if ((fraction < 0.0 && Py_SIZE(result) > 0) ||
@@ -2754,11 +2757,12 @@ static PyNumberMethods Expansion_as_number = {
     .nb_true_divide = Expansion_true_divide,
 };
 
-PyObject *Expansion_getimag(ExpansionObject *self, void *closure) {
+PyObject *Expansion_getimag(ExpansionObject *Py_UNUSED(self),
+                            void *Py_UNUSED(closure)) {
   return PyLong_FromLong(0);
 }
 
-PyObject *Expansion_getreal(ExpansionObject *self, void *closure) {
+PyObject *Expansion_getreal(ExpansionObject *self, void *Py_UNUSED(closure)) {
   return (PyObject *)Expansion_positive(self);
 }
 
@@ -2767,17 +2771,24 @@ static PyGetSetDef Expansion_getset[] = {
      "The real part of the expansion.", NULL},
     {"imag", (getter)Expansion_getimag, (setter)NULL,
      "The imaginary part of the expansion.", NULL},
-    {NULL} /* Sentinel */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+    {NULL} /* sentinel */
+#pragma GCC diagnostic pop
 };
 
 static PyMethodDef Expansion_methods[] = {
-    {"as_integer_ratio", (PyCFunction)Expansion_as_integer_ratio, METH_NOARGS, NULL},
+    {"as_integer_ratio", (PyCFunction)Expansion_as_integer_ratio, METH_NOARGS,
+     NULL},
     {"__ceil__", (PyCFunction)Expansion_ceil, METH_NOARGS, NULL},
     {"__floor__", (PyCFunction)Expansion_floor, METH_NOARGS, NULL},
     {"__getnewargs__", (PyCFunction)Expansion_getnewargs, METH_NOARGS, NULL},
     {"__round__", (PyCFunction)Expansion_round, METH_VARARGS, NULL},
     {"__trunc__", (PyCFunction)Expansion_trunc, METH_NOARGS, NULL},
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
     {NULL, NULL} /* sentinel */
+#pragma GCC diagnostic pop
 };
 
 static PyTypeObject ExpansionType = {
@@ -2842,7 +2853,7 @@ static PyObject *vectors_cross_product(PyObject *Py_UNUSED(self),
       second_start_y, second_end_x, second_end_y, components);
   double *result_components =
       (double *)PyMem_Malloc(result_size * sizeof(double));
-  if (!result_components) return PyErr_NoMemory();
+  if (result_components == NULL) return PyErr_NoMemory();
   copy_components(result_size, components, result_components);
   return (PyObject *)construct_Expansion(&ExpansionType, result_size,
                                          result_components);
@@ -2862,7 +2873,7 @@ static PyObject *vectors_dot_product(PyObject *Py_UNUSED(self),
       second_start_x, -second_end_y, second_end_x, components);
   double *result_components =
       (double *)PyMem_Malloc(result_size * sizeof(double));
-  if (!result_components) return PyErr_NoMemory();
+  if (result_components == NULL) return PyErr_NoMemory();
   copy_components(result_size, components, result_components);
   return (PyObject *)construct_Expansion(&ExpansionType, result_size,
                                          result_components);
@@ -2895,7 +2906,10 @@ static PyMethodDef _cshewchuk_methods[] = {
                "second_end_y, /)\n--\n\n"
                "Computes dot product of two vectors given their endpoints "
                "coordinates.")},
-    {NULL, NULL},
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+    {NULL, NULL}, /* sentinel */
+#pragma GCC diagnostic pop
 };
 
 static PyModuleDef _cshewchuk_module = {
@@ -2908,20 +2922,20 @@ static PyModuleDef _cshewchuk_module = {
 
 static int load_PyFloat_round() {
   PyFloat_round = PyDict_GetItemString(PyFloat_Type.tp_dict, "__round__");
-  return !PyFloat_round ? -1 : 0;
+  return PyFloat_round == NULL ? -1 : 0;
 }
 
 static int load_number_interfaces() {
   PyObject *numbers_module = PyImport_ImportModule("numbers");
-  if (!numbers_module) return -1;
+  if (numbers_module == NULL) return -1;
   Rational = PyObject_GetAttrString(numbers_module, "Rational");
-  if (!Rational) {
+  if (Rational == NULL) {
     Py_DECREF(numbers_module);
     return -1;
   }
   Real = PyObject_GetAttrString(numbers_module, "Real");
   Py_DECREF(numbers_module);
-  if (!Real) {
+  if (Real == NULL) {
     Py_DECREF(Rational);
     return -1;
   }
@@ -2930,7 +2944,7 @@ static int load_number_interfaces() {
 
 static int mark_as_real(PyObject *python_type) {
   PyObject *register_method_name = PyUnicode_FromString("register");
-  if (!register_method_name) return -1;
+  if (register_method_name == NULL) return -1;
   PyObject *tmp =
 #if PY39_OR_MORE
       PyObject_CallMethodOneArg(Real, register_method_name, python_type);
@@ -2939,7 +2953,7 @@ static int mark_as_real(PyObject *python_type) {
 #endif
   ;
   Py_DECREF(register_method_name);
-  if (!tmp) return -1;
+  if (tmp == NULL) return -1;
   Py_DECREF(tmp);
   return 0;
 }
