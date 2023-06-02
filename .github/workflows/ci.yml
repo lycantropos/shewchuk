@@ -92,7 +92,7 @@ jobs:
         run: gcovr --filter src/ --xml -o coverage_c.xml
         if: ${{ !startsWith(matrix.python_version, 'pypy') }}
       - name: 'Upload PyPy coverage'
-        uses: codecov/codecov-action@v3.1.1
+        uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: false
           files: ./coverage.xml
@@ -358,7 +358,7 @@ jobs:
           name: dist
           path: dist
       - name: 'PyPI upload'
-        uses: pypa/gh-action-pypi-publish@v1.6.4
+        uses: pypa/gh-action-pypi-publish@v1.8.6
         with:
           packages_dir: dist
           password: ${{ secrets.PYPI_API_TOKEN }}
