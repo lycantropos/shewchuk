@@ -1670,6 +1670,7 @@ size_t vectors_cross_product_impl(double first_start_x, double first_start_y,
 }
 
 static PyObject *round_method_name = NULL;
+static PyObject *zero = NULL;
 static PyObject *Rational = NULL;
 static PyObject *Real = NULL;
 
@@ -2736,8 +2737,8 @@ static PyObject *Expansion_trunc(ExpansionObject *self,
   if (result == NULL) return NULL;
   double fraction =
       components_to_accumulated_fraction(self->size, self->components);
-  if ((fraction < 0.0 && Py_SIZE(result) > 0) ||
-      (fraction > 0.0 && Py_SIZE(result) < 0)) {
+  if ((fraction < 0.0 && PyObject_RichCompareBool(result, zero, Py_GT) == 1) ||
+      (fraction > 0.0 && PyObject_RichCompareBool(result, zero, Py_LT) == 1)) {
     PyObject *sign = PyLong_FromLong(Py_SIZE(result) > 0 ? 1 : -1);
     result = PyNumber_InPlaceSubtract(result, sign);
     Py_DECREF(sign);
@@ -2981,12 +2982,20 @@ PyMODINIT_FUNC PyInit__cshewchuk(void) {
     Py_DECREF(result);
     return NULL;
   }
+  zero = PyLong_FromLong(0);
+  if (zero == NULL) {
+    Py_DECREF(round_method_name);
+    Py_DECREF(result);
+    return NULL;
+  }
   if (load_number_interfaces() < 0) {
+    Py_DECREF(zero);
     Py_DECREF(round_method_name);
     Py_DECREF(result);
     return NULL;
   }
   if (mark_as_real((PyObject *)&ExpansionType) < 0) {
+    Py_DECREF(zero);
     Py_DECREF(round_method_name);
     Py_DECREF(Rational);
     Py_DECREF(Real);
