@@ -2737,11 +2737,26 @@ static PyObject *Expansion_trunc(ExpansionObject *self,
   if (result == NULL) return NULL;
   double fraction =
       components_to_accumulated_fraction(self->size, self->components);
-  if ((fraction < 0.0 && PyObject_RichCompareBool(result, zero, Py_GT) == 1) ||
-      (fraction > 0.0 && PyObject_RichCompareBool(result, zero, Py_LT) == 1)) {
-    PyObject *sign = PyLong_FromLong(Py_SIZE(result) > 0 ? 1 : -1);
-    result = PyNumber_InPlaceSubtract(result, sign);
-    Py_DECREF(sign);
+  if (fraction < 0.0) {
+    int is_whole_part_positive = PyObject_RichCompareBool(result, zero, Py_GT);
+    if (is_whole_part_positive < 0) {
+      Py_DECREF(result);
+      return NULL;
+    } else if (is_whole_part_positive > 0) {
+      PyObject *sign = PyLong_FromLong(1);
+      result = PyNumber_InPlaceSubtract(result, sign);
+      Py_DECREF(sign);
+    }
+  } else if (fraction > 0.0) {
+    int is_whole_part_negative = PyObject_RichCompareBool(result, zero, Py_LT);
+    if (is_whole_part_negative < 0) {
+      Py_DECREF(result);
+      return NULL;
+    } else if (is_whole_part_negative > 0) {
+      PyObject *sign = PyLong_FromLong(-1);
+      result = PyNumber_InPlaceSubtract(result, sign);
+      Py_DECREF(sign);
+    }
   }
   return result;
 }
