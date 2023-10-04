@@ -1,4 +1,4 @@
-import platform
+import sys
 
 from setuptools import (find_packages,
                         setup)
@@ -8,7 +8,7 @@ parameters = dict(packages=find_packages(exclude=('tests', 'tests.*')),
                   package_data={'shewchuk': ['__init__.pyi', 'py.typed']},
                   url=project_base_url,
                   download_url=project_base_url + 'archive/master.zip')
-if platform.python_implementation() == 'CPython':
+if sys.implementation.name == 'cpython':
     from glob import glob
 
     from setuptools import Extension
@@ -23,7 +23,9 @@ if platform.python_implementation() == 'CPython':
                 compile_args.append('-Werror')
                 compile_args.append('-Wall')
                 compile_args.append('-Wextra')
-                compile_args.append('-Wconversion')
+                if sys.version_info < (3, 12):
+                    # Python3.12 introduces conversion warnings
+                    compile_args.append('-Wconversion')
             elif compiler_type == 'msvc':
                 compile_args.append('/WX')
                 compile_args.append('/W3')
