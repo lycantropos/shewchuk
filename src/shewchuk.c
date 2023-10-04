@@ -1669,7 +1669,7 @@ size_t vectors_cross_product_impl(double first_start_x, double first_start_y,
       second_start_y, second_end_x, second_end_y, upper_bound, result);
 }
 
-static PyObject *PyFloat_round = NULL;
+static PyObject *round_method_name = NULL;
 static PyObject *Rational = NULL;
 static PyObject *Real = NULL;
 
@@ -2387,33 +2387,27 @@ static PyObject *Expansion_round(ExpansionObject *self, PyObject *args) {
     Py_DECREF(precision);
     return PyErr_NoMemory();
   }
-  PyObject *round_args = PyTuple_New(2);
-  if (round_args == NULL) {
-    Py_DECREF(precision);
-    PyMem_Free(result_components);
-    return NULL;
-  }
-  Py_INCREF(precision);
-  PyTuple_SET_ITEM(round_args, 1, precision);
   for (size_t index = 0; index < self->size; ++index) {
     PyObject *component = PyFloat_FromDouble(components[index]);
     if (component == NULL) {
-      Py_DECREF(round_args);
       PyMem_Free(result_components);
       return NULL;
     }
-    PyTuple_SET_ITEM(round_args, 0, component);
     PyObject *rounded_component =
-        PyObject_CallObject(PyFloat_round, round_args);
+#if PY39_OR_MORE
+        PyObject_CallMethodOneArg(component, round_method_name, precision)
+#else
+        PyObject_CallMethodObjArgs(component, round_method_name, precision,
+                                   NULL)
+#endif
+        ;
     if (rounded_component == NULL) {
-      Py_DECREF(round_args);
       PyMem_Free(result_components);
       return NULL;
     }
     result_components[index] = PyFloat_AS_DOUBLE(rounded_component);
     Py_DECREF(rounded_component);
   }
-  Py_DECREF(round_args);
   result_size = compress_components(result_size, result_components);
   if (result_size == 0) {
     PyMem_Free(result_components);
@@ -2938,11 +2932,6 @@ static PyModuleDef _cshewchuk_module = {
     .m_size = -1,
 };
 
-static int load_PyFloat_round() {
-  PyFloat_round = PyDict_GetItemString(PyFloat_Type.tp_dict, "__round__");
-  return PyFloat_round == NULL ? -1 : 0;
-}
-
 static int load_number_interfaces() {
   PyObject *numbers_module = PyImport_ImportModule("numbers");
   if (numbers_module == NULL) return -1;
@@ -2987,17 +2976,18 @@ PyMODINIT_FUNC PyInit__cshewchuk(void) {
     Py_DECREF(result);
     return NULL;
   }
-  if (load_PyFloat_round() < 0) {
+  round_method_name = PyUnicode_InternFromString("__round__");
+  if (round_method_name == NULL) {
     Py_DECREF(result);
     return NULL;
   }
   if (load_number_interfaces() < 0) {
-    Py_DECREF(PyFloat_round);
+    Py_DECREF(round_method_name);
     Py_DECREF(result);
     return NULL;
   }
   if (mark_as_real((PyObject *)&ExpansionType) < 0) {
-    Py_DECREF(PyFloat_round);
+    Py_DECREF(round_method_name);
     Py_DECREF(Rational);
     Py_DECREF(Real);
     Py_DECREF(result);
