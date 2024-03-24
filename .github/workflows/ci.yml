@@ -134,7 +134,7 @@ jobs:
       - name: 'Build sdist'
         run: python -m build --sdist
       - name: 'Upload sdist'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist
@@ -241,7 +241,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.python_tag }}-${{ matrix.platform.tag }}
           CIBW_BUILD_VERBOSITY: 1
       - name: 'Upload wheels'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: wheelhouse/*.whl
