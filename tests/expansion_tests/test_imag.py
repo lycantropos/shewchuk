@@ -27,5 +27,7 @@ def test_zeroness(expansion: Expansion) -> None:
 def test_reference_counter(expansion: Expansion) -> None:
     expansion_refcount_before = sys.getrefcount(expansion)
 
+    _ = expansion.imag
+
     expansion_refcount_after = sys.getrefcount(expansion)
-    assert expansion_refcount_after == expansion_refcount_before
+    assert expansion_refcount_after == expansion_refcount_before + 1
