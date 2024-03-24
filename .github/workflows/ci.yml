@@ -95,14 +95,14 @@ jobs:
         run: gcovr --filter src/ --xml -o coverage_c.xml
         if: ${{ !startsWith(matrix.python_version, 'pypy') && matrix.python_version != '3.12' }}
       - name: 'Upload PyPy coverage'
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: false
           files: ./coverage.xml
         if: ${{ startsWith(matrix.python_version, 'pypy') }}
         continue-on-error: true
       - name: 'Upload СPython coverage'
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: false
           files: ./coverage.xml,./coverage_c.xml
