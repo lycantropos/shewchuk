@@ -68,7 +68,7 @@ jobs:
         with:
           submodules: true
       - name: 'Setup Python'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.platform.python_architecture }}
@@ -128,7 +128,7 @@ jobs:
         with:
           submodules: true
       - name: 'Setup Python'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
       - name: 'Install packaging tools'
         run: python -m pip install -U build pip setuptools
       - name: 'Build sdist'
@@ -226,7 +226,7 @@ jobs:
         with:
           submodules: true
       - name: 'Setup Python'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           architecture: ${{ matrix.platform.python_architecture }}
       - name: 'Setup QEMU'
@@ -286,7 +286,7 @@ jobs:
             platform: { os: 'windows-latest', python_architecture: 'x64' }
     steps:
       - name: 'Setup Python'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.platform.python_architecture }}
