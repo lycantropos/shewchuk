@@ -230,7 +230,7 @@ jobs:
         with:
           architecture: ${{ matrix.platform.python_architecture }}
       - name: 'Setup QEMU'
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: all
         if: ${{ runner.os == 'Linux' }}
