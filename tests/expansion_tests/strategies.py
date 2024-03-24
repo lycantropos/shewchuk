@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import math
 from fractions import Fraction
 from functools import reduce
-from typing import Sequence, Tuple
+from typing import Sequence
 
 from hypothesis import strategies as _st
 
@@ -47,7 +49,7 @@ def _do_not_overlap(first: float, second: float) -> bool:
     return _two_add(first, second) == (min(first, second), max(first, second))
 
 
-def _two_add(left: float, right: float) -> Tuple[float, float]:
+def _two_add(left: float, right: float) -> tuple[float, float]:
     head = left + right
     right_virtual = head - left
     left_virtual = head - right_virtual
