@@ -15,10 +15,8 @@ max_examples = (
 settings.register_profile(
     'default',
     deadline=(timedelta(hours=1) / max_examples if on_ci else None),
-    max_examples=3 * 10**4,
+    max_examples=max_examples,
     suppress_health_check=[HealthCheck.filter_too_much, HealthCheck.too_slow],
-    verbosity=2,
-    print_blob=True,
 )
 
 
