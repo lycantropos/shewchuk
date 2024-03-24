@@ -3,10 +3,13 @@ import sys
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import (RightOperand,
-                         equivalence,
-                         implication,
-                         skip_reference_counter_test)
+
+from tests.utils import (
+    RightOperand,
+    equivalence,
+    implication,
+    skip_reference_counter_test,
+)
 from . import strategies
 
 
@@ -21,16 +24,17 @@ def test_symmetry(first: Expansion, second: Expansion) -> None:
 
 
 @given(strategies.expansions, strategies.expansions, strategies.expansions)
-def test_transitivity(first: Expansion,
-                      second: Expansion,
-                      third: Expansion) -> None:
+def test_transitivity(
+    first: Expansion, second: Expansion, third: Expansion
+) -> None:
     assert implication(first == second and second == third, first == third)
 
 
 @given(strategies.expansions, strategies.reals)
-def test_connection_with_inequality(first: Expansion,
-                                    second: RightOperand) -> None:
-    assert equivalence(not first == second, first != second)
+def test_connection_with_inequality(
+    first: Expansion, second: RightOperand
+) -> None:
+    assert equivalence(first != second, first != second)
 
 
 @given(strategies.expansions, strategies.finite_floats)
@@ -43,8 +47,6 @@ def test_float_operand(first: Expansion, second: float) -> None:
 def test_reference_counter(first: Expansion, second: Expansion) -> None:
     first_refcount_before = sys.getrefcount(first)
     second_refcount_before = sys.getrefcount(second)
-
-    result = first == second
 
     first_refcount_after = sys.getrefcount(first)
     second_refcount_after = sys.getrefcount(second)

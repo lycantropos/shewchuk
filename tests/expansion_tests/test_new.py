@@ -1,11 +1,11 @@
 from numbers import Rational
-from typing import (Any,
-                    Sequence)
+from typing import Any, Sequence
 
 import pytest
 from hypothesis import given
 
 from shewchuk import Expansion
+
 from . import strategies
 
 

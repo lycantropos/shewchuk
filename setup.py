@@ -1,19 +1,19 @@
 import sys
+import typing as t
 
-from setuptools import (find_packages,
-                        setup)
+from setuptools import find_packages, setup
 
 project_base_url = 'https://github.com/lycantropos/shewchuk/'
-parameters = dict(packages=find_packages(exclude=('tests', 'tests.*')),
-                  package_data={'shewchuk': ['__init__.pyi', 'py.typed']},
-                  url=project_base_url,
-                  download_url=project_base_url + 'archive/master.zip')
+parameters: dict[str, t.Any] = dict(
+    packages=find_packages(exclude=('tests', 'tests.*')),
+    url=project_base_url,
+    download_url=project_base_url + 'archive/master.zip',
+)
 if sys.implementation.name == 'cpython':
     from glob import glob
 
     from setuptools import Extension
     from setuptools.command.build_ext import build_ext
-
 
     class BuildExt(build_ext):
         def build_extensions(self) -> None:
@@ -33,10 +33,9 @@ if sys.implementation.name == 'cpython':
                 extension.extra_compile_args += compile_args
             super().build_extensions()
 
-
     parameters.update(
-            cmdclass={build_ext.__name__: BuildExt},
-            ext_modules=[Extension('shewchuk._cshewchuk', glob('src/*.c'))],
-            zip_safe=False
+        cmdclass={build_ext.__name__: BuildExt},
+        ext_modules=[Extension('shewchuk._cshewchuk', glob('src/*.c'))],
+        zip_safe=False,
     )
 setup(**parameters)

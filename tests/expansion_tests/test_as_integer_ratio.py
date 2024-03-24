@@ -1,6 +1,7 @@
 from hypothesis import given
 
 from shewchuk import Expansion
+
 from . import strategies
 
 

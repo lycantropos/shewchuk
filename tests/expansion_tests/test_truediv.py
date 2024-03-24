@@ -4,10 +4,13 @@ import pytest
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import (RightOperand,
-                         equivalence,
-                         is_expansion_valid,
-                         skip_reference_counter_test)
+
+from tests.utils import (
+    RightOperand,
+    equivalence,
+    is_expansion_valid,
+    skip_reference_counter_test,
+)
 from . import strategies
 
 
@@ -21,13 +24,15 @@ def test_basic(first: Expansion, second: RightOperand) -> None:
 
 @given(strategies.non_zero_expansions, strategies.non_zero_expansions)
 def test_commutative_case(first: Expansion, second: Expansion) -> None:
-    assert equivalence(first / second == second / first,
-                       abs(first) == abs(second))
+    assert equivalence(
+        first / second == second / first, abs(first) == abs(second)
+    )
 
 
 @given(strategies.zero_expansions, strategies.non_zero_reals_or_expansions)
-def test_left_absorbing_element(first: Expansion, second: RightOperand
-                                ) -> None:
+def test_left_absorbing_element(
+    first: Expansion, second: RightOperand
+) -> None:
     assert first / second == first
 
 
@@ -42,7 +47,7 @@ def test_reference_counter(first: Expansion, second: Expansion) -> None:
     first_refcount_before = sys.getrefcount(first)
     second_refcount_before = sys.getrefcount(second)
 
-    result = first / second
+    first / second
 
     first_refcount_after = sys.getrefcount(first)
     second_refcount_after = sys.getrefcount(second)

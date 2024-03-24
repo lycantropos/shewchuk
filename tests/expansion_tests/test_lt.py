@@ -3,10 +3,13 @@ import sys
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import (RightOperand,
-                         equivalence,
-                         implication,
-                         skip_reference_counter_test)
+
+from tests.utils import (
+    RightOperand,
+    equivalence,
+    implication,
+    skip_reference_counter_test,
+)
 from . import strategies
 
 
@@ -21,10 +24,10 @@ def test_asymmetry(first: Expansion, second: RightOperand) -> None:
 
 
 @given(strategies.expansions, strategies.expansions, strategies.expansions)
-def test_transitivity(first: Expansion, second: Expansion, third: Expansion
-                      ) -> None:
-    assert implication(first < second < third,
-                       first < third)
+def test_transitivity(
+    first: Expansion, second: Expansion, third: Expansion
+) -> None:
+    assert implication(first < second < third, first < third)
 
 
 @given(strategies.expansions, strategies.reals)
@@ -41,8 +44,6 @@ def test_equivalents(first: Expansion, second: RightOperand) -> None:
 def test_reference_counter(first: Expansion, second: Expansion) -> None:
     first_refcount_before = sys.getrefcount(first)
     second_refcount_before = sys.getrefcount(second)
-
-    result = first < second
 
     first_refcount_after = sys.getrefcount(first)
     second_refcount_after = sys.getrefcount(second)

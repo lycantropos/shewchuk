@@ -1,20 +1,19 @@
 import math
 from fractions import Fraction
 from functools import reduce
-from typing import (Sequence,
-                    Tuple)
+from typing import Sequence, Tuple
 
-from hypothesis import strategies
+from hypothesis import strategies as _st
 
 from shewchuk import Expansion
-from tests.strategies import finite_floats
-from tests.utils import (MAX_VALUE,
-                         pack)
 
-precisions = strategies.none() | strategies.integers(-10, 10)
-finite_floats = finite_floats
-integers = strategies.integers(-MAX_VALUE, MAX_VALUE)
-rationals = integers | strategies.fractions(-MAX_VALUE, MAX_VALUE)
+from tests import strategies as _strategies
+from tests.utils import MAX_VALUE, pack
+
+precisions = _st.none() | _st.integers(-10, 10)
+finite_floats = _strategies.finite_floats
+integers = _st.integers(-MAX_VALUE, MAX_VALUE)
+rationals = integers | _st.fractions(-MAX_VALUE, MAX_VALUE)
 reals = rationals | finite_floats
 
 
@@ -22,10 +21,10 @@ def is_floats_sequence_sum_finite(values: Sequence[float]) -> bool:
     return math.isfinite(2 * sum(map(abs, values)))
 
 
-finite_floats_sequences = (strategies.lists(finite_floats)
-                           .filter(is_floats_sequence_sum_finite))
-floats = strategies.floats(allow_infinity=True,
-                           allow_nan=True)
+finite_floats_sequences = _st.lists(finite_floats).filter(
+    is_floats_sequence_sum_finite
+)
+floats = _st.floats(allow_infinity=True, allow_nan=True)
 
 
 def is_invalid_floats_sequence(values: Sequence[float]) -> bool:
@@ -37,9 +36,11 @@ def is_invalid_floats_sequence(values: Sequence[float]) -> bool:
 
 
 def _are_non_overlapping(values: Sequence[float]) -> bool:
-    return all(_do_not_overlap(value, values[next_value_index])
-               for index, value in enumerate(values)
-               for next_value_index in range(index + 1, len(values)))
+    return all(
+        _do_not_overlap(value, values[next_value_index])
+        for index, value in enumerate(values)
+        for next_value_index in range(index + 1, len(values))
+    )
 
 
 def _do_not_overlap(first: float, second: float) -> bool:
@@ -56,19 +57,17 @@ def _two_add(left: float, right: float) -> Tuple[float, float]:
     return tail, head
 
 
-invalid_floats_sequences = (strategies.lists(floats)
-                            .filter(is_invalid_floats_sequence))
-expansions = strategies.builds(pack(Expansion), finite_floats_sequences)
-invalid_components = strategies.lists(rationals | expansions,
-                                      min_size=2)
+invalid_floats_sequences = _st.lists(floats).filter(is_invalid_floats_sequence)
+expansions = _st.builds(pack(Expansion), finite_floats_sequences)
+invalid_components = _st.lists(rationals | expansions, min_size=2)
 non_zero_expansions = expansions.filter(bool)
 non_zero_reals = reals.filter(bool)
 non_zero_reals_or_expansions = non_zero_reals | non_zero_expansions
 reals_or_expansions = reals | expansions
-zero_integers = strategies.builds(int)
-zero_rationals = zero_integers | strategies.builds(Fraction)
-zero_reals = zero_rationals | strategies.builds(float)
-zero_expansions = strategies.builds(Expansion)
+zero_integers = _st.builds(int)
+zero_rationals = zero_integers | _st.builds(Fraction)
+zero_reals = zero_rationals | _st.builds(float)
+zero_expansions = _st.builds(Expansion)
 zero_reals_or_expansions = zero_reals | zero_expansions
-ones = strategies.just(1) | strategies.just(1.0)
-ones |= strategies.builds(Expansion, ones)
+ones: _st.SearchStrategy[Expansion | float | int] = _st.just(1) | _st.just(1.0)
+ones |= _st.builds(Expansion, ones)

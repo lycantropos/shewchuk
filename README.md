@@ -46,7 +46,7 @@ cd shewchuk
 
 Install
 ```bash
-python setup.py install
+python -m pip install -e .
 ```
 
 Usage
@@ -104,7 +104,7 @@ Bump version
 bump2version --verbose $CATEGORY
 ```
 
-This will set version to `major.minor.patch-alpha`. 
+This will set version to `major.minor.patch-alpha`.
 
 #### Release
 
@@ -122,9 +122,9 @@ This will set version to `major.minor.patch`.
 
 ### Running tests
 
-Install dependencies
+Install with dependencies
 ```bash
-python -m pip install -r requirements-tests.txt
+python -m pip install -e .[tests]
 ```
 
 Plain

@@ -3,8 +3,8 @@ import sys
 from hypothesis import given
 
 from shewchuk import Expansion
-from tests.utils import (equivalence,
-                         skip_reference_counter_test)
+
+from tests.utils import equivalence, skip_reference_counter_test
 from . import strategies
 
 
@@ -18,7 +18,7 @@ def test_properties(expansion: Expansion) -> None:
 def test_reference_counter(expansion: Expansion) -> None:
     expansion_refcount_before = sys.getrefcount(expansion)
 
-    result = bool(expansion)
+    bool(expansion)
 
     expansion_refcount_after = sys.getrefcount(expansion)
     assert expansion_refcount_after == expansion_refcount_before
