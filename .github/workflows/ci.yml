@@ -245,6 +245,7 @@ jobs:
         with:
           name: dist
           path: wheelhouse/*.whl
+          overwrite: true
 
   test-distributions:
     name: Test distributions
