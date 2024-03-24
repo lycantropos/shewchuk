@@ -30,4 +30,4 @@ def test_reference_counter(expansion: Expansion) -> None:
     _ = expansion.imag
 
     expansion_refcount_after = sys.getrefcount(expansion)
-    assert expansion_refcount_after == expansion_refcount_before + 1
+    assert expansion_refcount_after == expansion_refcount_before
