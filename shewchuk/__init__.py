@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing as _t
 
-__version__ = '6.8.0'
+__version__ = '6.9.0-alpha'
 
 if _t.TYPE_CHECKING:
     from . import _shewchuk
