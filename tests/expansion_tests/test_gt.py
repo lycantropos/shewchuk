@@ -3,13 +3,13 @@ import sys
 from hypothesis import given
 
 from shewchuk import Expansion
-
 from tests.utils import (
     RightOperand,
     equivalence,
     implication,
     skip_reference_counter_test,
 )
+
 from . import strategies
 
 

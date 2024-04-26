@@ -8,7 +8,6 @@ from typing import Sequence
 from hypothesis import strategies as _st
 
 from shewchuk import Expansion
-
 from tests import strategies as _strategies
 from tests.utils import MAX_VALUE, pack
 

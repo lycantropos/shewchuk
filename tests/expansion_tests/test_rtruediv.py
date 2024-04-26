@@ -2,8 +2,8 @@ import pytest
 from hypothesis import given
 
 from shewchuk import Expansion
-
 from tests.utils import LeftOperand, is_expansion_valid
+
 from . import strategies
 
 

@@ -3,8 +3,8 @@ from typing import Optional
 from hypothesis import given
 
 from shewchuk import Expansion
-
 from tests.utils import to_sign
+
 from . import strategies
 
 

@@ -3,8 +3,8 @@ from typing import Tuple
 from hypothesis import given
 
 from shewchuk import kind, vectors_dot_product
-
 from tests.utils import exact_kind, to_sign
+
 from . import strategies
 
 

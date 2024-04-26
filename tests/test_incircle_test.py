@@ -3,8 +3,8 @@ from typing import Tuple
 from hypothesis import given
 
 from shewchuk import incircle_test
-
 from tests.utils import exact_incircle_test
+
 from . import strategies
 
 

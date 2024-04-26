@@ -3,8 +3,8 @@ from typing import Tuple
 from hypothesis import given
 
 from shewchuk import orientation, vectors_cross_product
-
 from tests.utils import exact_orientation, to_sign
+
 from . import strategies
 
 

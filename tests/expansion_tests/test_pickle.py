@@ -1,8 +1,8 @@
 from hypothesis import given
 
 from shewchuk import Expansion
-
 from tests.utils import pickle_round_trip
+
 from . import strategies
 
 

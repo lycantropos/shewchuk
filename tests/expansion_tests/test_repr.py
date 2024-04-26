@@ -4,8 +4,8 @@ from hypothesis import given
 
 import shewchuk
 from shewchuk import Expansion
-
 from tests.utils import skip_reference_counter_test
+
 from . import strategies
 
 
