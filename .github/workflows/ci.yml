@@ -311,7 +311,7 @@ jobs:
           name: dist
           path: dist
       - name: 'PyPI upload'
-        uses: pypa/gh-action-pypi-publish@v1.9.0
+        uses: pypa/gh-action-pypi-publish@v1.10.2
         with:
           packages_dir: dist
           password: ${{ secrets.PYPI_API_TOKEN }}
