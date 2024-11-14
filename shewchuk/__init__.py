@@ -9,7 +9,7 @@ from typing import (
     overload as _overload,
 )
 
-__version__ = '6.10.0-alpha'
+__version__ = '6.10.0'
 
 if TYPE_CHECKING:
     from typing_extensions import Self as _Self
