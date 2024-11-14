@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import pickle
 import platform
-import typing as _t
+from collections.abc import Iterable
 from fractions import Fraction
 from functools import partial
 from numbers import Rational
+from typing import Any, Callable, TypeVar, Union
 
 import pytest
 from hypothesis.strategies import SearchStrategy as Strategy
@@ -13,18 +14,16 @@ from hypothesis.strategies import SearchStrategy as Strategy
 import shewchuk
 from shewchuk import Expansion
 
-LeftOperand = _t.Union[Rational, float]
-RightOperand = _t.Union[Expansion, Rational, float]
+LeftOperand = Union[Rational, float]
+RightOperand = Union[Expansion, Rational, float]
 Strategy = Strategy
-Domain = _t.TypeVar('Domain')
-Range = _t.TypeVar('Range')
+Domain = TypeVar('Domain')
+Range = TypeVar('Range')
 
 MAX_VALUE = 10**50
 
 
-def apply(
-    function: _t.Callable[..., Range], args: tuple[Domain, ...]
-) -> Range:
+def apply(function: Callable[..., Range], args: tuple[Domain, ...]) -> Range:
     return function(*args)
 
 
@@ -126,12 +125,12 @@ def is_expansion_valid(expansion: Expansion) -> bool:
 
 
 def pack(
-    function: _t.Callable[..., Range],
-) -> _t.Callable[[_t.Iterable[Domain]], Range]:
+    function: Callable[..., Range],
+) -> Callable[[Iterable[Domain]], Range]:
     return partial(apply, function)
 
 
-def pickle_round_trip(value: _t.Any) -> _t.Any:
+def pickle_round_trip(value: Any) -> Any:
     return pickle.loads(pickle.dumps(value))
 
 
@@ -141,5 +140,5 @@ skip_reference_counter_test = pytest.mark.skipif(
 )
 
 
-def to_sign(value: _t.Any) -> int:
+def to_sign(value: Any) -> int:
     return 1 if value > 0 else (0 if not value else -1)

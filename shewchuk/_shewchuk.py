@@ -697,14 +697,15 @@ def _negate_components(components: Sequence[float]) -> Sequence[float]:
 
 
 def incircle_test(
-    _point_x: float,
-    _point_y: float,
-    _first_x: float,
-    _first_y: float,
-    _second_x: float,
-    _second_y: float,
-    _third_x: float,
-    _third_y: float,
+    point_x: float,
+    point_y: float,
+    first_x: float,
+    first_y: float,
+    second_x: float,
+    second_y: float,
+    third_x: float,
+    third_y: float,
+    /,
 ) -> int:
     """
     Computes location of point relative to a circle formed by three others
@@ -712,37 +713,38 @@ def incircle_test(
     """
     return _to_sign(
         _incircle_determinant_estimation(
-            _point_x,
-            _point_y,
-            _first_x,
-            _first_y,
-            _second_x,
-            _second_y,
-            _third_x,
-            _third_y,
+            point_x,
+            point_y,
+            first_x,
+            first_y,
+            second_x,
+            second_y,
+            third_x,
+            third_y,
         )
     )
 
 
 def kind(
-    _vertex_x: float,
-    _vertex_y: float,
-    _first_ray_point_x: float,
-    _first_ray_point_y: float,
-    _second_ray_point_x: float,
-    _second_ray_point_y: float,
+    vertex_x: float,
+    vertex_y: float,
+    first_ray_point_x: float,
+    first_ray_point_y: float,
+    second_ray_point_x: float,
+    second_ray_point_y: float,
+    /,
 ) -> int:
     """Computes kind of angle given its endpoints coordinates."""
     return _to_sign(
         _vectors_cross_product_estimation(
-            _vertex_x,
-            _vertex_y,
-            _first_ray_point_x,
-            _first_ray_point_y,
-            -_vertex_y,
-            _vertex_x,
-            -_second_ray_point_y,
-            _second_ray_point_x,
+            vertex_x,
+            vertex_y,
+            first_ray_point_x,
+            first_ray_point_y,
+            -vertex_y,
+            vertex_x,
+            -second_ray_point_y,
+            second_ray_point_x,
         )
     )
 
@@ -774,14 +776,15 @@ def orientation(
 
 
 def vectors_cross_product(
-    _first_start_x: float,
-    _first_start_y: float,
-    _first_end_x: float,
-    _first_end_y: float,
-    _second_start_x: float,
-    _second_start_y: float,
-    _second_end_x: float,
-    _second_end_y: float,
+    first_start_x: float,
+    first_start_y: float,
+    first_end_x: float,
+    first_end_y: float,
+    second_start_x: float,
+    second_start_y: float,
+    second_end_x: float,
+    second_end_y: float,
+    /,
 ) -> Expansion:
     """
     Computes cross product of two vectors
@@ -789,42 +792,43 @@ def vectors_cross_product(
     """
     return Expansion(
         *_vectors_cross_product(
-            _first_start_x,
-            _first_start_y,
-            _first_end_x,
-            _first_end_y,
-            _second_start_x,
-            _second_start_y,
-            _second_end_x,
-            _second_end_y,
+            first_start_x,
+            first_start_y,
+            first_end_x,
+            first_end_y,
+            second_start_x,
+            second_start_y,
+            second_end_x,
+            second_end_y,
         ),
         _compress=False,
     )
 
 
 def vectors_dot_product(
-    _first_start_x: float,
-    _first_start_y: float,
-    _first_end_x: float,
-    _first_end_y: float,
-    _second_start_x: float,
-    _second_start_y: float,
-    _second_end_x: float,
-    _second_end_y: float,
+    first_start_x: float,
+    first_start_y: float,
+    first_end_x: float,
+    first_end_y: float,
+    second_start_x: float,
+    second_start_y: float,
+    second_end_x: float,
+    second_end_y: float,
+    /,
 ) -> Expansion:
     """
     Computes dot product of two vectors given their endpoints coordinates.
     """
     return Expansion(
         *_vectors_cross_product(
-            _first_start_x,
-            _first_start_y,
-            _first_end_x,
-            _first_end_y,
-            -_second_start_y,
-            _second_start_x,
-            -_second_end_y,
-            _second_end_x,
+            first_start_x,
+            first_start_y,
+            first_end_x,
+            first_end_y,
+            -second_start_y,
+            second_start_x,
+            -second_end_y,
+            second_end_x,
         ),
         _compress=False,
     )
