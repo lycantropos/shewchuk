@@ -1,5 +1,6 @@
 [project]
 name = "shewchuk"
+description = "Robust floating point operations."
 authors = [{ name = "Azat Ibrakov", email = "azatibrakov@gmail.com" }]
 readme = "README.md"
 license = { file = "LICENSE" }
