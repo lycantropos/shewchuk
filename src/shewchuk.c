@@ -2076,9 +2076,17 @@ static PyObject *expansion_as_integer_ratio(ExpansionObject *self,
   return PyTuple_Pack(2, result_numerator, result_denominator);
 }
 
+int are_kwargs_passed(PyObject *kwargs) {
+  return kwargs != NULL &&
+         (!PyDict_CheckExact(kwargs) || PyDict_GET_SIZE(kwargs) != 0);
+}
+
 static PyObject *expansion_new(PyTypeObject *cls, PyObject *args,
                                PyObject *kwargs) {
-  if (!_PyArg_NoKeywords("Expansion", kwargs)) return NULL;
+  if (are_kwargs_passed(kwargs)) {
+    PyErr_Format(PyExc_TypeError, "Expansion() takes no keyword arguments");
+    return NULL;
+  }
   double *components;
   Py_ssize_t raw_size = PyTuple_Size(args);
   if (raw_size < 0) return NULL;
