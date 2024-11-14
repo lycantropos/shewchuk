@@ -20,7 +20,7 @@ from datetime import date
 import shewchuk
 
 project = shewchuk.__name__
-copyright = f'{date.today().year}, Azat Ibrakov'
+copyright = f'{date.today().year}, Azat Ibrakov'  # noqa: A001
 author = 'Azat Ibrakov'
 
 # The full version, including alpha/beta/rc tags

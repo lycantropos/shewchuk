@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from numbers import Rational
-from typing import Any, Sequence
+from typing import Any
 
 import pytest
 from hypothesis import given
@@ -58,5 +59,5 @@ def test_invalid_components_types(components: Sequence[Any]) -> None:
 
 @given(strategies.invalid_floats_sequences)
 def test_invalid_components_values(components: Sequence[float]) -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         Expansion(*components)

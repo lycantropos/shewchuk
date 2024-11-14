@@ -89,7 +89,7 @@ class Expansion:
             if _compress:
                 components = _compress_components(components)
         elif isinstance(_argument, Expansion):
-            components = _argument._components
+            components = _argument._components  # noqa: SLF001
         elif isinstance(_argument, float):
             components = [_argument]
         elif isinstance(_argument, int):
@@ -394,13 +394,9 @@ class Expansion:
             ) or _are_components_lesser_than_float(fractions, -0.5):
                 result += fraction_sign
             return result
-        else:
-            return Expansion(
-                *[
-                    round(component, precision)
-                    for component in self._components
-                ]
-            )
+        return Expansion(
+            *[round(component, precision) for component in self._components]
+        )
 
     def __rsub__(self, other: _t.Any) -> _t.Any:
         return (
@@ -620,7 +616,7 @@ def _invert_components(components: _t.Sequence[float]) -> _t.Sequence[float]:
     _, high = _split(first_approximation)
     if not _isfinite(high):
         raise OverflowError(
-            f'Components {components} ' 'are not finitely invertible.'
+            f'Components {components} are not finitely invertible.'
         )
     result: _t.Sequence[float] = [first_approximation]
     negated_components = _negate_components(components)
@@ -847,7 +843,7 @@ def _are_components_lesser_than(
     for offset in range(min(left_size, right_size)):
         if left[left_size - 1 - offset] < right[right_size - 1 - offset]:
             return True
-        elif left[left_size - 1 - offset] > right[right_size - 1 - offset]:
+        if left[left_size - 1 - offset] > right[right_size - 1 - offset]:
             return False
     return left_size != right_size and (
         right[right_size - left_size - 1] > 0.0
@@ -1683,13 +1679,11 @@ def _vectors_cross_product_estimation(
     if minuend > 0.0:
         if subtrahend <= 0.0:
             return result
-        else:
-            upper_bound = minuend + subtrahend
+        upper_bound = minuend + subtrahend
     elif minuend < 0.0:
         if subtrahend >= 0.0:
             return result
-        else:
-            upper_bound = -minuend - subtrahend
+        upper_bound = -minuend - subtrahend
     else:
         return result
     threshold = upper_bound_coefficient * upper_bound
@@ -1823,13 +1817,11 @@ def _vectors_cross_product(
     if minuend > 0.0:
         if subtrahend <= 0.0:
             return [estimation]
-        else:
-            upper_bound = minuend + subtrahend
+        upper_bound = minuend + subtrahend
     elif minuend < 0.0:
         if subtrahend >= 0.0:
             return [estimation]
-        else:
-            upper_bound = -minuend - subtrahend
+        upper_bound = -minuend - subtrahend
     else:
         return [estimation]
     threshold = upper_bound_coefficient * upper_bound

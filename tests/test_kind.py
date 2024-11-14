@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from hypothesis import given
 
 from shewchuk import kind, vectors_dot_product
@@ -10,7 +8,7 @@ from . import strategies
 
 @given(strategies.floats_sextuplets)
 def test_basic(
-    sextuplet: Tuple[float, float, float, float, float, float],
+    sextuplet: tuple[float, float, float, float, float, float],
 ) -> None:
     (
         vertex_x,
@@ -35,7 +33,7 @@ def test_basic(
 
 
 @given(strategies.floats_quadruplets)
-def test_endpoints(quadruplet: Tuple[float, float, float, float]) -> None:
+def test_endpoints(quadruplet: tuple[float, float, float, float]) -> None:
     (
         vertex_x,
         vertex_y,
@@ -66,7 +64,7 @@ def test_endpoints(quadruplet: Tuple[float, float, float, float]) -> None:
 
 @given(strategies.floats_sextuplets)
 def test_endpoints_permutation(
-    sextuplet: Tuple[float, float, float, float, float, float],
+    sextuplet: tuple[float, float, float, float, float, float],
 ) -> None:
     (
         vertex_x,
@@ -98,7 +96,7 @@ def test_endpoints_permutation(
 
 @given(strategies.floats_sextuplets)
 def test_alternatives(
-    sextuplet: Tuple[float, float, float, float, float, float],
+    sextuplet: tuple[float, float, float, float, float, float],
 ) -> None:
     (
         vertex_x,

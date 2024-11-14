@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from hypothesis import given
 
 from shewchuk import orientation, vectors_cross_product
@@ -10,7 +8,7 @@ from . import strategies
 
 @given(strategies.floats_sextuplets)
 def test_basic(
-    sextuplet: Tuple[float, float, float, float, float, float],
+    sextuplet: tuple[float, float, float, float, float, float],
 ) -> None:
     start_x, start_y, end_x, end_y, point_x, point_y = sextuplet
 
@@ -21,7 +19,7 @@ def test_basic(
 
 
 @given(strategies.floats_quadruplets)
-def test_endpoints(quadruplet: Tuple[float, float, float, float]) -> None:
+def test_endpoints(quadruplet: tuple[float, float, float, float]) -> None:
     start_x, start_y, end_x, end_y = quadruplet
 
     assert not orientation(start_x, start_y, end_x, end_y, start_x, start_y)
@@ -30,7 +28,7 @@ def test_endpoints(quadruplet: Tuple[float, float, float, float]) -> None:
 
 @given(strategies.floats_sextuplets)
 def test_endpoints_permutation(
-    sextuplet: Tuple[float, float, float, float, float, float],
+    sextuplet: tuple[float, float, float, float, float, float],
 ) -> None:
     start_x, start_y, end_x, end_y, point_x, point_y = sextuplet
 
@@ -43,7 +41,7 @@ def test_endpoints_permutation(
 
 @given(strategies.floats_sextuplets)
 def test_alternatives(
-    sextuplet: Tuple[float, float, float, float, float, float],
+    sextuplet: tuple[float, float, float, float, float, float],
 ) -> None:
     start_x, start_y, end_x, end_y, point_x, point_y = sextuplet
 

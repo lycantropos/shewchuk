@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from fractions import Fraction
 from functools import reduce
-from typing import Sequence
 
 from hypothesis import strategies as _st
 

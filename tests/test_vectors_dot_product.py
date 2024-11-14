@@ -1,4 +1,4 @@
-from typing import Tuple
+from __future__ import annotations
 
 from hypothesis import given
 
@@ -9,7 +9,7 @@ from . import strategies
 
 @given(strategies.floats_octuplets)
 def test_basic(
-    octuplet: Tuple[float, float, float, float, float, float, float, float],
+    octuplet: tuple[float, float, float, float, float, float, float, float],
 ) -> None:
     (
         first_start_x,
@@ -38,7 +38,7 @@ def test_basic(
 
 @given(strategies.floats_quadruplets)
 def test_perpendicular_endpoints(
-    quadruplet: Tuple[float, float, float, float],
+    quadruplet: tuple[float, float, float, float],
 ) -> None:
     first_start_x, first_start_y, first_end_x, first_end_y = quadruplet
 
@@ -56,7 +56,7 @@ def test_perpendicular_endpoints(
 
 @given(strategies.floats_octuplets)
 def test_segments_permutation(
-    octuplet: Tuple[float, float, float, float, float, float, float, float],
+    octuplet: tuple[float, float, float, float, float, float, float, float],
 ) -> None:
     (
         first_start_x,

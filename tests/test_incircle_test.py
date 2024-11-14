@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from hypothesis import given
 
 from shewchuk import incircle_test
@@ -10,7 +8,7 @@ from . import strategies
 
 @given(strategies.floats_octuplets)
 def test_basic(
-    octuplet: Tuple[float, float, float, float, float, float, float, float],
+    octuplet: tuple[float, float, float, float, float, float, float, float],
 ) -> None:
     (
         point_x,
@@ -40,7 +38,7 @@ def test_basic(
 
 @given(strategies.floats_octuplets)
 def test_alternatives(
-    octuplet: Tuple[float, float, float, float, float, float, float, float],
+    octuplet: tuple[float, float, float, float, float, float, float, float],
 ) -> None:
     (
         point_x,

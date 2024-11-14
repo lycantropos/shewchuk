@@ -28,7 +28,11 @@ def apply(
     return function(*args)
 
 
-def equivalence(left_statement: bool, right_statement: bool) -> bool:
+def equivalence(
+    left_statement: bool,  # noqa: FBT001
+    right_statement: bool,  # noqa: FBT001
+    /,
+) -> bool:
     return left_statement is right_statement
 
 
@@ -107,7 +111,11 @@ def exact_orientation(
     )
 
 
-def implication(antecedent: bool, consequent: bool) -> bool:
+def implication(
+    antecedent: bool,  # noqa: FBT001
+    consequent: bool,  # noqa: FBT001
+    /,
+) -> bool:
     return not antecedent or consequent
 
 
@@ -129,7 +137,7 @@ def pickle_round_trip(value: _t.Any) -> _t.Any:
 
 skip_reference_counter_test = pytest.mark.skipif(
     platform.python_implementation() == 'PyPy',
-    reason="PyPy's garbage collection " 'is not based on reference counting.',
+    reason='PyPy garbage collection is not based on reference counting.',
 )
 
 
