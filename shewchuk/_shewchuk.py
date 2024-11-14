@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import typing as _t
+from collections.abc import Sequence
 from functools import reduce as _reduce
 from itertools import repeat as _repeat
 from math import (
@@ -12,21 +12,22 @@ from math import (
 )
 from numbers import Rational as _Rational, Real as _Real
 from sys import float_info as _float_info
+from typing import Any, TYPE_CHECKING, final, overload
 
-import typing_extensions as _te
+if TYPE_CHECKING:
+    from typing_extensions import Protocol as _Protocol, Self as _Self
 
-
-class Number(_te.Protocol):
-    def __float__(self) -> float: ...
+    class Number(_Protocol):
+        def __float__(self) -> float: ...
 
 
 @_Real.register
-@_te.final
+@final
 class Expansion:
     """Represents floating point number expansion."""
 
     @property
-    def real(self) -> _te.Self:
+    def real(self) -> _Self:
         """The imaginary part of the expansion."""
         return self
 
@@ -54,18 +55,18 @@ class Expansion:
                 result_denominator //= gcd
         return result_numerator, result_denominator
 
-    _components: _t.Sequence[float]
+    _components: Sequence[float]
 
     __slots__ = ('_components',)
 
     def __new__(
         cls,
-        _argument: _te.Self | Number = 0.0,
+        _argument: _Self | Number = 0.0,
         *args: float,
         _compress: bool = True,
-    ) -> _te.Self:
+    ) -> _Self:
         self = super().__new__(cls)
-        components: _t.Sequence[float]
+        components: Sequence[float]
         if args:
             try:
                 invalid_component = (
@@ -99,7 +100,7 @@ class Expansion:
         else:
             raise TypeError(
                 'Argument should be of type '
-                f'{_te.Self!r}, {_Rational!r}, '
+                f'{_Self !r}, {_Rational!r}, '
                 f'{int!r} or {float!r}, '
                 f'but found: {type(_argument)!r}.'
             )
@@ -119,16 +120,16 @@ class Expansion:
         self._components = tuple(components)
         return self
 
-    def __abs__(self) -> _te.Self:
+    def __abs__(self) -> _Self:
         return +self if self._components[-1] > 0.0 else -self
 
-    @_t.overload
-    def __add__(self, other: _te.Self | Number) -> _te.Self: ...
+    @overload
+    def __add__(self, other: _Self | Number) -> _Self: ...
 
-    @_t.overload
-    def __add__(self, other: _t.Any) -> _t.Any: ...
+    @overload
+    def __add__(self, other: Any) -> Any: ...
 
-    def __add__(self, other: _t.Any) -> _t.Any:
+    def __add__(self, other: Any) -> Any:
         return (
             Expansion(*_add_components(self._components, other._components))
             if isinstance(other, Expansion)
@@ -143,13 +144,13 @@ class Expansion:
             _components_to_accumulated_fraction(self._components)
         )
 
-    @_t.overload
-    def __eq__(self, other: _te.Self | Number) -> bool: ...
+    @overload
+    def __eq__(self, other: _Self | Number) -> bool: ...
 
-    @_t.overload
-    def __eq__(self, other: _t.Any) -> _t.Any: ...
+    @overload
+    def __eq__(self, other: Any) -> Any: ...
 
-    def __eq__(self, other: _t.Any) -> _t.Any:
+    def __eq__(self, other: Any) -> Any:
         return (
             self._components == other._components
             if isinstance(other, Expansion)
@@ -179,13 +180,13 @@ class Expansion:
             _components_to_accumulated_fraction(self._components)
         )
 
-    @_t.overload
-    def __ge__(self, other: _te.Self | Number) -> bool: ...
+    @overload
+    def __ge__(self, other: _Self | Number) -> bool: ...
 
-    @_t.overload
-    def __ge__(self, other: _t.Any) -> _t.Any: ...
+    @overload
+    def __ge__(self, other: Any) -> Any: ...
 
-    def __ge__(self, other: _t.Any) -> _t.Any:
+    def __ge__(self, other: Any) -> Any:
         return (
             not _are_components_lesser_than(
                 self._components, other._components
@@ -210,13 +211,13 @@ class Expansion:
             )
         )
 
-    @_t.overload
-    def __gt__(self, other: _te.Self | Number) -> bool: ...
+    @overload
+    def __gt__(self, other: _Self | Number) -> bool: ...
 
-    @_t.overload
-    def __gt__(self, other: _t.Any) -> _t.Any: ...
+    @overload
+    def __gt__(self, other: Any) -> Any: ...
 
-    def __gt__(self, other: _t.Any) -> _t.Any:
+    def __gt__(self, other: Any) -> Any:
         return (
             _are_components_lesser_than(other._components, self._components)
             if isinstance(other, Expansion)
@@ -240,13 +241,13 @@ class Expansion:
     def __hash__(self) -> int:
         return hash(self._components)
 
-    @_t.overload
-    def __le__(self, other: _te.Self | Number) -> bool: ...
+    @overload
+    def __le__(self, other: _Self | Number) -> bool: ...
 
-    @_t.overload
-    def __le__(self, other: _t.Any) -> _t.Any: ...
+    @overload
+    def __le__(self, other: Any) -> Any: ...
 
-    def __le__(self, other: _te.Self | Number) -> _t.Any | bool:
+    def __le__(self, other: _Self | Number) -> Any | bool:
         return (
             not _are_components_lesser_than(
                 other._components, self._components
@@ -269,13 +270,13 @@ class Expansion:
             )
         )
 
-    @_t.overload
-    def __lt__(self, other: _te.Self | Number) -> bool: ...
+    @overload
+    def __lt__(self, other: _Self | Number) -> bool: ...
 
-    @_t.overload
-    def __lt__(self, other: _t.Any) -> _t.Any: ...
+    @overload
+    def __lt__(self, other: Any) -> Any: ...
 
-    def __lt__(self, other: _te.Self | Number) -> _t.Any | bool:
+    def __lt__(self, other: _Self | Number) -> Any | bool:
         return (
             _are_components_lesser_than(self._components, other._components)
             if isinstance(other, Expansion)
@@ -296,13 +297,13 @@ class Expansion:
             )
         )
 
-    @_t.overload
-    def __mul__(self, other: _te.Self | Number) -> _te.Self: ...
+    @overload
+    def __mul__(self, other: _Self | Number) -> _Self: ...
 
-    @_t.overload
-    def __mul__(self, other: _t.Any) -> _t.Any: ...
+    @overload
+    def __mul__(self, other: Any) -> Any: ...
 
-    def __mul__(self, other: _t.Any) -> _t.Any:
+    def __mul__(self, other: Any) -> Any:
         return (
             Expansion(
                 *_multiply_components(self._components, other._components)
@@ -311,15 +312,15 @@ class Expansion:
             else self.__rmul__(other)
         )
 
-    def __neg__(self) -> _te.Self:
+    def __neg__(self) -> _Self:
         return Expansion(
             *_negate_components(self._components), _compress=False
         )
 
-    def __pos__(self) -> _te.Self:
+    def __pos__(self) -> _Self:
         return self
 
-    def __radd__(self, other: _t.Any) -> _t.Any:
+    def __radd__(self, other: Any) -> Any:
         return (
             Expansion(*_add_float(self._components, other))
             if isinstance(other, float)
@@ -347,7 +348,7 @@ class Expansion:
             ', '.join(map(str, self._components))
         )
 
-    def __rmul__(self, other: _t.Any) -> _t.Any:
+    def __rmul__(self, other: Any) -> Any:
         return (
             Expansion(*_scale_components(self._components, other))
             if isinstance(other, float)
@@ -370,13 +371,13 @@ class Expansion:
             )
         )
 
-    @_t.overload
+    @overload
     def __round__(self, precision: None = ...) -> int: ...
 
-    @_t.overload
-    def __round__(self, precision: int) -> _te.Self: ...
+    @overload
+    def __round__(self, precision: int) -> _Self: ...
 
-    def __round__(self, precision: int | None = None) -> _te.Self | int:
+    def __round__(self, precision: int | None = None) -> _Self | int:
         if precision is None:
             result = _components_to_integer(self._components)
             fractions = _components_to_fractions(self._components)
@@ -398,7 +399,7 @@ class Expansion:
             *[round(component, precision) for component in self._components]
         )
 
-    def __rsub__(self, other: _t.Any) -> _t.Any:
+    def __rsub__(self, other: Any) -> Any:
         return (
             Expansion(*_subtract_from_double(other, self._components))
             if isinstance(other, float)
@@ -421,7 +422,7 @@ class Expansion:
             )
         )
 
-    def __rtruediv__(self, other: _t.Any) -> _t.Any:
+    def __rtruediv__(self, other: Any) -> Any:
         return (
             Expansion(*_divide_components([other], self._components))
             if isinstance(other, float)
@@ -444,13 +445,13 @@ class Expansion:
             )
         )
 
-    @_t.overload
-    def __sub__(self, other: _te.Self | Number) -> _te.Self: ...
+    @overload
+    def __sub__(self, other: _Self | Number) -> _Self: ...
 
-    @_t.overload
-    def __sub__(self, other: _t.Any) -> _t.Any: ...
+    @overload
+    def __sub__(self, other: Any) -> Any: ...
 
-    def __sub__(self, other: _t.Any) -> _t.Any:
+    def __sub__(self, other: Any) -> Any:
         return (
             Expansion(
                 *_subtract_components(self._components, other._components)
@@ -480,13 +481,13 @@ class Expansion:
             )
         )
 
-    @_t.overload
-    def __truediv__(self, other: _te.Self | Number) -> _te.Self: ...
+    @overload
+    def __truediv__(self, other: _Self | Number) -> _Self: ...
 
-    @_t.overload
-    def __truediv__(self, other: _t.Any) -> _t.Any: ...
+    @overload
+    def __truediv__(self, other: Any) -> Any: ...
 
-    def __truediv__(self, other: _t.Any) -> _t.Any:
+    def __truediv__(self, other: Any) -> Any:
         return (
             Expansion(*_divide_components(self._components, other._components))
             if isinstance(other, Expansion)
@@ -543,13 +544,13 @@ def _rational_to_components(value: _Rational) -> list[float]:
 
 
 def _are_components_equal_to_float(
-    components: _t.Sequence[float], value: float
+    components: Sequence[float], value: float
 ) -> bool:
     return len(components) == 1 and components[0] == value
 
 
 def _are_components_equal_to_int(
-    components: _t.Sequence[float], value: int
+    components: Sequence[float], value: int
 ) -> bool:
     return (
         _to_fraction(components[0]) == 0.0
@@ -558,13 +559,13 @@ def _are_components_equal_to_int(
 
 
 def _are_components_equal_to_rational(
-    components: _t.Sequence[float], value: _Rational
+    components: Sequence[float], value: _Rational
 ) -> bool:
     return components == tuple(_rational_to_components(value))
 
 
 def _are_components_lesser_than_float(
-    components: _t.Sequence[float], value: float
+    components: Sequence[float], value: float
 ) -> bool:
     return components[-1] < value or (
         len(components) > 1
@@ -574,7 +575,7 @@ def _are_components_lesser_than_float(
 
 
 def _are_components_lesser_than_int(
-    components: _t.Sequence[float], value: int
+    components: Sequence[float], value: int
 ) -> bool:
     components_integer = _components_to_integer(components)
     return components_integer < value or (
@@ -584,7 +585,7 @@ def _are_components_lesser_than_int(
 
 
 def _are_components_lesser_than_rational(
-    components: _t.Sequence[float], value: _Rational
+    components: Sequence[float], value: _Rational
 ) -> bool:
     return _are_components_lesser_than(
         components, _rational_to_components(value)
@@ -592,7 +593,7 @@ def _are_components_lesser_than_rational(
 
 
 def _divide_components(
-    dividend: _t.Sequence[float], divisor: _t.Sequence[float]
+    dividend: Sequence[float], divisor: Sequence[float]
 ) -> list[float]:
     return _multiply_components(dividend, _invert_components(divisor))
 
@@ -608,7 +609,7 @@ def _int_to_components(value: int) -> list[float]:
     return result[::-1]
 
 
-def _invert_components(components: _t.Sequence[float]) -> _t.Sequence[float]:
+def _invert_components(components: Sequence[float]) -> Sequence[float]:
     # based on Newton's method
     # https://en.wikipedia.org/wiki/Newton%27s_method
     # for f(x) = 1 / x
@@ -618,7 +619,7 @@ def _invert_components(components: _t.Sequence[float]) -> _t.Sequence[float]:
         raise OverflowError(
             f'Components {components} are not finitely invertible.'
         )
-    result: _t.Sequence[float] = [first_approximation]
+    result: Sequence[float] = [first_approximation]
     negated_components = _negate_components(components)
     for _ in _repeat(None, 6 + _ceil_log2(len(components))):
         result = _multiply_components(
@@ -633,7 +634,7 @@ def _ceil_log2(number: int) -> int:
 
 
 def _is_float_lesser_than_components(
-    value: float, components: _t.Sequence[float]
+    value: float, components: Sequence[float]
 ) -> bool:
     return value < components[-1] or (
         len(components) > 1
@@ -643,7 +644,7 @@ def _is_float_lesser_than_components(
 
 
 def _is_int_lesser_than_components(
-    value: int, components: _t.Sequence[float]
+    value: int, components: Sequence[float]
 ) -> bool:
     components_integer = _components_to_integer(components)
     return value < components_integer or (
@@ -653,16 +654,14 @@ def _is_int_lesser_than_components(
 
 
 def _is_rational_lesser_than_components(
-    value: _Rational, components: _t.Sequence[float]
+    value: _Rational, components: Sequence[float]
 ) -> bool:
     return _are_components_lesser_than(
         _rational_to_components(value), components
     )
 
 
-def _components_to_accumulated_fraction(
-    components: _t.Sequence[float],
-) -> float:
+def _components_to_accumulated_fraction(components: Sequence[float]) -> float:
     result = 0.0
     for component in components:
         component_fraction = _to_fraction(component)
@@ -673,9 +672,7 @@ def _components_to_accumulated_fraction(
     return result
 
 
-def _components_to_fractions(
-    components: _t.Sequence[float],
-) -> _t.Sequence[float]:
+def _components_to_fractions(components: Sequence[float]) -> Sequence[float]:
     result = []
     for component in components:
         component_fraction = _to_fraction(component)
@@ -685,7 +682,7 @@ def _components_to_fractions(
     return result or [0.0]
 
 
-def _components_to_integer(components: _t.Sequence[float]) -> int:
+def _components_to_integer(components: Sequence[float]) -> int:
     result = 0
     for component in reversed(components):
         component_integer = int(component)
@@ -695,7 +692,7 @@ def _components_to_integer(components: _t.Sequence[float]) -> int:
     return result
 
 
-def _negate_components(components: _t.Sequence[float]) -> _t.Sequence[float]:
+def _negate_components(components: Sequence[float]) -> Sequence[float]:
     return [-component for component in components]
 
 
@@ -837,7 +834,7 @@ _EPSILON = _float_info.epsilon / 2.0
 
 
 def _are_components_lesser_than(
-    left: _t.Sequence[float], right: _t.Sequence[float]
+    left: Sequence[float], right: Sequence[float]
 ) -> bool:
     left_size, right_size = len(left), len(right)
     for offset in range(min(left_size, right_size)):
@@ -853,7 +850,7 @@ def _are_components_lesser_than(
 
 
 def _add_components(
-    left: _t.Sequence[float], right: _t.Sequence[float]
+    left: Sequence[float], right: Sequence[float]
 ) -> list[float]:
     left_length, right_length = len(left), len(right)
     left_component, right_component = left[0], right[0]
@@ -909,9 +906,7 @@ def _add_components(
     return result
 
 
-def _add_float(
-    components: _t.Sequence[float], value: float
-) -> _t.Sequence[float]:
+def _add_float(components: Sequence[float], value: float) -> Sequence[float]:
     result = []
     accumulator = value
     for component in components:
@@ -932,7 +927,7 @@ def _compress_components(components: list[float]) -> list[float]:
     return components
 
 
-def _compress_components_single(components: _t.Sequence[float]) -> list[float]:
+def _compress_components_single(components: Sequence[float]) -> list[float]:
     bottom = len(components) - 1
     cursor = components[bottom]
     result = [0.0] * len(components)
@@ -965,7 +960,7 @@ def _fast_two_add(left: float, right: float) -> tuple[float, float]:
 
 
 def _multiply_components(
-    left: _t.Sequence[float], right: _t.Sequence[float]
+    left: Sequence[float], right: Sequence[float]
 ) -> list[float]:
     return _reduce(
         _add_components,
@@ -977,7 +972,7 @@ def _multiply_components(
 
 
 def _scale_components(
-    components: _t.Sequence[float], scalar: float
+    components: Sequence[float], scalar: float
 ) -> list[float]:
     components_iterator = iter(components)
     scalar_low, scalar_high = _split(scalar)
@@ -1023,8 +1018,8 @@ def _square(value: float) -> tuple[float, float]:
 
 
 def _subtract_components(
-    minuend: _t.Sequence[float], subtrahend: _t.Sequence[float]
-) -> _t.Sequence[float]:
+    minuend: Sequence[float], subtrahend: Sequence[float]
+) -> Sequence[float]:
     minuend_length, subtrahend_length = len(minuend), len(subtrahend)
     minuend_component, subtrahend_component = minuend[0], -subtrahend[0]
     minuend_index = subtrahend_index = 0
@@ -1089,14 +1084,14 @@ def _subtract_components(
 
 
 def _subtract_double(
-    minuend: _t.Sequence[float], subtrahend: float
-) -> _t.Sequence[float]:
+    minuend: Sequence[float], subtrahend: float
+) -> Sequence[float]:
     return _add_float(minuend, -subtrahend)
 
 
 def _subtract_from_double(
-    minuend: float, subtrahend: _t.Sequence[float]
-) -> _t.Sequence[float]:
+    minuend: float, subtrahend: Sequence[float]
+) -> Sequence[float]:
     result = []
     accumulator = minuend
     for subtrahend_component in subtrahend:
@@ -1216,8 +1211,8 @@ def _cross_product(
 
 
 def _scale_by_squared_length(
-    components: _t.Sequence[float], dx: float, dy: float
-) -> _t.Sequence[float]:
+    components: Sequence[float], dx: float, dy: float
+) -> Sequence[float]:
     dx_components = _scale_components(components, dx)
     dx_squared_components = _scale_components(dx_components, dx)
     dy_components = _scale_components(components, dy)
@@ -1239,7 +1234,7 @@ def _to_fraction(value: float) -> float:
 
 
 def _add_extras(
-    final_components: _t.Sequence[float],
+    final_components: Sequence[float],
     first_dx: float,
     first_dx_tail: float,
     first_dy: float,
@@ -1255,7 +1250,7 @@ def _add_extras(
     second_third_cross_product: tuple[float, float, float, float],
     second_squared_length: tuple[float, float, float, float],
     third_squared_length: tuple[float, float, float, float],
-) -> _t.Sequence[float]:
+) -> Sequence[float]:
     if first_dx_tail:
         first_dx_tail_second_third_cross_product = _scale_components(
             second_third_cross_product, first_dx_tail
@@ -1278,7 +1273,7 @@ def _add_extras(
         first_buffer_32 = _add_components(first_buffer_16, second_buffer_16)
         buffer_48 = _add_components(third_buffer_16, first_buffer_32)
         final_components = _add_components(final_components, buffer_48)
-    first_dy_tail_second_third_cross_product: _t.Sequence[float]
+    first_dy_tail_second_third_cross_product: Sequence[float]
     if first_dy_tail:
         first_dy_tail_second_third_cross_product = _scale_components(
             second_third_cross_product, first_dy_tail
@@ -1302,8 +1297,8 @@ def _add_extras(
         buffer_48 = _add_components(third_buffer_16, first_buffer_32)
         final_components = _add_components(final_components, buffer_48)
     if first_dx_tail or first_dy_tail:
-        second_third_cross_product_bodies: _t.Sequence[float]
-        second_third_cross_product_tails: _t.Sequence[float]
+        second_third_cross_product_bodies: Sequence[float]
+        second_third_cross_product_tails: Sequence[float]
         if second_dx_tail or second_dy_tail or third_dx_tail or third_dy_tail:
             dx_tail_dy_head_tail, dx_tail_dy_head_head = _two_multiply(
                 second_dx_tail, third_dy
@@ -1808,7 +1803,7 @@ def _vectors_cross_product(
     second_end_x: float,
     second_end_y: float,
     upper_bound_coefficient: float = (3.0 + 16.0 * _EPSILON) * _EPSILON,
-) -> _t.Sequence[float]:
+) -> Sequence[float]:
     minuend = (first_end_x - first_start_x) * (second_end_y - second_start_y)
     subtrahend = (first_end_y - first_start_y) * (
         second_end_x - second_start_x
@@ -1857,7 +1852,7 @@ def _adaptive_vectors_cross_product(
         (9.0 + 64.0 * _EPSILON) * _EPSILON * _EPSILON
     ),
     estimation_coefficient: float = (3.0 + 8.0 * _EPSILON) * _EPSILON,
-) -> _t.Sequence[float]:
+) -> Sequence[float]:
     minuend_x = first_end_x - first_start_x
     minuend_y = first_end_y - first_start_y
     subtrahend_x = second_end_x - second_start_x
