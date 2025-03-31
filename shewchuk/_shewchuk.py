@@ -100,7 +100,7 @@ class Expansion:
         else:
             raise TypeError(
                 'Argument should be of type '
-                f'{_Self !r}, {_Rational!r}, '
+                f'{_Self!r}, {_Rational!r}, '
                 f'{int!r} or {float!r}, '
                 f'but found: {type(_argument)!r}.'
             )
