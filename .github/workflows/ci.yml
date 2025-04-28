@@ -330,6 +330,7 @@ jobs:
         with:
           packages-dir: dist
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
           skip-existing: ${{ github.actor == 'dependabot[bot]' }}
         continue-on-error: true
       - name: 'Upload to PyPI'
