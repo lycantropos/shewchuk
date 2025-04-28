@@ -262,8 +262,7 @@ jobs:
   test-distributions:
     name: 'Test distributions'
     runs-on: ${{ matrix.platform.os }}
-#    needs: [ build-sdist, build-wheels ]
-    needs: [ build-sdist ]
+    needs: [ build-sdist, build-wheels ]
     strategy:
       matrix:
         python_version: [ '3.9', '3.10', '3.11', '3.12', '3.13' ]
@@ -333,7 +332,6 @@ jobs:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
           skip-existing: ${{ github.actor == 'dependabot[bot]' }}
-          verbose: true
         continue-on-error: true
       - name: 'Upload to PyPI'
         if: github.actor != 'dependabot[bot]'
