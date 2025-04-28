@@ -327,7 +327,7 @@ jobs:
           path: dist
           pattern: dist-*
       - name: 'Upload to Test PyPI'
-        uses: pypa/gh-action-pypi-publish@v1.12.3
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
@@ -337,7 +337,7 @@ jobs:
         continue-on-error: true
       - name: 'Upload to PyPI'
         if: github.actor != 'dependabot[bot]'
-        uses: pypa/gh-action-pypi-publish@v1.12.3
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
           password: ${{ secrets.PYPI_API_TOKEN }}
